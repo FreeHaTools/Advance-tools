@@ -439,6 +439,34 @@ If the cert files are missing, the add-on logs an error and falls back to
 HTTP so you're never locked out. Note: a self-signed certificate will show a
 browser warning on tablets — a real cert (Let's Encrypt / Duck DNS) won't.
 
+## The `domain` option (and the 404 it causes when it's wrong)
+
+`domain` is the **public address of this add-on** — the one your reverse
+proxy forwards to port 8234, for example `https://panel.example.com`. It is
+used for the "Open Admin Console" button on the sidebar page and for the
+shareable per-dashboard links in the admin console.
+
+It is **not** the address of Home Assistant. That is the mistake nearly
+everyone makes, because both are "my domain". Home Assistant has no `/admin`
+page, so entering its address makes the sidebar button open
+`https://your-ha-address/admin` and Home Assistant answers **404 Not Found**.
+
+Two examples, assuming NGINX in front of both:
+
+| You reach… | at | `domain` should be |
+|---|---|---|
+| Home Assistant | `https://home.example.com` → `192.168.1.3:8123` | *not this* |
+| Advance Tools | `https://panel.example.com` → `192.168.1.3:8234` | `https://panel.example.com` |
+
+Leave the field **empty** if you don't use a proxy — the sidebar page then
+links to the add-on's own address and port.
+
+The add-on checks this for you. At start-up it fetches `<domain>/health` and
+writes the verdict to the add-on log, and the sidebar page runs the same
+check in your browser: if something other than Advance Tools answers, it
+shows an explanation and falls back to the local address instead of sending
+you to a bare 404.
+
 ## Security notes
 
 - **There is no default password.** A fresh install opens a setup wizard

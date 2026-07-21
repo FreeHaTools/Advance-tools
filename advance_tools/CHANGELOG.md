@@ -3,6 +3,26 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.0.1
+
+Fixes the **404 Not Found** you get from the sidebar page when the `domain`
+option points at Home Assistant instead of at Advance Tools.
+
+- The **Configuration tab now explains every option** in plain English. The
+  `domain` field is labelled *"Public address of this add-on"* and says
+  outright that Home Assistant's own address will not work there — that
+  missing sentence was the whole bug.
+- The **sidebar page verifies the domain** before using it. It fetches
+  `<domain>/health`, and if anything other than Advance Tools answers it
+  explains what went wrong, tells you where to fix it, and points the button
+  at the local address instead of at a dead link.
+- The add-on **runs the same check at start-up** and writes the result to its
+  log, so the answer is already there when someone goes looking.
+- `/health` now reports `app` and `version`, and allows cross-origin reads so
+  the check above is possible. It still exposes nothing else.
+- New **"The `domain` option"** section in the documentation, with a worked
+  example of a reverse proxy in front of both Home Assistant and the add-on.
+
 ## 1.0.0 — First public release 🎉
 
 Advance Tools is a visual toolbox that runs beside Home Assistant as an

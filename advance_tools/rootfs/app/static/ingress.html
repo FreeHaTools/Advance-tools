@@ -9,7 +9,7 @@
   body { background:#0b0f19; color:#e8edf7; min-height:100vh; display:flex;
          align-items:center; justify-content:center; padding:20px; }
   .card { background:#161e2f; border:1px solid #28324c; border-radius:20px;
-          padding:40px 44px; text-align:center; max-width:420px;
+          padding:40px 44px; text-align:center; max-width:460px;
           box-shadow:0 20px 60px rgba(0,0,0,.45); }
   .logo { width:64px; height:64px; border-radius:18px; margin:0 auto 18px;
           display:flex; align-items:center; justify-content:center; font-size:30px;
@@ -20,6 +20,16 @@
           color:#fff; text-decoration:none; padding:14px 34px; border-radius:12px;
           font-size:15px; font-weight:700; }
   a.btn:active { transform:scale(.97); }
+  a.btn.wait { opacity:.55; pointer-events:none; }
+  .alt { margin-top:16px; font-size:12px; color:#8b98b8; line-height:1.8; }
+  .alt a { color:#7fb0ff; text-decoration:none; }
+  .warn { display:none; text-align:left; background:#2a1d16; border:1px solid #6b4526;
+          border-radius:12px; padding:14px 16px; margin-bottom:20px;
+          font-size:12.5px; line-height:1.8; color:#ffd9b0; }
+  .warn b { color:#ffb861; }
+  .warn code { background:#00000055; padding:1px 6px; border-radius:5px;
+               font-family:ui-monospace, Consolas, monospace; font-size:12px;
+               color:#ffe6c7; word-break:break-all; }
   .foot { margin-top:22px; font-size:11px; color:#5b6784; }
   .foot a { color:#8b98b8; text-decoration:none; }
 </style>
@@ -30,19 +40,93 @@
   <h1>Advance Tools</h1>
   <p>Multi-user dashboards for your wall tablets.<br>
      The admin console opens in a full window.</p>
-  <a class="btn" id="open" href="#" target="_top">Open Admin Console →</a>
+
+  <div class="warn" id="warn"></div>
+
+  <a class="btn wait" id="open" href="#" target="_top">Open Admin Console →</a>
+  <div class="alt" id="alt"></div>
+
   <div class="foot">Advance Tools · built by Mike Fattahi ·
     <a href="https://www.fattahi.us" target="_blank" rel="noopener">fattahi.us</a></div>
 </div>
 <script>
-  // Prefer the configured domain (injected by the server); otherwise build the
-  // direct IP link from the browser's current hostname.
-  const domain = "{{DOMAIN}}";
-  const url = domain
-    ? domain + "/admin"
-    : location.protocol + "//" + location.hostname + ":8234/admin";
-  const a = document.getElementById("open");
-  a.href = url;
+(function () {
+  // The add-on's own pages use absolute paths and cannot run under the ingress
+  // path prefix, so this launcher sends the browser to the real server instead.
+  // Which address that is depends on the Domain option, and getting that option
+  // wrong is the most common setup mistake there is: people enter the address of
+  // Home Assistant rather than the address of this add-on. Home Assistant has no
+  // /admin route, so the button lands on a bare 404 with nothing to explain it.
+  // Verify the domain before trusting it, and if something else is answering,
+  // say so in plain language instead of shipping the user to an error page.
+
+  var domain = "{{DOMAIN}}".replace(/\/+$/, "");
+  var local  = location.protocol + "//" + location.hostname + ":8234";
+  var btn    = document.getElementById("open");
+  var warn   = document.getElementById("warn");
+  var alt    = document.getElementById("alt");
+
+  function use(base, note) {
+    btn.href = base + "/admin";
+    btn.classList.remove("wait");
+    alt.innerHTML = note || "";
+  }
+
+  function link(base, label) {
+    return '<a href="' + base + '/admin" target="_top">' + label + '</a>';
+  }
+
+  if (!domain) {
+    use(local, "No Domain configured, so this uses the server's own address. " +
+               "If you reach Advance Tools through a reverse proxy, set " +
+               "<b>Domain</b> in the add-on Configuration.");
+    return;
+  }
+
+  // A plain-HTTP domain can't be checked from an HTTPS page: the browser blocks
+  // the request as mixed content, which looks identical to a real failure. Don't
+  // cry wolf over a domain that is probably fine — just use it.
+  if (domain.indexOf("http://") === 0 && location.protocol === "https:") {
+    use(domain, "Using <b>" + domain + "</b> · " + link(local, "use local address"));
+    return;
+  }
+
+  var done = false;
+  function settle(fn) { if (!done) { done = true; fn(); } }
+  setTimeout(function () { settle(bad); }, 6000);
+
+  function bad() {
+    // Still give the button somewhere useful to go, and name the exact value
+    // that was configured so the fix is obvious.
+    use(local, link(domain, "open " + domain + " anyway"));
+    warn.style.display = "block";
+    warn.innerHTML =
+      "<b>&#9888; That Domain doesn't answer as Advance Tools.</b><br>" +
+      "Whatever is at <code>" + domain + "</code>, it did not identify itself " +
+      "as this add-on &mdash; opening it would almost certainly show " +
+      "<b>404 Not Found</b>.<br><br>" +
+      "<b>Domain</b> is the public address of <b>this add-on</b>: the one your " +
+      "reverse proxy forwards to port <b>8234</b>. It is not the address of " +
+      "Home Assistant. Home Assistant has no <code>/admin</code> page, which is " +
+      "exactly where that 404 comes from.<br><br>" +
+      "Fix it under <b>Settings &rarr; Add-ons &rarr; Advance Tools &rarr; " +
+      "Configuration</b>, or clear the field to fall back to the local address. " +
+      "The button below now points at <code>" + local + "</code>.";
+  }
+
+  fetch(domain + "/health", { mode: "cors", cache: "no-store" })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) {
+      settle(function () {
+        if (j && j.app === "advance_tools") {
+          use(domain, "Using <b>" + domain + "</b> · " + link(local, "use local address"));
+        } else {
+          bad();
+        }
+      });
+    })
+    .catch(function () { settle(bad); });
+})();
 </script>
 </body>
 </html>

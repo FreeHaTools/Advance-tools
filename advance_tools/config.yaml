@@ -1,5 +1,5 @@
 name: Advance Tools
-version: "1.0.0"
+version: "1.0.1"
 # The slug is part of the add-on's identity in Home Assistant. Changing it
 # makes HA treat this as a brand-new add-on and orphan the existing /data
 # (users, dashboards, packs), so it must not change after release.

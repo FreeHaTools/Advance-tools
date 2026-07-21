@@ -34,7 +34,7 @@ from aiohttp import WSMsgType, web
 log = logging.getLogger("advance_tools")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-VERSION = "1.0.0"  # keep in sync with config.yaml
+VERSION = "1.0.1"  # keep in sync with config.yaml
 START_TIME = time.time()
 
 # ---------------------------------------------------------------- paths / env
@@ -480,7 +480,19 @@ async def page_hub(request):
 
 
 async def health(request):
-    return web.json_response({"ok": True, "ha_connected": HA.connected})
+    """Liveness probe, and the fingerprint the ingress launcher uses to tell
+    whether the configured Domain really points at this add-on.
+
+    The `app` field is what makes the check meaningful: a domain aimed at Home
+    Assistant, at a router, or at some other service will answer something —
+    just not this. CORS is open because the response carries no user data and
+    the launcher page is served from a different origin (the ingress port)
+    than the domain it needs to test.
+    """
+    return web.json_response(
+        {"ok": True, "app": "advance_tools", "version": VERSION,
+         "ha_connected": HA.connected},
+        headers={"Access-Control-Allow-Origin": "*"})
 
 # ---------------------------------------------------------------- routes: PWA
 
@@ -955,6 +967,52 @@ def _ssl_context():
     return ctx
 
 
+async def _probe_domain():
+    """Check that the configured Domain actually reaches this add-on, and put
+    the answer in the log where people look when something 404s.
+
+    The usual mistake is entering the address of Home Assistant instead of the
+    address of Advance Tools. Both are "my domain" to the person typing it, but
+    only one of them serves /admin — the other returns 404 and gives no clue
+    why. Advisory only: a setup where the container cannot reach its own public
+    hostname (no hairpin NAT, split-horizon DNS) is unusual but legitimate, so
+    nothing is disabled on the strength of this check.
+    """
+    domain = _public_domain()
+    if not domain:
+        return
+    await asyncio.sleep(2)       # let the listeners settle first
+    try:
+        import aiohttp
+        timeout = aiohttp.ClientTimeout(total=8)
+        async with aiohttp.ClientSession(timeout=timeout) as s:
+            async with s.get(domain + "/health", ssl=False) as r:
+                status = r.status
+                try:
+                    data = await r.json(content_type=None)
+                except Exception:
+                    data = None
+        if isinstance(data, dict) and data.get("app") == "advance_tools":
+            log.info("Domain %s verified — it reaches this add-on.", domain)
+            return
+        # Something answered but it isn't us. A 404 in particular is the
+        # signature of the address belonging to Home Assistant, which serves
+        # its own frontend and knows nothing about /health or /admin.
+        log.warning(
+            "Domain %s replied HTTP %s to /health.", domain, status)
+        log.warning(
+            "Domain %s answered, but not as Advance Tools. That address is "
+            "probably Home Assistant rather than this add-on; it has no /admin "
+            "page, so the sidebar button will show 404. Domain must point at "
+            "whatever your reverse proxy forwards to port %s, or be left empty.",
+            domain, PORT)
+    except Exception as e:
+        log.warning(
+            "Could not verify Domain %s (%s). If the sidebar button 404s, "
+            "check that this address reaches Advance Tools on port %s and not "
+            "Home Assistant itself.", domain, e.__class__.__name__, PORT)
+
+
 async def main():
     bootstrap()
     app = build_app()
@@ -970,6 +1028,7 @@ async def main():
         log.info("Extra HTTP listener on :%s", PORT + 1)
     await web.TCPSite(runner, "0.0.0.0", INGRESS_PORT).start()
     log.info("Ingress launcher on :%s (HA sidebar)", INGRESS_PORT)
+    asyncio.create_task(_probe_domain())
     await HA.run()               # returns immediately in dev mode
     while True:                  # keep alive when HA loop not running
         await asyncio.sleep(3600)

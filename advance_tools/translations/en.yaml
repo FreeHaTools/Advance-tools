@@ -1,0 +1,38 @@
+# Labels and help text shown on the add-on's Configuration tab in Home
+# Assistant. Without this file HA prints the raw option keys, which is how
+# "Domain" ended up being read as "the address of my Home Assistant" rather
+# than "the address of this add-on" — the cause of a 404 on the sidebar page.
+configuration:
+  ssl:
+    name: Serve over HTTPS
+    description: >-
+      Let Advance Tools terminate TLS itself, using a certificate from the
+      /ssl folder. Leave this off if a reverse proxy (NGINX, Caddy, Traefik,
+      Cloudflare Tunnel) already handles HTTPS for you — in that setup the
+      proxy talks plain HTTP to port 8234 and turning this on will break it.
+  certfile:
+    name: Certificate file
+    description: >-
+      Certificate file inside the /ssl folder, for example fullchain.pem.
+      Only used when "Serve over HTTPS" is on.
+  keyfile:
+    name: Private key file
+    description: >-
+      Private key file inside the /ssl folder, for example privkey.pem.
+      Only used when "Serve over HTTPS" is on.
+  keep_http:
+    name: Also keep a plain HTTP port
+    description: >-
+      When HTTPS is on, additionally listen on port 8235 without TLS. Useful
+      for old wall tablets whose browser rejects modern certificates.
+  domain:
+    name: Public address of this add-on
+    description: >-
+      The address you use to reach ADVANCE TOOLS from outside — not the
+      address of Home Assistant. It is whatever your reverse proxy forwards to
+      port 8234, for example https://panel.example.com. Home Assistant's own
+      address will not work here: it has no /admin page, so the sidebar button
+      would return 404. Leave this empty to use the local IP and port instead.
+network:
+  8234/tcp: Advance Tools web server (tablets connect here)
+  8235/tcp: Extra HTTP port (only used when HTTPS and "keep HTTP" are both on)
