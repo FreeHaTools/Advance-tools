@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System Center — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#5aa9ff; --acc2:#22b8cf;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --hover:rgba(90,169,255,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; flex-wrap:wrap; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; min-width:180px; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .ghost.danger:hover { color:var(--bad); border-color:var(--bad); }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#04121f;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; text-decoration:none;
+         display:inline-block; }
+  .btn:active { transform:scale(.98); }
+  .btn.sm { padding:8px 15px; font-size:12.5px; }
+  .btn.big { padding:15px 30px; font-size:15.5px; }
+  .btn.warn { background:linear-gradient(135deg,var(--warn),#ff9f6b); }
+  .btn[disabled] { opacity:.45; cursor:not-allowed; }
+
+  nav.tabs { display:flex; gap:8px; padding:0 22px; background:var(--bg2);
+             border-bottom:1px solid var(--line); position:sticky; top:66px;
+             z-index:19; overflow-x:auto; }
+  nav.tabs button { background:none; border:0; border-bottom:2px solid transparent;
+             color:var(--mut); padding:12px 14px; font-size:13.5px;
+             cursor:pointer; white-space:nowrap; }
+  nav.tabs button:hover { color:var(--txt); }
+  nav.tabs button.on { color:var(--acc); border-bottom-color:var(--acc); }
+
+  main { padding:22px 22px 90px; max-width:1080px; margin:0 auto; }
+  .view { display:none; } .view.on { display:block; }
+
+  .intro { background:var(--card); border:1px solid var(--line);
+           border-radius:16px; padding:18px 22px; margin-bottom:18px;
+           box-shadow:var(--shadow); }
+  .intro h2 { font-size:18px; margin-bottom:6px; }
+  .intro p { font-size:13px; color:var(--mut); line-height:1.8; }
+  .intro p + p { margin-top:8px; }
+
+  .panel { background:var(--card); border:1px solid var(--line);
+           border-radius:16px; padding:18px 20px; margin-bottom:16px;
+           box-shadow:var(--shadow); }
+  .panel > h3 { font-size:12px; color:var(--mut); text-transform:uppercase;
+           letter-spacing:.12em; margin-bottom:12px; }
+
+  .row { display:flex; align-items:center; gap:12px; background:var(--input);
+         border:1px solid var(--line); border-radius:11px; padding:10px 13px;
+         margin-bottom:7px; flex-wrap:wrap; }
+  .row .nm { flex:1 1 240px; min-width:0; }
+  .row .nm b { font-size:13px; display:block; overflow:hidden;
+         text-overflow:ellipsis; white-space:nowrap; }
+  .row .nm small { font-size:11px; color:var(--mut); display:block;
+         line-height:1.6; }
+  .row .sz { font-size:11.5px; color:var(--mut); font-family:Consolas, monospace;
+         white-space:nowrap; }
+  .row.new { border-color:rgba(62,207,142,.45); }
+  .row.over { border-color:rgba(255,184,107,.5); }
+  .row.off { opacity:.5; }
+  .row input[type=checkbox] { width:17px; height:17px; accent-color:var(--acc);
+         flex:0 0 auto; cursor:pointer; }
+
+  .pill { font-size:10px; padding:2px 9px; border-radius:12px;
+          border:1px solid var(--line); color:var(--mut); white-space:nowrap; }
+  .pill.on { color:var(--good); border-color:var(--good); }
+  .pill.off { color:var(--bad); border-color:var(--bad); }
+  .pill.warn { color:var(--warn); border-color:var(--warn); }
+
+  .warnbox, .okbox, .badbox { font-size:12.5px; line-height:1.75;
+          border-radius:11px; padding:11px 14px; margin-bottom:12px; }
+  .warnbox { color:var(--warn); background:rgba(255,184,107,.08);
+             border:1px solid rgba(255,184,107,.35); }
+  .okbox { color:var(--good); background:rgba(62,207,142,.07);
+             border:1px solid rgba(62,207,142,.3); }
+  .badbox { color:var(--bad); background:rgba(255,107,129,.07);
+             border:1px solid rgba(255,107,129,.35); }
+  .warnbox ul, .okbox ul, .badbox ul { padding-left:18px; margin-top:4px; }
+
+  .stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .stat { flex:1 1 130px; background:var(--input); border:1px solid var(--line);
+          border-radius:12px; padding:11px 14px; }
+  .stat b { font-size:19px; display:block; }
+  .stat small { font-size:10.5px; color:var(--mut); text-transform:uppercase;
+          letter-spacing:.09em; }
+
+  label.chk { display:flex; align-items:flex-start; gap:11px;
+          background:var(--input); border:1px solid var(--line);
+          border-radius:12px; padding:12px 14px; margin-bottom:8px;
+          cursor:pointer; }
+  label.chk:hover { border-color:var(--acc); }
+  label.chk input { width:17px; height:17px; accent-color:var(--acc);
+          margin-top:2px; flex:0 0 auto; }
+  label.chk .t b { font-size:13.5px; display:block; }
+  label.chk .t small { font-size:11.5px; color:var(--mut); line-height:1.7;
+          display:block; margin-top:3px; }
+
+  .segs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
+  .seg { flex:1 1 220px; background:var(--input); border:1px solid var(--line);
+         border-radius:12px; padding:12px 14px; cursor:pointer; }
+  .seg:hover { border-color:var(--acc); }
+  .seg.on { border-color:var(--acc); background:var(--hover); }
+  .seg b { font-size:13.5px; display:block; }
+  .seg small { font-size:11.5px; color:var(--mut); line-height:1.7;
+         display:block; margin-top:3px; }
+
+  .drop { border:2px dashed var(--line); border-radius:16px; padding:36px 22px;
+          text-align:center; cursor:pointer; background:var(--input); }
+  .drop:hover, .drop.hot { border-color:var(--acc); background:var(--hover); }
+  .drop .big { font-size:40px; margin-bottom:8px; }
+  .drop p { font-size:13px; color:var(--mut); line-height:1.8; }
+  .drop b { color:var(--txt); }
+
+  .summary { display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+             font-size:13px; color:var(--mut); }
+  .summary .sp { flex:1; }
+  .empty { text-align:center; color:var(--mut); font-size:13.5px;
+           padding:48px 20px; line-height:1.9; }
+  .note { font-size:11.5px; color:var(--mut); line-height:1.75; margin-top:8px; }
+  code, .mono { font-family:Consolas, monospace; font-size:12px; }
+
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.72); display:none;
+           z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+           padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(97vw, 620px); margin:0 auto;
+          padding:24px; box-shadow:var(--shadow); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead .micon { width:34px; height:34px; border-radius:10px; display:flex;
+          align-items:center; justify-content:center; font-size:17px;
+          background:var(--input); border:1px solid var(--line); }
+  .mhead h2 { font-size:17px; flex:1; }
+  .msub { color:var(--mut); font-size:12px; margin-bottom:14px; line-height:1.7; }
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:20px;
+           align-items:center; flex-wrap:wrap; }
+  .mfoot .sp { flex:1; }
+  .mbody { max-height:56vh; overflow-y:auto; margin-top:12px; }
+  .help h4 { font-size:13.5px; margin:16px 0 6px; }
+  .help p, .help li { font-size:13px; color:var(--mut); line-height:1.85; }
+  .help ul { padding-left:20px; }
+
+  #toasts { position:fixed; right:18px; bottom:18px; z-index:500; display:flex;
+        flex-direction:column; gap:8px; }
+  .toast { background:var(--bg2); border:1px solid var(--good); color:var(--txt);
+        border-radius:12px; padding:11px 16px; font-size:13px;
+        box-shadow:0 10px 30px rgba(0,0,0,.5); animation:tin .2s ease;
+        max-width:340px; line-height:1.6; }
+  .toast.bad { border-color:var(--bad); }
+  @keyframes tin { from { opacity:0; transform:translateY(8px); } }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .spinning { display:inline-block; animation:spin 1s linear infinite; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🧰</div>
+  <h1>System Center<small>support bundles, export &amp; import, rollback</small></h1>
+  <a class="ghost" href="/admin" target="_top">← Hub</a>
+  <button class="ghost" id="helpBtn" title="What does this tool actually do?">❓ How it works</button>
+</header>
+
+<nav class="tabs">
+  <button data-tab="bundle" class="on">🩹 Support bundle</button>
+  <button data-tab="export">📤 Export</button>
+  <button data-tab="import">📥 Import</button>
+  <button data-tab="rollback">↩ Rollback</button>
+</nav>
+
+<main>
+
+  <!-- ========================= support bundle ========================= -->
+  <section class="view on" id="viewBundle">
+    <div class="intro">
+      <h2>Everything a helper needs, nothing they shouldn't see</h2>
+      <p>This builds one zip that describes your installation: versions, how
+         Home Assistant is connected, which tools are loaded, your dashboards
+         in outline, the add-on's own log, and every tool's configuration.
+         It is meant to be sent to whoever is helping you debug a problem.</p>
+      <p>Before the zip is written, every value is passed through a
+         deny-by-default filter. Anything whose field name looks like a
+         password, PIN, hash, token, secret, key, credential, cookie, API,
+         webhook, chat id, e-mail or phone number is removed — and so is
+         anything that simply <i>looks</i> like a credential, whatever it is
+         called. The exact list of what went in and what came out is shown
+         below before you download anything.</p>
+    </div>
+
+    <div class="stats" id="bundleStats"></div>
+
+    <div class="panel">
+      <h3>What will be in the file</h3>
+      <div id="bundleWarn"></div>
+      <div id="bundleFiles">
+        <div class="empty"><span class="spinning">⏳</span> Building a preview…</div>
+      </div>
+    </div>
+
+    <div class="panel" id="bundleProblemsPanel" style="display:none">
+      <h3>Problems this bundle will report</h3>
+      <div id="bundleProblems"></div>
+    </div>
+
+    <div class="panel">
+      <div class="summary">
+        <span id="bundleSize">—</span>
+        <div class="sp"></div>
+        <button class="ghost" id="bundleRefresh">🔄 Rebuild preview</button>
+        <button class="btn big" id="bundleDownload" disabled>⬇ Download support bundle</button>
+      </div>
+      <p class="note">
+        <b>Where to send it:</b> attach the zip to your GitHub issue on the
+        Advance Tools repository, or to the forum thread / message where you
+        asked for help. Open it yourself first if you want to — it is a normal
+        zip and <code>report.md</code> is plain text. Nothing is uploaded
+        anywhere by this tool; the file only goes to your own downloads folder.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================= export ============================= -->
+  <section class="view" id="viewExport">
+    <div class="intro">
+      <h2>Your whole setup in one file</h2>
+      <p>Use this to move to a new Home Assistant box, to keep a snapshot
+         before you experiment, or to hand your setup to somebody else.
+         Unlike the support bundle, an export is <b>your own data and is not
+         redacted</b> — treat the file like a password manager export.</p>
+    </div>
+
+    <div class="panel">
+      <h3>What to include</h3>
+      <label class="chk">
+        <input type="checkbox" id="exDash" checked>
+        <div class="t"><b>Dashboards</b>
+          <small>Every dashboard's settings plus its full design, pages and
+             assets. This is the part you almost always want.</small></div>
+      </label>
+      <label class="chk">
+        <input type="checkbox" id="exTools" checked>
+        <div class="t"><b>Tool settings</b>
+          <small>Every tool's configuration file — alarm setup, notification
+             targets, schedules, backup rules, skin packs and so on.</small></div>
+      </label>
+      <label class="chk">
+        <input type="checkbox" id="exUsers" checked>
+        <div class="t"><b>Accounts</b>
+          <small>Account names, who is an admin, and which dashboards each
+             account may open.</small></div>
+      </label>
+    </div>
+
+    <div class="panel">
+      <h3>Passwords</h3>
+      <label class="chk">
+        <input type="checkbox" id="exCreds">
+        <div class="t"><b>Also include password hashes</b>
+          <small>Leave this off (recommended). Accounts are then recreated on
+             the new system without a password, and you set one there — which
+             also means this file is far less dangerous if it is ever leaked or
+             sits in a cloud folder.<br>
+             Turn it on only when you are migrating a system with many accounts
+             and want everybody's existing password to keep working. The file
+             then contains scrypt password hashes: they are not readable
+             passwords, but they can be attacked offline, so store the file
+             like a secret.</small></div>
+      </label>
+    </div>
+
+    <div class="panel">
+      <div class="summary">
+        <span id="exportSize">—</span>
+        <div class="sp"></div>
+        <button class="btn big" id="exportBtn">⬇ Download export</button>
+      </div>
+      <div id="exportFiles" style="margin-top:14px"></div>
+    </div>
+  </section>
+
+  <!-- ============================= import ============================= -->
+  <section class="view" id="viewImport">
+    <div class="intro">
+      <h2>Bring a setup in from a file</h2>
+      <p>Drop an export here. Nothing is applied until you have seen exactly
+         what the file contains and ticked what you want. A rollback point is
+         always written first, so any import can be undone.</p>
+    </div>
+
+    <div class="panel" id="importDropPanel">
+      <div class="drop" id="drop">
+        <div class="big">📦</div>
+        <p><b>Drop an Advance Tools export here</b><br>
+           or click to choose a <code>.zip</code> file</p>
+      </div>
+      <input type="file" id="fileInput" accept=".zip,application/zip" hidden>
+      <p class="note" id="importHint"></p>
+    </div>
+
+    <div id="importReview" style="display:none">
+      <div class="panel">
+        <h3>Where this file came from</h3>
+        <div id="importManifest"></div>
+        <div id="importWarnings" style="margin-top:12px"></div>
+      </div>
+
+      <div class="panel" id="impDashPanel">
+        <h3>Dashboards</h3>
+        <div id="impDash"></div>
+      </div>
+
+      <div class="panel" id="impToolPanel">
+        <h3>Tool settings</h3>
+        <div id="impTools"></div>
+      </div>
+
+      <div class="panel" id="impUserPanel">
+        <h3>Accounts</h3>
+        <div id="impUsers"></div>
+      </div>
+
+      <div class="panel">
+        <h3>How to handle things that already exist</h3>
+        <div class="segs">
+          <div class="seg on" data-mode="merge">
+            <b>Merge (recommended)</b>
+            <small>Keep what you have and lay the imported values on top.
+               Settings the file does not mention stay as they are.</small>
+          </div>
+          <div class="seg" data-mode="replace">
+            <b>Replace</b>
+            <small>Ticked items are wiped and rewritten exactly as they are in
+               the file. Anything you added locally to those items is lost.</small>
+          </div>
+        </div>
+        <p class="note">Neither mode ever deletes a dashboard, setting or
+           account that you did not tick.</p>
+      </div>
+
+      <div class="panel">
+        <div class="summary">
+          <span id="importStat">—</span>
+          <div class="sp"></div>
+          <button class="ghost" id="importCancel">Choose another file</button>
+          <button class="btn big" id="importApply" disabled>Review &amp; import…</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="importResult" style="display:none">
+      <div class="panel">
+        <h3>Result</h3>
+        <div id="importResultBody"></div>
+        <div class="summary" style="margin-top:14px">
+          <div class="sp"></div>
+          <button class="ghost" id="importAgain">📥 Import another file</button>
+          <button class="ghost" id="importToRollback">↩ Go to rollback</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ rollback ============================ -->
+  <section class="view" id="viewRollback">
+    <div class="intro">
+      <h2>Undo an import</h2>
+      <p>Every import copies the files it is about to touch into a restore
+         point first. The last <b id="rbKeep">5</b> are kept. Restoring puts
+         those files back exactly as they were — and takes a snapshot of the
+         current state first, so even a rollback can be rolled back.</p>
+    </div>
+    <div class="panel">
+      <h3>Restore points</h3>
+      <div id="rbList">
+        <div class="empty"><span class="spinning">⏳</span> Loading…</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- --------------------------- import confirm --------------------------- -->
+<div class="modal" id="confirmModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">⚠️</div>
+      <h2>About to change your installation</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub">Read this list. It is exactly what will happen when you
+      press Import.</div>
+    <div class="mbody" id="confirmBody"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn warn" id="confirmYes">Import now</button>
+    </div>
+  </div>
+</div>
+
+<!-- -------------------------- rollback confirm -------------------------- -->
+<div class="modal" id="rbModal">
+  <div class="mbox" style="width:min(97vw,520px)">
+    <div class="mhead"><div class="micon">↩</div>
+      <h2>Restore this point?</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="rbSub"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn warn" id="rbYes">Restore</button>
+    </div>
+  </div>
+</div>
+
+<!-- -------------------------------- help -------------------------------- -->
+<div class="modal" id="helpModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">❓</div>
+      <h2>How System Center works</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="help mbody">
+      <h4>The support bundle is safe to share</h4>
+      <p>It is built for exactly one purpose: giving a stranger enough
+         information to debug your installation without giving them anything
+         that could get into it. Every value goes through one redaction filter
+         that is deny-by-default — if a field name contains
+         <b>password, pin, hash, token, secret, key, credential, auth, cookie,
+         api, webhook, chat_id, email</b> or <b>phone</b>, the value is
+         replaced with <code>&lt;redacted&gt;</code> and so is everything
+         nested inside it.</p>
+      <p>On top of that, any string that simply <i>looks</i> like a credential
+         is removed whatever its field is called: long hex or base64 strings,
+         <code>Bearer …</code> headers, and URLs that carry a
+         <code>user:password@</code>. The filter deliberately errs on the side
+         of removing too much.</p>
+      <p>The bundle also leaves out your dashboard designs — only names, sizes,
+         widget counts and skin names are included, so your layout and your
+         personal room names are not published either. Before you download it,
+         the page shows every file that will be inside and how many values were
+         redacted. You can always open the zip and read
+         <code>report.md</code> yourself.</p>
+
+      <h4>The export is your own data and is NOT redacted</h4>
+      <p>Export exists to move or back up a setup, so it has to contain the
+         real values — your alarm configuration, your notification targets,
+         your dashboards. Treat the file like a password manager export: it
+         belongs on your own disk, not in a public issue tracker.</p>
+      <p>Password hashes are left out unless you explicitly tick the
+         credentials option, because that is the one part of an export that is
+         worth attacking offline. Without them, accounts arrive on the new
+         system and you set fresh passwords there.</p>
+      <p>Never send an export when someone asks for "your config" — send a
+         support bundle instead. That is what it is for.</p>
+
+      <h4>Imports always make a rollback point first</h4>
+      <p>Before a single file is written, System Center copies
+         <code>panel.json</code> and every configuration file and dashboard it
+         is about to touch into a timestamped restore point under the add-on's
+         data folder. The last five are kept. The Rollback tab restores any of
+         them, and takes a snapshot of the current state before it does, so you
+         can step back and forth.</p>
+      <p>You choose per item what to import, and whether existing items are
+         <b>merged</b> (your values kept, imported values laid on top) or
+         <b>replaced</b> (wiped and rewritten). Neither mode deletes anything
+         you did not tick.</p>
+
+      <h4>You cannot lock yourself out</h4>
+      <p>The account you are signed in with is protected. An import can never
+         delete it, never demote it out of admin, and never change its
+         password — if the file would do any of those, the import is refused or
+         that part is skipped, and you are told why. The same check runs again
+         after everything is written; if it fails, the whole import is rolled
+         back automatically.</p>
+
+      <h4>Malicious archives</h4>
+      <p>Uploaded zips are checked before anything is unpacked: absolute paths,
+         <code>..</code> traversal and symlinks are rejected, the number of
+         entries and the total unpacked size are capped, and suspicious
+         compression ratios are refused. An archive whose format version this
+         add-on does not understand is rejected outright, and one from a newer
+         version of Advance Tools produces a warning.</p>
+    </div>
+    <div class="mfoot"><div class="sp"></div>
+      <button class="btn" data-close>Got it</button></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Maker — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#4f8cff; --acc2:#7b5cff;
+    --ok:#3ecf8e; --bad:#ff6b81; --input:#0e1422; --hover:rgba(79,140,255,.08);
+    --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  body.light {
+    --bg:#eef1f8; --bg2:#ffffff; --card:#ffffff; --line:#dde3f0;
+    --txt:#17203a; --mut:#5b6784; --input:#f4f6fb; --hover:rgba(79,140,255,.07);
+    --shadow:0 8px 26px rgba(23,32,58,.10);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  html, body { overflow-x:hidden; max-width:100%; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         transition:background .25s, color .25s; }
+  img, pre, textarea, table, video { max-width:100%; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px; flex:0 0 auto;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; min-width:0; white-space:nowrap;
+              overflow:hidden; text-overflow:ellipsis; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .status { font-size:12px; color:var(--mut); white-space:nowrap; }
+  .status b.on { color:var(--ok); } .status b.off { color:var(--bad); }
+
+  nav { display:flex; gap:6px; padding:14px 22px 0; overflow-x:auto;
+        scrollbar-width:none; }
+  nav::-webkit-scrollbar { display:none; }
+  nav button { background:none; border:0; color:var(--mut); padding:10px 18px;
+               border-radius:10px; cursor:pointer; font-size:14px;
+               white-space:nowrap; flex:0 0 auto; }
+  nav button:hover { color:var(--txt); background:var(--hover); }
+  nav button.active { background:linear-gradient(135deg,var(--acc),var(--acc2));
+               color:#fff; font-weight:600; }
+
+  main { padding:18px 22px 60px; max-width:1150px; margin:0 auto; }
+  section { display:none; } section.active { display:block; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px;
+          padding:20px; margin-bottom:16px; box-shadow:var(--shadow); }
+  h2 { font-size:15px; margin-bottom:14px; }
+  h2 .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+            background:linear-gradient(135deg,var(--acc),var(--acc2));
+            margin-right:8px; vertical-align:2px; }
+  .toolbar { display:flex; align-items:center; gap:12px; margin-bottom:16px;
+             flex-wrap:wrap; }
+  .toolbar h2 { margin:0; flex:1; }
+
+  label { font-size:12px; color:var(--mut); display:block; margin:10px 0 4px; }
+  input[type=text], input[type=password], select, textarea {
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--input); color:var(--txt); font-size:14px; }
+  input:focus, textarea:focus, select:focus { outline:none; border-color:var(--acc); }
+  textarea.code { font-family:Consolas, monospace; font-size:13px; min-height:420px;
+                  white-space:pre; }
+  textarea.small { min-height:90px; font-family:Consolas, monospace; }
+  textarea.packjson { min-height:150px; font-family:Consolas, monospace; font-size:12px; }
+  button.btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff;
+               border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+               font-size:14px; font-weight:600; }
+  button.btn:active { transform:scale(.98); }
+  button.ghost, a.ghost { background:var(--hover); border:1px solid var(--line);
+               color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+               font-size:13px; text-decoration:none; display:inline-block;
+               white-space:nowrap; }
+  button.ghost:hover, a.ghost:hover { color:var(--txt); border-color:var(--acc); }
+  button.danger { border-color:rgba(255,107,129,.4); color:var(--bad); }
+  .iconbtn { width:38px; height:38px; padding:0 !important; text-align:center;
+             font-size:15px; line-height:36px; }
+
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:12px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--mut); font-size:11px; font-weight:600; text-transform:uppercase;
+       letter-spacing:.06em; }
+  tr.rowlink:hover td { background:var(--hover); }
+  td .dname { font-weight:600; }
+  td .dsub { font-size:11px; color:var(--mut); font-family:Consolas, monospace; }
+  .chip { display:inline-block; background:var(--hover); border:1px solid var(--line);
+          border-radius:7px; padding:3px 10px; font-size:12px; margin:1px;
+          color:var(--mut); }
+  .actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .checks { display:flex; flex-wrap:wrap; gap:10px; }
+  .checks label { display:flex; align-items:center; gap:5px; margin:0; font-size:13px;
+                  color:var(--txt); cursor:pointer; }
+  #toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+           background:var(--ok); color:#08291a; padding:11px 26px; border-radius:10px;
+           font-size:14px; display:none; z-index:200; box-shadow:var(--shadow); }
+  #toast.err { background:var(--bad); color:#2d0a12; }
+  .filelist li { display:flex; justify-content:space-between; padding:6px 0;
+                 border-bottom:1px dashed var(--line); font-size:13px; }
+  .hint { font-size:12px; color:var(--mut); margin-top:6px; line-height:1.9; }
+  pre.doc { background:var(--input); border:1px solid var(--line); border-radius:12px;
+       padding:16px; font-size:12px; line-height:1.7; overflow-x:auto;
+       font-family:Consolas, monospace; color:var(--txt); }
+  .doc b { color:var(--acc); }
+  .packrow { display:flex; align-items:center; gap:12px; padding:12px;
+       border:1px solid var(--line); border-radius:12px; margin-bottom:10px; }
+  .packrow .pi { width:38px; height:38px; border-radius:10px; display:flex;
+       align-items:center; justify-content:center; font-size:17px;
+       background:var(--hover); flex:0 0 auto; }
+  .packrow .pn { font-size:14px; font-weight:600; }
+  .packrow .pd { font-size:12px; color:var(--mut); }
+  .packrow .sp { flex:1; }
+  /* dashboard links */
+  .linkrow { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;
+             align-items:center; }
+  .dlink { display:flex; align-items:center; gap:7px; border:1px solid var(--line);
+           border-radius:9px; padding:5px 6px 5px 10px; background:var(--hover);
+           max-width:100%; }
+  .dlink .tag { font-size:10px; color:var(--mut); text-transform:uppercase;
+                letter-spacing:.06em; flex:0 0 auto; }
+  .dlink code { font-size:12px; color:var(--acc); font-family:Consolas, monospace;
+                overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dlink .copybtn { padding:3px 8px; flex:0 0 auto; }
+  /* entity picker */
+  .epicker { margin-top:10px; border:1px solid var(--line); border-radius:12px;
+             padding:12px; background:var(--hover); }
+  .epsearch { margin-bottom:8px; }
+  .eplist { max-height:340px; overflow-y:auto; border-radius:8px; }
+  .epdom { display:flex; align-items:center; gap:10px; position:sticky; top:0;
+           background:var(--card); padding:8px 6px 6px; font-size:11px;
+           color:var(--acc); text-transform:uppercase; letter-spacing:.08em;
+           border-bottom:1px solid var(--line); z-index:2; }
+  .epdom .cnt { color:var(--mut); text-transform:none; letter-spacing:0; }
+  .epdom button { margin-left:auto; padding:3px 10px; font-size:11px; }
+  .eprow { display:flex; align-items:center; gap:10px; padding:7px 6px;
+           border-bottom:1px dashed var(--line); cursor:pointer; font-size:13px; }
+  .eprow:hover { background:var(--hover); }
+  .eprow input { flex:0 0 auto; accent-color:var(--acc); width:15px; height:15px; }
+  .eprow .epname { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;
+                   white-space:nowrap; }
+  .eprow .epid { color:var(--mut); font-size:11px; font-family:Consolas, monospace;
+                 overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+                 max-width:45%; }
+  .eprow .epstate { color:var(--mut); font-size:11px; flex:0 0 auto; }
+  /* modal */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.6); display:none;
+           align-items:center; justify-content:center; z-index:100;
+           backdrop-filter:blur(3px); }
+  .modal.open { display:flex; }
+  .modal-box { background:var(--card); border:1px solid var(--line);
+               border-radius:18px; width:min(94vw,440px); padding:24px;
+               box-shadow:var(--shadow); }
+  .modal-box h2 { margin-bottom:4px; }
+  .modal-box .sub { color:var(--mut); font-size:12px; margin-bottom:10px; }
+
+  footer { margin:30px auto 0; padding:16px 22px; max-width:1150px;
+    border-top:1px solid var(--line); font-size:12px; color:var(--mut);
+    display:flex; gap:14px; flex-wrap:wrap; }
+  footer a { color:var(--acc); text-decoration:none; }
+
+  /* -------- responsive (phones + tablets in portrait) -------- */
+  @media (max-width: 820px) {
+    header { padding:10px 14px; gap:8px; }
+    header h1 small { display:none; }
+    header h1 { font-size:15px; }
+    header .ghost { padding:8px 11px; font-size:12px; }
+    .status { display:none; }
+    nav { padding:10px 12px 0; gap:4px; }
+    nav button { padding:9px 13px; font-size:13px; }
+    main { padding:14px 12px 50px; }
+    .card { padding:14px; border-radius:14px; }
+    h2 { font-size:14px; }
+
+    /* full-width form fields — kill the two-up 180px min-width rows */
+    .row > div { min-width:100% !important; flex:1 1 100% !important; }
+
+    /* BOTH tables → stacked, labelled cards (never scroll the page sideways) */
+    #dashtable thead, #usertable thead { display:none; }
+    #dashtable, #dashtable tbody, #dashtable tr, #dashtable td,
+    #usertable, #usertable tbody, #usertable tr, #usertable td { display:block; width:100%; }
+    #dashtable tr, #usertable tr { border:1px solid var(--line); border-radius:12px;
+        margin-bottom:12px; padding:10px 6px; background:var(--card); }
+    #dashtable td, #usertable td { border:0; padding:5px 12px; }
+    #dashtable td[data-l]::before, #usertable td[data-l]::before {
+        content:attr(data-l); display:block; font-size:10px; text-transform:uppercase;
+        letter-spacing:.06em; color:var(--mut); margin-bottom:3px; }
+    #usertable th:nth-child(3), #usertable td:nth-child(3) { display:block; }
+
+    /* touch-friendly action buttons */
+    .actions { justify-content:flex-start; gap:8px; }
+    .actions .iconbtn { width:42px; height:42px; line-height:40px; }
+    .actions .ghost { padding:9px 12px; font-size:13px; }
+
+    /* dashboard detail toolbar: title on its own line, buttons wrap below */
+    .toolbar { gap:8px; }
+    .toolbar h2 { flex:1 1 100%; font-size:15px; }
+
+    /* links + entity picker fit a narrow screen */
+    .dlink { max-width:100%; } .dlink code { max-width:52vw; }
+    .eprow .epid { display:none; }
+    .eplist { max-height:60vh; }
+    .eprow { padding:10px 6px; }   /* easier to tap */
+
+    pre.doc { font-size:11px; padding:12px; }
+    footer { padding:14px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">📊</div>
+  <h1>Dashboard Maker <small>Advance Tools</small></h1>
+  <span class="status">Home Assistant: <b id="hastat">…</b></span>
+  <a class="ghost" href="/admin" target="_top">⌂ Hub</a>
+  <button class="ghost iconbtn" id="themebtn" title="Light / dark mode">🌙</button>
+  <button class="ghost" onclick="logout()">Logout</button>
+</header>
+<nav>
+  <button data-tab="dash" class="active">📊 Dashboards</button>
+  <button data-tab="users">👥 Users</button>
+  <button data-tab="packs">📦 Packs</button>
+  <button data-tab="help">📖 Build your own</button>
+</nav>
+<main>
+  <!-- ================= dashboards: table + detail ================= -->
+  <section id="tab-dash" class="active">
+    <div id="dashlistview">
+      <div class="toolbar">
+        <h2><span class="dot"></span>Dashboards</h2>
+        <button class="btn" onclick="openNewDash()">＋ New dashboard</button>
+      </div>
+      <div class="card" style="padding:6px 14px">
+        <table id="dashtable"><thead>
+          <tr><th>Dashboard</th><th>Design</th><th>Entities</th><th>Users</th>
+              <th style="text-align:right">Actions</th></tr>
+        </thead><tbody></tbody></table>
+        <div id="dashempty" class="hint" style="display:none; padding:14px">
+          No dashboards yet — click <b>＋ New dashboard</b> to create your first one.</div>
+      </div>
+    </div>
+    <div id="dashdetail" style="display:none"></div>
+  </section>
+
+  <!-- ================= users ================= -->
+  <section id="tab-users">
+    <div class="card">
+      <h2><span class="dot"></span>New / edit user</h2>
+      <div class="row">
+        <div style="flex:1; min-width:180px"><label>Username</label>
+          <input type="text" id="u-name"></div>
+        <div style="flex:1; min-width:180px"><label>Password (empty = keep current)</label>
+          <input type="password" id="u-pass"></div>
+      </div>
+      <label>Dashboard access</label>
+      <div class="checks" id="u-dashes"></div>
+      <label style="margin-top:14px">
+        <span class="checks"><label><input type="checkbox" id="u-admin"> Admin (full access + admin panel)</label></span>
+      </label>
+      <div style="margin-top:14px"><button class="btn" onclick="saveUser()">Save user</button></div>
+    </div>
+    <div class="card">
+      <h2><span class="dot"></span>Users</h2>
+      <table id="usertable"><thead>
+        <tr><th>Username</th><th>Role</th><th>Dashboards</th><th></th></tr>
+      </thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- ================= packs ================= -->
+  <section id="tab-packs">
+    <div class="card">
+      <h2><span class="dot"></span>Installed packs</h2>
+      <div class="hint" style="margin-bottom:12px">Packs add card styles and control
+      skins to the Designer. Built-in packs are always available; imported ones are
+      listed below.</div>
+      <div id="packlist"></div>
+    </div>
+    <div class="card">
+      <h2><span class="dot"></span>Import a pack</h2>
+      <div class="hint">Paste the pack JSON, or choose a .json file. The format is
+      documented in <b>Build your own</b>.</div>
+      <textarea id="packjson" class="packjson" placeholder='{"pack":"advance-tools-pack","format":1,"name":"My Pack","items":[ … ]}'></textarea>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" onclick="importPack()">📥 Import</button>
+        <label class="ghost" style="cursor:pointer; margin:0">
+          Choose .json file
+          <input type="file" accept=".json,application/json" style="display:none"
+                 onchange="importPackFile(this.files[0])">
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= help ================= -->
+  <section id="tab-help">
+    <div class="card">
+      <h2><span class="dot"></span>The Advance Tools Pack format</h2>
+      <div class="hint">A pack is one JSON file holding any mix of <b>card styles</b>
+      and <b>skins</b> (switches, sockets, sensors, …). Import it in the Packs tab.</div>
+<pre class="doc">{
+  <b>"pack"</b>: "advance-tools-pack",   ← required, exactly this
+  <b>"format"</b>: 1,
+  <b>"name"</b>: "My First Pack",
+  <b>"author"</b>: "you",  <b>"version"</b>: "1.0.0",
+  <b>"items"</b>: [ …styles and skins… ]
+}</pre>
+    </div>
+    <div class="card">
+      <h2><span class="dot"></span>Example 1 — a card style</h2>
+      <div class="hint"><b>.CARD</b> is the card placeholder; <b>.CARD.on</b> = active
+      state. Any CSS works, including @keyframes (unique names).</div>
+<pre class="doc">{ "kind": <b>"style"</b>, "id": "lava", "name": "Lava", "category": "My styles",
+  "css": ".CARD { background:linear-gradient(135deg,#ff2d00,#ff9500); border:0; }
+          .CARD.on { box-shadow:0 0 28px #ff9500; }" }</pre>
+    </div>
+    <div class="card">
+      <h2><span class="dot"></span>Example 2 — a skin (a round smart button)</h2>
+      <div class="hint"><b>.SKIN</b> is your control's wrapper. <b>"for"</b> decides
+      behavior: <span class="chip">toggle</span> <span class="chip">light</span>
+      <span class="chip">sensor</span> <span class="chip">climate</span>
+      <span class="chip">button</span> <span class="chip">vacuum</span>
+      <span class="chip">cover</span> <span class="chip">valve</span>
+      <span class="chip">media</span> <span class="chip">clock</span>.
+      Tokens <b>{{name}} {{icon}} {{val}}</b> get filled; hook classes
+      (<b>at-name at-val at-ico</b>…) get live updates; state classes (<b>on</b>,
+      <b>open</b>, <b>cleaning</b>…) are toggled automatically. <b>"card": true</b> =
+      sits on a card that follows the Card Styles gallery.</div>
+<pre class="doc">{ "kind": <b>"skin"</b>, "id": "my-round", "name": "My round button",
+  "category": "My switches", <b>"for"</b>: "toggle", "size": [150, 160],
+  "html": "&lt;div class='b'&gt;{{icon}}&lt;/div&gt;&lt;div class='at-name'&gt;{{name}}&lt;/div&gt;",
+  "css": ".SKIN { display:flex; flex-direction:column; align-items:center;
+                  justify-content:center; gap:8px; }
+          .SKIN .b { width:70%; aspect-ratio:1; border-radius:50%; background:#222;
+                     display:flex; align-items:center; justify-content:center;
+                     font-size:30px; transition:.25s; }
+          .SKIN.on .b { background:var(--accent); box-shadow:0 0 20px var(--accent); }
+          .SKIN .at-name { font-size:12px; color:#8b98b8; }" }</pre>
+    </div>
+    <div class="card">
+      <h2><span class="dot"></span>Live hooks reference</h2>
+<pre class="doc"><b>Text hooks</b>: .at-name .at-val .at-ico .at-bat .at-title
+  .at-cur .at-tgt .at-tgt2 .at-nm   .at-arc = SVG arc (dasharray 0-100)
+<b>Action hooks</b>: climate .at-minus/.at-plus · vacuum .at-start/.at-pause/.at-dock
+  cover .at-up/.at-stop/.at-down · media .at-play/.at-prev/.at-next/.at-vup/.at-vdn
+  light .at-bri (range 0-100), tap target .at-main
+<b>State classes</b>: on unavail open closed opening closing cleaning docked
+  returning playing heat cool low
+<b>CSS vars</b>: var(--accent) · var(--pct) 0-100 (fill level)</pre>
+      <div class="hint">Tip: every built-in uses this exact format — open
+      <b>/static/packs.js</b> on this server and copy one as a starting point.</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>⚡ Dashboard Maker · Advance Tools · built by <b>Mike Fattahi</b></span>
+  <a href="https://www.fattahi.us" target="_blank" rel="noopener">fattahi.us</a>
+  <a href="https://github.com/FreeHaTools/Advance-tools" target="_blank"
+     rel="noopener">github.com/FreeHaTools</a>
+</footer>
+
+<!-- new dashboard modal -->
+<div class="modal" id="newdash">
+  <div class="modal-box">
+    <h2><span class="dot"></span>New dashboard</h2>
+    <div class="sub">Give it a short id (used in the link) and a display name.</div>
+    <label>Slug (a-z, 0-9, _ — e.g. bedroom1)</label>
+    <input type="text" id="nd-slug" placeholder="bedroom1" style="font-family:Consolas,monospace">
+    <label>Display name</label>
+    <input type="text" id="nd-name" placeholder="Bedroom 1">
+    <div class="row" style="margin-top:18px; justify-content:flex-end">
+      <button class="ghost" onclick="closeNewDash()">Cancel</button>
+      <button class="btn" onclick="createDash()">Create & open details</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="/static/dialog.js?v=130"></script>
+<script src="/static/admin.js?v=130"></script>
+</body>
+</html>

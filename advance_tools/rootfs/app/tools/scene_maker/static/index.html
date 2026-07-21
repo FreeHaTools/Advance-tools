@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scene Maker — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#c084fc; --acc2:#e879f9;
+    --bad:#ff6b81; --warn:#ffb86b; --ok:#3ecf8e; --input:#0e1422;
+    --hover:rgba(192,132,252,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#2a0a3a;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+  .btn.small { padding:8px 14px; font-size:13px; }
+
+  main { padding:20px 22px 60px; max-width:1080px; margin:0 auto; }
+  .toolbar { display:flex; align-items:center; gap:12px; margin-bottom:16px;
+             flex-wrap:wrap; }
+  .toolbar h2 { font-size:16px; }
+  .toolbar .sp { flex:1; }
+  .stat { font-size:12px; color:var(--mut); }
+  #search { width:220px; padding:9px 12px; border-radius:10px;
+            border:1px solid var(--line); background:var(--input);
+            color:var(--txt); font-size:13px; }
+  #search:focus { outline:none; border-color:var(--acc); }
+
+  /* ------- list ------- */
+  .scene { display:flex; align-items:center; gap:14px; background:var(--card);
+          border:1px solid var(--line); border-radius:14px; padding:14px 16px;
+          margin-bottom:10px; box-shadow:var(--shadow); }
+  .scene .ic { width:36px; height:36px; border-radius:10px; display:flex;
+          align-items:center; justify-content:center; font-size:18px;
+          background:rgba(192,132,252,.12); flex:0 0 auto; }
+  .scene .nm { flex:1; min-width:0; }
+  .scene .nm b { display:block; font-size:14px; overflow:hidden;
+                text-overflow:ellipsis; white-space:nowrap; }
+  .scene .nm span { font-size:11px; color:var(--mut); }
+  .badge { font-size:10px; padding:3px 9px; border-radius:20px;
+           border:1px solid var(--line); color:var(--mut); white-space:nowrap;
+           cursor:default; }
+  .badge.yaml { color:var(--warn); border-color:rgba(255,184,107,.4);
+           cursor:pointer; }
+  .acts { display:flex; gap:6px; align-items:center; flex-wrap:wrap;
+          justify-content:flex-end; }
+  .empty { text-align:center; color:var(--mut); padding:50px 0; font-size:14px; }
+
+  /* ------- hint (tooltip) system ------- */
+  .hint { display:inline-flex; align-items:center; justify-content:center;
+          width:16px; height:16px; border-radius:50%; border:1px solid var(--line);
+          background:var(--input); color:var(--mut); font-size:10px;
+          font-weight:700; cursor:help; margin-left:6px; vertical-align:1px;
+          user-select:none; flex:0 0 auto; }
+  .hint:hover { color:var(--acc2); border-color:var(--acc2); }
+  #tipbox { position:fixed; z-index:400; width:min(92vw, 360px);
+            background:#0d1424; border:1px solid var(--acc2); border-radius:14px;
+            padding:14px 16px; box-shadow:0 14px 40px rgba(0,0,0,.6);
+            display:none; font-size:12.5px; line-height:1.75; }
+  #tipbox b.t { display:block; color:var(--acc2); font-size:13px;
+                margin-bottom:4px; }
+  #tipbox .ex { margin-top:8px; background:var(--input); border:1px solid
+                var(--line); border-left:3px solid var(--acc); border-radius:8px;
+                padding:8px 11px; font-family:Consolas, monospace; font-size:11.5px;
+                white-space:pre-wrap; color:#e6d4f2; }
+  #tipbox .ex::before { content:'EXAMPLE'; display:block; font-family:"Segoe UI";
+                font-size:9px; letter-spacing:.12em; color:var(--mut);
+                margin-bottom:3px; }
+
+  /* ------- builder ------- */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.7); display:none;
+           z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+           padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(98vw, 1060px); margin:0 auto;
+          padding:24px; box-shadow:var(--shadow); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead h2 { font-size:17px; flex:1; }
+  .msub { color:var(--mut); font-size:12px; margin-bottom:16px; }
+  .cols { display:grid; grid-template-columns:1fr 320px; gap:20px; }
+  @media (max-width:920px) { .cols { grid-template-columns:1fr; } }
+
+  label { font-size:12px; color:var(--mut); display:flex; align-items:center;
+          margin:10px 0 4px; }
+  input[type=text], input[type=number], select, textarea {
+    width:100%; padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--input); color:var(--txt); font-size:13.5px; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--acc); }
+  textarea.json { font-family:Consolas, monospace; font-size:12px;
+    min-height:44px; }
+  .grid { display:grid; gap:10px; } .g2 { grid-template-columns:1fr 1fr; }
+  @media (max-width:640px){ .g2 { grid-template-columns:1fr; } }
+
+  /* snapshot section */
+  .fsec { border-radius:14px; border:1px solid var(--line); background:var(--input);
+          padding:14px 16px 16px; margin-top:16px; position:relative; }
+  .fsec.snap { border-left:4px solid var(--acc2); }
+  .fsec.ents { border-left:4px solid var(--ok); }
+  .fsec > .fh { display:flex; align-items:center; gap:9px; }
+  .fsec > .fh b { font-size:13.5px; letter-spacing:.02em; }
+  .fsec > .fh .fi { width:26px; height:26px; border-radius:8px; display:flex;
+        align-items:center; justify-content:center; font-size:14px; }
+  .fsec.snap .fi { background:rgba(232,121,249,.15); }
+  .fsec.ents .fi { background:rgba(62,207,142,.15); }
+  .fsec > .fh .fd { font-size:11px; color:var(--mut); flex:1; }
+  .conn { width:2px; height:18px; margin-left:28px; background:var(--line); }
+
+  /* area entity checklist */
+  #area-ents { margin-top:11px; max-height:260px; overflow-y:auto;
+        border:1px solid var(--line); border-radius:12px; background:var(--card);
+        display:none; }
+  .aent { display:flex; align-items:center; gap:9px; padding:8px 12px;
+        border-bottom:1px solid rgba(40,50,76,.5); font-size:12.5px;
+        cursor:pointer; user-select:none; }
+  .aent:last-child { border-bottom:0; }
+  .aent:hover { background:var(--hover); }
+  .aent input { width:auto; }
+  .aent .an { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;
+        white-space:nowrap; }
+  .aent .ad { color:var(--mut); font-size:10.5px;
+        font-family:Consolas, monospace; }
+  .aent .ast { color:var(--acc2); font-size:11px; flex:0 0 auto; }
+  .snaprow { display:flex; gap:8px; margin-top:11px; flex-wrap:wrap;
+        align-items:center; }
+  .snaprow .mini { font-size:11.5px; color:var(--mut); cursor:pointer;
+        text-decoration:underline; }
+  .snaprow .mini:hover { color:var(--txt); }
+
+  /* entity blocks */
+  .block { border:1px solid var(--line); border-radius:12px; background:var(--card);
+           padding:12px 14px 13px; margin-top:11px; position:relative; }
+  .block .bh { display:flex; align-items:center; gap:8px; }
+  .block .bh .bi { font-size:15px; }
+  .block .bh b { font-size:13px; flex:1; min-width:0; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .block .bh .bid { color:var(--mut); font-size:10.5px;
+           font-family:Consolas, monospace; }
+  .block .rm { background:none; border:0; color:var(--mut); cursor:pointer;
+           font-size:14px; padding:2px 6px; }
+  .block .rm:hover { color:var(--bad); }
+  .block .resnap { background:none; border:0; color:var(--mut); cursor:pointer;
+           font-size:13px; padding:2px 6px; }
+  .block .resnap:hover { color:var(--acc2); }
+
+  /* combo (searchable dropdown) */
+  .combo-wrap { position:relative; flex:1; min-width:200px; }
+  .combo-list { position:absolute; left:0; right:0; top:calc(100% + 4px);
+        max-height:240px; overflow-y:auto; background:#0d1424;
+        border:1px solid var(--acc2); border-radius:10px; z-index:60;
+        display:none; box-shadow:0 14px 34px rgba(0,0,0,.55); }
+  .combo-list.open { display:block; }
+  .combo-it { padding:8px 12px; cursor:pointer; font-size:12.5px;
+        display:flex; gap:8px; align-items:baseline; }
+  .combo-it:hover, .combo-it.sel { background:rgba(232,121,249,.12); }
+  .combo-it .cn { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;
+        white-space:nowrap; }
+  .combo-it .cid { color:var(--mut); font-size:10.5px;
+        font-family:Consolas, monospace; overflow:hidden; text-overflow:ellipsis;
+        white-space:nowrap; max-width:46%; }
+  .combo-it .cst { color:var(--acc); font-size:10.5px; flex:0 0 auto; }
+
+  /* preview / side panel */
+  .side { position:sticky; top:14px; align-self:start; }
+  .side .sh { font-size:11px; color:var(--mut); text-transform:uppercase;
+        letter-spacing:.1em; margin:2px 0 8px; }
+  #preview { background:#0a0f1c; border:1px solid var(--line); border-radius:12px;
+        padding:13px 15px; font-family:Consolas, monospace; font-size:11.5px;
+        line-height:1.7; white-space:pre-wrap; color:#d9c6ea; max-height:420px;
+        overflow-y:auto; }
+  .sidehelp { margin-top:14px; background:var(--input); border:1px solid var(--line);
+        border-radius:12px; padding:12px 14px; font-size:11.5px; color:var(--mut);
+        line-height:1.8; }
+  .sidehelp b { color:var(--txt); }
+
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:20px;
+           align-items:center; flex-wrap:wrap; }
+  .err { background:#3a1a22; border:1px solid #7a2a3a; color:#ff9aae;
+         border-radius:10px; padding:10px 13px; margin-top:12px; font-size:13px;
+         display:none; line-height:1.7; }
+
+  /* info modal */
+  .imodal { position:fixed; inset:0; background:rgba(4,7,14,.7); display:none;
+        align-items:center; justify-content:center; z-index:300;
+        backdrop-filter:blur(3px); padding:16px; }
+  .imodal.open { display:flex; }
+  .ibox { background:var(--card); border:1px solid var(--line); border-radius:16px;
+        width:min(94vw, 460px); padding:24px; box-shadow:var(--shadow); }
+  .ibox h3 { font-size:15px; margin-bottom:10px; }
+  .ibox p { font-size:13px; color:var(--mut); line-height:1.9; margin-bottom:8px; }
+  .ibox code { background:var(--input); border-radius:6px; padding:2px 7px;
+        font-size:12px; color:var(--acc2); }
+
+  #toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+           background:var(--acc); color:#2a0a3a; padding:11px 26px;
+           border-radius:10px; font-size:14px; display:none; z-index:500;
+           font-weight:600; box-shadow:var(--shadow); }
+  #toast.bad { background:var(--bad); color:#2d0a12; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🎬</div>
+  <h1>Scene Maker <small>Advance Tools</small></h1>
+  <a class="ghost" href="/admin" target="_top">⌂ Hub</a>
+</header>
+<main>
+  <div class="toolbar">
+    <h2>Scenes</h2>
+    <span class="stat" id="stat">loading…</span>
+    <span class="sp"></span>
+    <input id="search" type="text" placeholder="🔍 Search scenes…">
+    <button class="btn" onclick="openBuilder()">＋ New scene</button>
+  </div>
+  <div id="list"></div>
+</main>
+
+<!-- ================= builder ================= -->
+<div class="modal" id="builder">
+  <div class="mbox">
+    <div class="mhead">
+      <h2 id="b-title">New scene</h2>
+      <button class="ghost" onclick="closeBuilder()">✕ Close</button>
+    </div>
+    <div class="msub">Set your room exactly how you want it, hit
+      <b>📸 Snapshot</b>, fine-tune, <b>🧪 Test</b> live, then save. Saved
+      scenes also appear in Home Assistant's own scene editor.</div>
+
+    <div class="cols">
+      <div>
+        <div class="grid g2">
+          <div>
+            <label>Name <span class="hint" data-tip="name"></span></label>
+            <input type="text" id="b-name" placeholder="Movie night">
+          </div>
+          <div>
+            <label>Icon (optional) <span class="hint" data-tip="icon"></span></label>
+            <input type="text" id="b-icon" placeholder="mdi:movie-open">
+          </div>
+        </div>
+
+        <!-- SNAPSHOT -->
+        <div class="fsec snap">
+          <div class="fh"><span class="fi">📸</span><b>SNAPSHOT</b>
+            <span class="fd">capture how things are set right now</span>
+            <span class="hint" data-tip="sec_snapshot"></span></div>
+          <div class="snaprow">
+            <select id="area-sel" style="max-width:260px"
+                    onchange="renderAreaEnts()">
+              <option value="">Choose an area…</option>
+            </select>
+            <button class="btn small" onclick="snapshotArea()">📸 Snapshot
+              selected</button>
+          </div>
+          <div id="area-ents"></div>
+          <div class="snaprow">
+            <input type="text" id="one-entity"
+                   placeholder="…or type to add a single entity">
+            <button class="ghost" onclick="snapshotOne()">＋ Add</button>
+          </div>
+        </div>
+        <div class="conn"></div>
+
+        <!-- ENTITIES -->
+        <div class="fsec ents">
+          <div class="fh"><span class="fi">🎛️</span><b>SCENE ENTITIES</b>
+            <span class="fd">what the scene sets, and to which state</span>
+            <span class="hint" data-tip="sec_entities"></span></div>
+          <div id="b-entities"></div>
+          <div class="empty" id="ents-empty" style="padding:24px 0">
+            Nothing captured yet — snapshot an area above to get started.</div>
+        </div>
+
+        <div class="err" id="b-err"></div>
+      </div>
+
+      <div class="side">
+        <div class="sh">Live preview</div>
+        <div id="preview"></div>
+        <div class="sidehelp">
+          <b>How to read this:</b> the preview is the exact scene configuration
+          that will be saved, shown as YAML — the same thing you'd write in
+          <b>scenes.yaml</b> by hand. Each entity is either a plain state
+          ("off") or a state plus attributes (brightness, temperature…).
+        </div>
+      </div>
+    </div>
+
+    <div class="mfoot">
+      <span class="stat" id="b-state"></span>
+      <label style="margin:0; gap:6px">Transition (s)
+        <span class="hint" data-tip="transition"></span></label>
+      <input type="number" id="b-trans" min="0" step="0.5" placeholder="0"
+             style="width:80px">
+      <button class="ghost" onclick="testScene()">🧪 Test now</button>
+      <button class="ghost" onclick="closeBuilder()">Cancel</button>
+      <button class="btn" onclick="saveScene()">💾 Save scene</button>
+    </div>
+  </div>
+</div>
+
+<!-- info modal -->
+<div class="imodal" id="imodal">
+  <div class="ibox">
+    <h3 id="im-title"></h3>
+    <div id="im-body"></div>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px">
+      <button class="ghost"
+        onclick="document.getElementById('imodal').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="tipbox"></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const API = '/api/tools/scene_maker';
+let ENTITIES = [], AREAS = [], ALL = [], EDIT_ID = null;
+let SCENE = {};          // entity_id -> entry (string state or {state,...attrs})
+let NAMES = {};          // entity_id -> friendly name
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(msg, bad) {
+  const t = $('#toast');
+  t.textContent = msg; t.className = bad ? 'bad' : ''; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+function info(title, html) {
+  $('#im-title').textContent = title;
+  $('#im-body').innerHTML = html;
+  $('#imodal').classList.add('open');
+}
+
+/* ============================================================ TIPS */
+const TIPS = {
+  name: { t: 'Name', d: 'A short human-readable name for the scene. This is what you see in dashboards, voice assistants and Home Assistant itself.', e: 'Movie night · Good morning · Dinner table' },
+  icon: { t: 'Icon', d: 'An optional Material Design icon shown next to the scene everywhere in Home Assistant. Browse them at pictogrammers.com/library/mdi.', e: 'mdi:movie-open · mdi:weather-sunset · mdi:sofa' },
+  transition: { t: 'Transition (seconds)', d: 'How long lights take to fade into the scene instead of jumping instantly. Used by 🧪 Test and ▶ Activate. Only entities that support transitions (most lights) will fade; everything else switches immediately.', e: '2 → lights fade over 2 seconds.' },
+  sec_snapshot: { t: 'Snapshot', d: 'The fastest way to build a scene: first set the room exactly how you want it (dim the lights, set the thermostat…), then capture it here. Pick an area to see everything in it with its CURRENT state, untick what you don\'t want, and press Snapshot. You can also add single entities one by one.', e: 'Dim living-room lights to 30%, set climate to 21° → pick "Living room" → 📸 Snapshot selected.' },
+  sec_entities: { t: 'Scene entities', d: 'The actual content of the scene: each entity and the state it will be set to when the scene is activated. Entities NOT listed here are left untouched. Use 📸 on a row to re-capture that entity\'s current state, or edit the state and attributes directly.', e: 'light.sofa → on, brightness 77\nclimate.living → heat, 21°\nmedia_player.tv → off' },
+  f_state: { t: 'State', d: 'The main state the entity will be set to when the scene runs: on/off for lights and switches, heat/cool/off for climate, open/closed for covers, locked/unlocked for locks, or a number/option for helpers.', e: 'on · off · heat · open · locked · 21.5' },
+  f_attrs: { t: 'Attributes (JSON)', d: 'Extra settings applied together with the state, written as JSON. Lights: brightness (0-255), color_temp_kelvin, rgb_color. Climate: temperature, fan_mode. Covers: current_position (0-100). Snapshot fills these automatically — you rarely need to type them by hand.', e: '{"brightness": 128}\n{"temperature": 21.5, "fan_mode": "auto"}\n{"current_position": 40}' },
+};
+
+/* tip popover */
+const tipbox = $('#tipbox');
+document.addEventListener('click', ev => {
+  const h = ev.target.closest('.hint[data-tip]');
+  if (!h) { tipbox.style.display = 'none'; return; }
+  const tip = TIPS[h.dataset.tip];
+  if (!tip) return;
+  tipbox.innerHTML = `<b class="t">${esc(tip.t)}</b>${esc(tip.d).replace(/\n/g,'<br>')}` +
+    (tip.e ? `<div class="ex">${esc(tip.e)}</div>` : '');
+  tipbox.style.display = 'block';
+  const r = h.getBoundingClientRect(), tw = Math.min(innerWidth * .92, 360);
+  tipbox.style.left = Math.max(8, Math.min(innerWidth - tw - 8, r.left - 40)) + 'px';
+  tipbox.style.top = Math.min(innerHeight - tipbox.offsetHeight - 10,
+                              r.bottom + 8) + 'px';
+  ev.stopPropagation();
+});
+document.querySelectorAll('.hint[data-tip]').forEach(h => h.textContent = '?');
+new MutationObserver(() =>
+  document.querySelectorAll('.hint[data-tip]:empty').forEach(h => h.textContent = '?')
+).observe(document.body, { childList: true, subtree: true });
+
+/* ============================================================ combo picker */
+function attachCombo(input, getItems) {
+  const wrap = document.createElement('div');
+  wrap.className = 'combo-wrap';
+  input.parentNode.insertBefore(wrap, input);
+  wrap.appendChild(input);
+  const list = document.createElement('div');
+  list.className = 'combo-list';
+  wrap.appendChild(list);
+  input.setAttribute('autocomplete', 'off');
+  const render = () => {
+    const q = input.value.toLowerCase().trim();
+    const items = getItems().filter(it =>
+      !q || it.id.toLowerCase().includes(q) ||
+      (it.name || '').toLowerCase().includes(q)).slice(0, 60);
+    if (!items.length) { list.classList.remove('open'); return; }
+    list.innerHTML = items.map(it =>
+      `<div class="combo-it" data-v="${esc(it.id)}">
+         <span class="cn">${esc(it.name || it.id)}</span>
+         <span class="cid">${esc(it.name ? it.id : '')}</span>
+         ${it.state != null ? `<span class="cst">${esc(it.state)}</span>` : ''}
+       </div>`).join('');
+    list.classList.add('open');
+    list.querySelectorAll('.combo-it').forEach(el => el.onmousedown = ev => {
+      ev.preventDefault();
+      input.value = el.dataset.v;
+      list.classList.remove('open');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  };
+  input.addEventListener('focus', render);
+  input.addEventListener('input', render);
+  input.addEventListener('blur', () =>
+    setTimeout(() => list.classList.remove('open'), 150));
+}
+
+/* ============================================================ list */
+async function load() {
+  let d;
+  try { d = await (await fetch(`${API}/scenes`)).json(); }
+  catch (e) { $('#stat').textContent = '⚠ cannot reach server'; return; }
+  ALL = d.scenes || [];
+  $('#stat').textContent = d.connected
+    ? `${ALL.length} scenes`
+    : '⚠ not connected to Home Assistant';
+  renderList();
+}
+function renderList() {
+  const q = $('#search').value.toLowerCase().trim();
+  const list = $('#list');
+  const scenes = ALL.filter(s => !q || s.name.toLowerCase().includes(q) ||
+                                 s.entity_id.toLowerCase().includes(q));
+  if (!scenes.length) {
+    list.innerHTML = `<div class="empty">${ALL.length
+      ? 'Nothing matches your search.'
+      : 'No scenes yet — snapshot your first room!'}</div>`;
+    return;
+  }
+  list.innerHTML = scenes.map(s => {
+    const yaml = !s.id;
+    const n = (s.entities || []).length;
+    return `
+    <div class="scene">
+      <div class="ic">🎬</div>
+      <div class="nm"><b>${esc(s.name)}</b>
+        <span>${n} entit${n === 1 ? 'y' : 'ies'} · ${s.last_activated
+          ? 'last activated ' + new Date(s.last_activated).toLocaleString()
+          : 'never activated'}</span></div>
+      ${yaml ? `<span class="badge yaml" title="Defined in YAML — click for details"
+          onclick="explainYaml('${esc(s.name)}')">YAML · activate only</span>` : ''}
+      <div class="acts">
+        <button class="ghost" onclick="activateScene('${esc(s.entity_id)}')">▶ Activate</button>
+        ${s.id ? `
+          <button class="ghost" onclick="editScene('${esc(s.id)}', false)">✏️ Edit</button>
+          <button class="ghost" title="Copy into a new scene"
+                  onclick="editScene('${esc(s.id)}', true)">⧉</button>
+          <button class="ghost" style="color:var(--bad)"
+                  onclick="delScene('${esc(s.id)}','${esc(s.name)}')">🗑</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+$('#search').addEventListener('input', renderList);
+
+function explainYaml(name) {
+  info('YAML-defined scene',
+    `<p><b style="color:var(--txt)">${esc(name)}</b> is defined in a YAML file
+     (<code>configuration.yaml</code>), so it can't be edited here — not even
+     by HA's own scene editor.</p>
+     <p>You can still <b>▶ Activate</b> it. To make it editable, recreate it
+     here with Snapshot (activate it first, then snapshot the same entities)
+     and delete the YAML block from your file.</p>`);
+}
+
+async function activateScene(eid) {
+  const r = await fetch(`${API}/activate`, { method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ entity_id: eid }) });
+  if (r.ok) toast('Scene activated ▶');
+  else toast((await r.json().catch(() => ({}))).error || 'failed', true);
+}
+async function delScene(id, name) {
+  if (!confirm(`Delete scene "${name}"?\nThis cannot be undone.`)) return;
+  const r = await fetch(`${API}/config/${encodeURIComponent(id)}`,
+                        { method: 'DELETE' });
+  if (r.ok) { toast('Deleted'); setTimeout(load, 800); }
+  else toast((await r.json().catch(() => ({}))).error || 'delete failed', true);
+}
+
+/* ============================================================ snapshot */
+function fillAreas() {
+  const sel = $('#area-sel');
+  sel.innerHTML = '<option value="">Choose an area…</option>' +
+    AREAS.map((a, i) =>
+      `<option value="${i}">${esc(a.name)} (${a.entities.length})</option>`)
+      .join('');
+}
+function renderAreaEnts() {
+  const box = $('#area-ents');
+  const i = $('#area-sel').value;
+  if (i === '') { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const a = AREAS[+i];
+  box.innerHTML = `
+    <div class="aent" style="border-bottom:1px solid var(--line)">
+      <span class="mini" style="font-size:11.5px; color:var(--mut);
+        text-decoration:underline; cursor:pointer"
+        onclick="areaCheck(true)">all</span>
+      <span class="mini" style="font-size:11.5px; color:var(--mut);
+        text-decoration:underline; cursor:pointer"
+        onclick="areaCheck(false)">none</span>
+      <span style="flex:1"></span>
+      <span class="ad">${a.entities.length} entities</span>
+    </div>` +
+    a.entities.map(e => `
+    <label class="aent" style="margin:0">
+      <input type="checkbox" data-eid="${esc(e.id)}" checked>
+      <span class="an">${esc(e.name)}</span>
+      <span class="ad">${esc(e.domain)}</span>
+      <span class="ast">${esc(e.state)}</span>
+    </label>`).join('');
+  box.style.display = 'block';
+}
+function areaCheck(on) {
+  $('#area-ents').querySelectorAll('input[data-eid]')
+    .forEach(c => c.checked = on);
+}
+async function snapshot(ids) {
+  let r, d;
+  try {
+    r = await fetch(`${API}/snapshot`, { method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ entity_ids: ids }) });
+    d = await r.json();
+  } catch (e) { toast('Network error', true); return; }
+  if (!r.ok) { toast(d.error || 'snapshot failed', true); return; }
+  Object.assign(SCENE, d.entities || {});
+  const n = Object.keys(d.entities || {}).length;
+  toast(`📸 Captured ${n} entit${n === 1 ? 'y' : 'ies'}` +
+        (d.skipped?.length ? ` · ${d.skipped.length} skipped (unavailable)` : ''));
+  renderEntities();
+}
+function snapshotArea() {
+  const ids = [...$('#area-ents').querySelectorAll('input[data-eid]:checked')]
+    .map(c => c.dataset.eid);
+  if (!ids.length) { toast('Pick an area and tick some entities first', true); return; }
+  snapshot(ids);
+}
+function snapshotOne() {
+  const eid = $('#one-entity').value.trim();
+  if (!eid || !eid.includes('.')) { toast('Type or pick an entity first', true); return; }
+  $('#one-entity').value = '';
+  snapshot([eid]);
+}
+
+/* ============================================================ entity blocks */
+function entryState(entry) {
+  return typeof entry === 'string' ? entry : String(entry.state ?? '');
+}
+function entryAttrs(entry) {
+  if (typeof entry === 'string') return {};
+  const { state, ...rest } = entry;
+  return rest;
+}
+const DOMAIN_ICONS = { light: '💡', switch: '🔌', climate: '🌡️', cover: '🪟',
+  fan: '🌀', media_player: '📺', lock: '🔒', vacuum: '🤖', humidifier: '💧',
+  input_boolean: '🎚️', valve: '🚰', siren: '🚨', water_heater: '♨️' };
+
+function renderEntities() {
+  const box = $('#b-entities');
+  const eids = Object.keys(SCENE).sort();
+  $('#ents-empty').style.display = eids.length ? 'none' : 'block';
+  box.innerHTML = eids.map(eid => {
+    const entry = SCENE[eid];
+    const attrs = entryAttrs(entry);
+    const hasAttrs = Object.keys(attrs).length > 0;
+    return `
+    <div class="block" data-eid="${esc(eid)}">
+      <div class="bh">
+        <span class="bi">${DOMAIN_ICONS[eid.split('.')[0]] || '⚙️'}</span>
+        <b>${esc(NAMES[eid] || eid)}</b>
+        <span class="bid">${esc(eid)}</span>
+        <button class="resnap" title="Re-capture current state"
+          onclick="resnap('${esc(eid)}')">📸</button>
+        <button class="rm" title="Remove from scene"
+          onclick="removeEntity('${esc(eid)}')">✕</button>
+      </div>
+      <div class="grid g2" style="margin-top:9px">
+        <div><label style="margin-top:0">State
+            <span class="hint" data-tip="f_state"></span></label>
+          <input type="text" class="e-state" value="${esc(entryState(entry))}"></div>
+        <div><label style="margin-top:0">Attributes — JSON (optional)
+            <span class="hint" data-tip="f_attrs"></span></label>
+          <textarea class="e-attrs json" placeholder='{"brightness": 128}'>${
+            hasAttrs ? esc(JSON.stringify(attrs)) : ''}</textarea></div>
+      </div>
+    </div>`;
+  }).join('');
+  refreshPreview();
+}
+function removeEntity(eid) { delete SCENE[eid]; renderEntities(); }
+async function resnap(eid) {
+  readBlocks(false);
+  await snapshot([eid]);
+}
+
+/* read edited blocks back into SCENE */
+function readBlocks(strict) {
+  const next = {};
+  for (const div of $('#b-entities').children) {
+    const eid = div.dataset.eid;
+    const state = div.querySelector('.e-state').value.trim();
+    const raw = div.querySelector('.e-attrs').value.trim();
+    let attrs = {};
+    if (raw) {
+      try { attrs = JSON.parse(raw); }
+      catch (e) {
+        if (strict) throw new Error(
+          `${eid}: attributes must be valid JSON, e.g. {"brightness": 128}`);
+      }
+      if (typeof attrs !== 'object' || Array.isArray(attrs) || !attrs) {
+        if (strict) throw new Error(`${eid}: attributes must be a JSON object`);
+        attrs = {};
+      }
+    }
+    if (strict && !state)
+      throw new Error(`${eid}: state cannot be empty.`);
+    next[eid] = Object.keys(attrs).length ? { state, ...attrs } : state;
+  }
+  SCENE = next;
+  return SCENE;
+}
+
+/* ============================================================ preview */
+function yamlify(o, ind) {
+  ind = ind || '';
+  if (Array.isArray(o))
+    return o.map(it => ind + '- ' + yamlify(it, ind + '  ').replace(
+      new RegExp('^' + ind + '  '), '')).join('\n');
+  if (o && typeof o === 'object')
+    return Object.entries(o).map(([k, v]) =>
+      (v && typeof v === 'object')
+        ? `${ind}${k}:\n${yamlify(v, ind + '  ')}`
+        : `${ind}${k}: ${typeof v === 'string' ? JSON.stringify(v) : v}`
+    ).join('\n');
+  return String(o);
+}
+function collect(strict) {
+  const cfg = { name: $('#b-name').value.trim(),
+                entities: readBlocks(strict) };
+  const icon = $('#b-icon').value.trim();
+  if (icon) cfg.icon = icon;
+  return cfg;
+}
+function refreshPreview() {
+  try { $('#preview').textContent = yamlify(collect(false)); } catch (e) {}
+}
+document.addEventListener('input', ev => {
+  if (ev.target.closest('#builder')) refreshPreview();
+});
+
+/* ============================================================ open/edit/save */
+function resetBuilder() {
+  SCENE = {}; EDIT_ID = null;
+  $('#b-name').value = ''; $('#b-icon').value = ''; $('#b-trans').value = '';
+  $('#area-sel').value = ''; $('#one-entity').value = '';
+  $('#area-ents').style.display = 'none'; $('#area-ents').innerHTML = '';
+  $('#b-err').style.display = 'none'; $('#b-state').textContent = '';
+  renderEntities();
+}
+function openBuilder() {
+  resetBuilder();
+  $('#b-title').textContent = 'New scene';
+  $('#builder').classList.add('open');
+}
+function closeBuilder() { $('#builder').classList.remove('open'); }
+
+async function editScene(id, duplicate) {
+  let r;
+  try { r = await fetch(`${API}/config/${encodeURIComponent(id)}`); }
+  catch (e) { toast('Network error', true); return; }
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    toast(d.message || d.error || `Error ${r.status}`, true);
+    return;
+  }
+  const cfg = (await r.json()).config || {};
+  resetBuilder();
+  EDIT_ID = duplicate ? null : id;
+  $('#b-title').textContent = duplicate
+    ? 'Duplicate: ' + (cfg.name || '') : 'Edit scene';
+  $('#b-name').value = (cfg.name || '') + (duplicate ? ' (copy)' : '');
+  $('#b-icon').value = cfg.icon || '';
+  SCENE = {};
+  for (const [eid, entry] of Object.entries(cfg.entities || {}))
+    SCENE[eid] = entry;
+  renderEntities();
+  $('#builder').classList.add('open');
+}
+
+function transition() {
+  const t = parseFloat($('#b-trans').value);
+  return isFinite(t) && t > 0 ? t : null;
+}
+
+async function testScene() {
+  const err = $('#b-err');
+  err.style.display = 'none';
+  try {
+    const entities = readBlocks(true);
+    if (!Object.keys(entities).length)
+      throw new Error('Snapshot or add at least one entity first.');
+    const body = { entities };
+    if (transition()) body.transition = transition();
+    const r = await fetch(`${API}/apply`, { method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || `Test failed (${r.status})`);
+    toast('🧪 Applied live — look around! Nothing was saved.');
+  } catch (e) {
+    err.textContent = '⚠ ' + e.message; err.style.display = 'block';
+  }
+}
+
+async function saveScene() {
+  const err = $('#b-err');
+  err.style.display = 'none';
+  try {
+    const cfg = collect(true);
+    if (!cfg.name) throw new Error('Give the scene a name.');
+    if (!Object.keys(cfg.entities).length)
+      throw new Error('Snapshot or add at least one entity.');
+    $('#b-state').textContent = 'saving…';
+    const r = await fetch(`${API}/config`, { method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ id: EDIT_ID, config: cfg }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.message || d.error || `Save failed (${r.status})`);
+    closeBuilder(); toast('Scene saved ✓');
+    setTimeout(load, 1200);
+  } catch (e) {
+    err.textContent = '⚠ ' + e.message; err.style.display = 'block';
+    $('#b-state').textContent = '';
+  }
+}
+
+/* ============================================================ boot */
+async function boot() {
+  load();
+  try {
+    const ents = (await (await fetch('/api/admin/entities')).json()).entities || [];
+    ENTITIES = ents.filter(e => !['scene', 'automation', 'script', 'sensor',
+      'binary_sensor', 'person', 'zone', 'sun', 'device_tracker', 'update',
+      'button', 'event', 'camera', 'weather'].includes(e.domain))
+      .map(e => ({ id: e.id, name: e.name, state: e.state }));
+    ents.forEach(e => NAMES[e.id] = e.name);
+  } catch (e) {}
+  attachCombo($('#one-entity'), () => ENTITIES);
+  try {
+    AREAS = (await (await fetch(`${API}/areas`)).json()).areas || [];
+    fillAreas();
+  } catch (e) {}
+  setInterval(() => { if (!$('#builder').classList.contains('open')) load(); },
+              30000);
+}
+boot();
+</script>
+</body>
+</html>

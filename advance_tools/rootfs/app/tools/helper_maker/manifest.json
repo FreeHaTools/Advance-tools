@@ -1,0 +1,9 @@
+{
+  "id": "helper_maker",
+  "name": "Helper Maker",
+  "icon": "🧩",
+  "color": "#b17aff",
+  "description": "Create, edit and control every Home Assistant helper — toggles, numbers, timers, schedules, groups, templates and more. Live states, quick controls, usage finder and a built-in learn panel for each type.",
+  "page": "/tools/helper_maker/",
+  "version": "1.0.0"
+}

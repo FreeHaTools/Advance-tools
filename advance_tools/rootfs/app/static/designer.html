@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advance Tools — Designer</title>
+<style>
+  :root { --bg:#0f1420; --card:#1a2233; --line:#2a3550; --txt:#e8edf7; --mut:#8b98b8;
+          --acc:#4f8cff; --ok:#3ecf8e; --bad:#ff6b81; }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:#090d16; color:var(--txt); height:100vh; display:flex;
+         flex-direction:column; overflow:hidden; }
+
+  header { display:flex; align-items:center; gap:10px; padding:10px 16px;
+           background:linear-gradient(180deg,#161d2c,#121826);
+           border-bottom:1px solid var(--line); flex:0 0 auto; flex-wrap:wrap; }
+  header h1 { font-size:15px; }
+  header .grow { flex:1; }
+  button.btn { background:linear-gradient(135deg,var(--acc),#7b5cff); color:#fff;
+               border:0; padding:9px 20px; border-radius:9px; cursor:pointer;
+               font-size:13px; font-weight:600; }
+  button.ghost, a.ghost { background:rgba(255,255,255,.04); border:1px solid var(--line);
+               color:var(--mut); padding:8px 14px; border-radius:9px; cursor:pointer;
+               font-size:13px; text-decoration:none; display:inline-block; }
+  button.ghost:hover, a.ghost:hover { color:var(--txt); border-color:#3d4d75; }
+
+  .tabsrow { display:flex; gap:8px; align-items:center; padding:10px 16px 6px;
+             flex-wrap:nowrap; flex:0 0 auto; overflow-x:auto; overflow-y:hidden;
+             scrollbar-width:thin; }
+  .tabpill { background:var(--card); border:1px solid var(--line); color:var(--mut);
+             border-radius:20px; padding:6px 15px; font-size:13px; cursor:pointer;
+             user-select:none; display:flex; gap:6px; align-items:center;
+             flex:0 0 auto; white-space:nowrap; }
+  .tabpill.active { border-color:var(--acc); color:var(--txt);
+             box-shadow:0 0 0 1px var(--acc); }
+  .tabpill .tx { cursor:pointer; opacity:.6; font-size:11px; }
+  .tabpill .tx:hover { opacity:1; color:var(--bad); }
+
+  .cols { flex:1; display:flex; min-height:0; }
+
+  /* left rail */
+  .rail { width:200px; min-width:200px; flex:0 0 auto;
+          border-right:1px solid var(--line); padding:14px; overflow-y:auto;
+          overflow-x:hidden; background:var(--bg); box-sizing:border-box; }
+  .rail .addbig { width:100%; padding:13px 6px; border-radius:12px; border:0;
+      background:linear-gradient(135deg,var(--acc),#7b5cff); color:#fff;
+      font-size:13.5px; font-weight:700; cursor:pointer; margin-bottom:14px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rail h3 { font-size:10px; color:var(--mut); text-transform:uppercase;
+             letter-spacing:.1em; margin:12px 0 8px; }
+  .rail .qi { background:var(--card); border:1px solid var(--line); border-radius:10px;
+              padding:9px 11px; margin-bottom:7px; cursor:pointer; font-size:13px;
+              user-select:none; white-space:nowrap; overflow:hidden;
+              text-overflow:ellipsis; }
+  .rail .qi:hover { border-color:var(--acc); }
+
+  /* canvas */
+  .canvas-wrap { flex:1; min-width:0; overflow:auto; padding:24px; display:flex;
+                 align-items:flex-start; justify-content:center; }
+  #stage { position:relative; flex:0 0 auto; transform-origin:top left; }
+  #canvas { position:relative; background:var(--bg); border-radius:8px;
+            box-shadow:0 0 0 1px var(--line), 0 20px 60px rgba(0,0,0,.55);
+            overflow:hidden; background-image:
+              linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+            background-size:20px 20px; }
+  #sizetag { position:absolute; top:-22px; left:0; font-size:11px; color:var(--mut); }
+
+  .el { position:absolute; user-select:none; touch-action:none; }
+  .el .inner { width:100%; height:100%; }
+  .el .inner, .el .inner * { pointer-events:none; }
+  .el.selected { outline:2px solid var(--acc); outline-offset:1px; }
+  .el .rs { position:absolute; right:-6px; bottom:-6px; width:14px; height:14px;
+            background:var(--acc); border-radius:4px; cursor:nwse-resize; display:none;
+            z-index:10; }
+  .el.selected .rs { display:block; }
+  .el .tag { position:absolute; top:-18px; left:0; font-size:10px; color:var(--acc);
+             background:rgba(15,20,32,.85); padding:1px 7px; border-radius:5px;
+             white-space:nowrap; display:none; }
+  .el.selected .tag { display:block; }
+
+  /* inspector */
+  .inspector { width:290px; flex:0 0 auto; border-left:1px solid var(--line);
+               padding:14px; overflow-y:auto; background:var(--bg); }
+  .inspector h3 { font-size:12px; color:var(--txt); margin-bottom:4px; }
+  .insec { border:1px solid var(--line); border-radius:12px; padding:12px;
+           margin-top:12px; background:rgba(255,255,255,.02); }
+  .insec .st { font-size:10px; color:var(--mut); text-transform:uppercase;
+               letter-spacing:.1em; margin-bottom:8px; }
+  .inspector label { font-size:12px; color:var(--mut); display:block; margin:9px 0 4px; }
+  .inspector input, .inspector select { width:100%; padding:8px 9px; border-radius:8px;
+      border:1px solid var(--line); background:#111827; color:var(--txt); font-size:13px; }
+  .row2 { display:flex; gap:8px; } .row2 > * { flex:1; }
+  .row4 { display:flex; gap:6px; } .row4 > * { flex:1; min-width:0; }
+  .muted { color:var(--mut); font-size:12px; line-height:1.8; }
+  .checkline { display:flex; gap:7px; align-items:center; font-size:13px; margin-top:10px;
+               cursor:pointer; color:var(--txt); }
+
+  /* modals */
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.65); display:none;
+           align-items:center; justify-content:center; z-index:50; }
+  .modal.open { display:flex; }
+  .modal-box { background:var(--bg); border:1px solid var(--line); border-radius:16px;
+               width:min(96vw, 980px); max-height:90vh; overflow-y:auto; padding:22px; }
+  .modal-box h2 { font-size:16px; margin-bottom:4px; }
+  .modal-box .sub { color:var(--mut); font-size:12px; margin-bottom:14px; }
+  .modal-box label { font-size:12px; color:var(--mut); display:block; margin:11px 0 4px; }
+  .modal-box input, .modal-box select { padding:8px 9px; border-radius:8px; width:100%;
+      border:1px solid var(--line); background:#111827; color:var(--txt); font-size:13px; }
+  .cat { font-size:11px; color:var(--mut); text-transform:uppercase; letter-spacing:.1em;
+         margin:20px 0 10px; display:flex; align-items:center; gap:10px; }
+  .cat::after { content:''; flex:1; height:1px; background:var(--line); }
+  .skingrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+              gap:12px; }
+  .skprev { cursor:pointer; border:2px solid var(--line); border-radius:14px;
+            padding:8px; background:var(--card); transition:.15s; }
+  .skprev:hover { border-color:var(--acc); transform:translateY(-2px); }
+  .skprev .box { height:120px; display:flex; align-items:center; justify-content:center;
+                 overflow:hidden; pointer-events:none; }
+  .skprev .box > div { transform-origin:center; }
+  .skprev .sname { text-align:center; font-size:12px; color:var(--txt); margin-top:6px; }
+  .skprev .scat { text-align:center; font-size:10px; color:var(--mut); }
+  #skinsearch { margin-bottom:6px; }
+  .stylegrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+               gap:12px; }
+  .sprev { cursor:pointer; border:2px solid transparent; border-radius:16px; padding:4px;
+           position:relative; }
+  .sprev.current { border-color:var(--acc); }
+  .sprev .w { min-height:92px; border-radius:14px; padding:14px; display:flex;
+              flex-direction:column; justify-content:center; background:var(--card); }
+  .sprev .sname { text-align:center; font-size:12px; color:var(--mut); margin-top:6px; }
+  #toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+           background:var(--ok); color:#08291a; padding:10px 24px; border-radius:10px;
+           font-size:13px; display:none; z-index:99; }
+  #toast.err { background:var(--bad); color:#2d0a12; }
+</style>
+</head>
+<body>
+<header>
+  <a class="ghost" href="/admin">← Admin</a>
+  <h1>🎨 <span id="dashname">Designer</span></h1>
+  <div class="grow"></div>
+  <button class="ghost" onclick="openSettings()">⚙️ Page setup</button>
+  <button class="ghost" onclick="openGallery()">🎴 Card styles</button>
+  <a class="ghost" id="preview" target="_blank" href="#">👁 Preview</a>
+  <button class="btn" onclick="save()">💾 Save</button>
+</header>
+
+<div class="tabsrow" id="tabsrow"></div>
+
+<div class="cols">
+  <div class="rail">
+    <button class="addbig" onclick="openAdd()">＋ Add element</button>
+    <h3>Layout</h3>
+    <div class="qi" data-add="box">▢ Box / group</div>
+    <div class="qi" data-add="label">🔤 Text label</div>
+    <div class="qi" data-add="line">— Line</div>
+    <div class="qi" data-add="clock">🕐 Clock</div>
+    <p class="muted" style="margin-top:12px; font-size:11px">Drag elements anywhere.
+       Blue corner = resize. Del key = remove.</p>
+    <p class="muted" style="margin-top:16px; font-size:10px; line-height:1.9">
+       Advance Tools · built by Mike Fattahi<br>
+       <a href="https://www.fattahi.us" target="_blank" rel="noopener"
+       style="color:var(--mut)">fattahi.us</a> ·
+       <a href="https://github.com/FreeHaTools/Advance-tools" target="_blank"
+       rel="noopener" style="color:var(--mut)">GitHub</a></p>
+  </div>
+
+  <div class="canvas-wrap" id="wrap">
+    <div id="stage">
+      <div id="sizetag"></div>
+      <div id="canvas"></div>
+    </div>
+  </div>
+
+  <div class="inspector" id="inspector">
+    <h3>Properties</h3>
+    <div class="muted">Select an element on the page to edit it.</div>
+  </div>
+</div>
+
+<!-- add element modal -->
+<div class="modal" id="addmodal">
+  <div class="modal-box">
+    <div style="display:flex; align-items:center; gap:12px">
+      <div style="flex:1">
+        <h2>＋ Add element</h2>
+        <div class="sub">Pick a design — every control is live-previewed. More designs
+        can be imported as packs in Admin → Packs.</div>
+      </div>
+      <button class="ghost" onclick="closeAdd()">✕ Close</button>
+    </div>
+    <input id="skinsearch" placeholder="🔎 Search: switch, socket, soil, vacuum, gauge…">
+    <div id="addbody"></div>
+  </div>
+</div>
+
+<!-- page setup modal -->
+<div class="modal" id="settings">
+  <div class="modal-box" style="width:min(94vw,520px)">
+    <div style="display:flex; align-items:center">
+      <h2 style="flex:1">⚙️ Page setup</h2>
+      <button class="ghost" onclick="closeSettings()">✕ Close</button>
+    </div>
+    <label>Screen size — pick your tablet model (canvas resizes to it)</label>
+    <select id="s-preset">
+      <optgroup label="Amazon Fire (landscape)">
+        <option value="1024x600">Fire 7 — 1024 × 600</option>
+        <option value="1280x800">Fire HD 8 — 1280 × 800</option>
+        <option value="1920x1200">Fire HD 10 — 1920 × 1200</option>
+        <option value="2000x1200">Fire Max 11 — 2000 × 1200</option>
+      </optgroup>
+      <optgroup label="Apple iPad (landscape)">
+        <option value="1133x744">iPad mini — 1133 × 744</option>
+        <option value="1080x810">iPad 10.2″ — 1080 × 810</option>
+        <option value="1180x820">iPad 10.9″ / Air — 1180 × 820</option>
+        <option value="1194x834">iPad Pro 11″ — 1194 × 834</option>
+        <option value="1366x1024">iPad Pro 12.9″ / 13″ — 1366 × 1024</option>
+      </optgroup>
+      <optgroup label="Samsung Galaxy Tab (landscape)">
+        <option value="1340x800">Galaxy Tab A9 — 1340 × 800</option>
+        <option value="1920x1200">Galaxy Tab A9+ / S6 Lite — 1920 × 1200</option>
+        <option value="2560x1600">Galaxy Tab S9 — 2560 × 1600</option>
+      </optgroup>
+      <optgroup label="Generic">
+        <option value="1280x800">Tablet 16:10 landscape — 1280 × 800</option>
+        <option value="800x1280">Tablet 16:10 portrait — 800 × 1280</option>
+        <option value="1024x768">4:3 landscape — 1024 × 768</option>
+        <option value="1920x1080">Full HD 16:9 — 1920 × 1080</option>
+        <option value="custom">Custom…</option>
+      </optgroup>
+    </select>
+    <div class="row2" style="margin-top:8px">
+      <div><label>Width px</label><input type="number" id="s-w" min="200" max="4000"></div>
+      <div><label>Height px</label><input type="number" id="s-h" min="200" max="4000"></div>
+    </div>
+    <button class="ghost" type="button" id="s-rotate" style="margin-top:8px; width:100%">⟳ Rotate — swap width ↔ height (portrait ⇄ landscape)</button>
+    <label style="margin-top:12px">Screen scaling — how the design fills the device (everything scales together)</label>
+    <select id="s-fit">
+      <option value="fit">Fit — show everything (may add empty borders)</option>
+      <option value="fill">Fill — cover the whole screen (may crop the edges)</option>
+      <option value="stretch">Stretch — fill exactly (may distort the shape)</option>
+    </select>
+    <div class="hint" style="margin-top:6px">Tip: design at your tablet's exact size (above) and use <b>Fit</b> — it fills perfectly. Use <b>Fill</b>/<b>Stretch</b> when the screen shape differs (e.g. a phone).</div>
+    <div class="row2" style="margin-top:12px">
+      <div><label>Accent color</label><input type="color" id="s-accent"></div>
+      <div><label>Page background</label><input type="color" id="s-bg"></div>
+    </div>
+    <h2 style="font-size:14px; margin-top:20px">🚪 Logout button</h2>
+    <label class="checkline"><input type="checkbox" id="s-hidelogout">
+      Hidden logout (kiosk mode) — no visible logout button</label>
+    <div class="row2">
+      <div><label>Secret tap zone</label>
+        <select id="s-zone">
+          <option value="top-right">Top-right corner</option>
+          <option value="top-left">Top-left corner</option>
+          <option value="bottom-right">Bottom-right corner</option>
+          <option value="bottom-left">Bottom-left corner</option>
+          <option value="center">Center of screen</option>
+        </select></div>
+      <div><label>Taps needed</label>
+        <select id="s-taps"><option>3</option><option>4</option><option>5</option>
+        <option>6</option><option>7</option></select></div>
+    </div>
+    <div style="margin-top:16px"><button class="btn" onclick="applySettings()">Apply</button></div>
+  </div>
+</div>
+
+<!-- card style gallery -->
+<div class="modal" id="gallery">
+  <div class="modal-box">
+    <div style="display:flex; align-items:center">
+      <div style="flex:1">
+        <h2>🎴 Card styles</h2>
+        <div class="sub">The frame/background used by card-type designs and boxes.
+        Click = dashboard default; per-element override in its properties. Import
+        more via Admin → Packs.</div>
+      </div>
+      <button class="ghost" onclick="closeGallery()">✕ Close</button>
+    </div>
+    <div id="gallerybody"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="/static/dialog.js?v=100"></script>
+<script src="/static/styles.js?v=100"></script>
+<script src="/static/packs.js?v=100"></script>
+<script src="/static/widgets.js?v=100"></script>
+<script src="/static/designer.js?v=100"></script>
+</body>
+</html>

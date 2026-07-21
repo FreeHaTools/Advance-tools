@@ -1,0 +1,9 @@
+{
+  "id": "dashboard_maker",
+  "name": "Dashboard Maker",
+  "icon": "📊",
+  "color": "#4f8cff",
+  "description": "Design multi-user HTML dashboards for wall tablets — visual designer, card styles, skins, per-user access control.",
+  "page": "/tools/dashboard_maker/",
+  "version": "1.0.0"
+}

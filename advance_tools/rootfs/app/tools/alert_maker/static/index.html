@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alert Maker — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#ff6b6b; --acc2:#ffb86b;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --hover:rgba(255,107,107,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#26070b;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+  .btn.sm { padding:8px 15px; font-size:12.5px; }
+  .btn.danger { background:linear-gradient(135deg,#ff6b81,#ff9d5c); }
+  .btn[disabled] { opacity:.5; cursor:default; }
+
+  main { padding:20px 22px 60px; max-width:1180px; margin:0 auto; }
+
+  /* ---- stat boxes ---- */
+  .stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .statbox { background:var(--card); border:1px solid var(--line);
+             border-radius:12px; padding:10px 14px; min-width:104px; }
+  .statbox b { display:block; font-size:19px; }
+  .statbox span { font-size:10px; color:var(--mut); text-transform:uppercase;
+             letter-spacing:.06em; white-space:nowrap; }
+  .statbox b.ok { color:var(--good); } .statbox b.warn { color:var(--warn); }
+  .statbox b.bad { color:var(--bad); }
+
+  /* ---- toolbar ---- */
+  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px;
+             flex-wrap:wrap; }
+  #search { width:250px; padding:9px 12px; border-radius:10px;
+            border:1px solid var(--line); background:var(--input);
+            color:var(--txt); font-size:13px; }
+  #search:focus { outline:none; border-color:var(--acc); }
+  .toolbar .sp { flex:1; }
+  .stat { font-size:12px; color:var(--mut); }
+  .stat .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+            background:var(--bad); margin-right:5px; }
+  .stat .dot.ok { background:var(--good); }
+
+  /* ---- rule cards ---- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+          gap:12px; }
+  .rcard { background:var(--card); border:1px solid var(--line); border-radius:14px;
+           padding:13px 15px 11px; box-shadow:var(--shadow);
+           display:flex; flex-direction:column; gap:9px; }
+  .rcard.off { opacity:.6; }
+  .rcard .top { display:flex; align-items:flex-start; gap:11px; }
+  .rcard .ticon { width:36px; height:36px; border-radius:10px; display:flex;
+           align-items:center; justify-content:center; font-size:17px;
+           background:var(--input); border:1px solid var(--line); flex:0 0 auto; }
+  .rcard .nm { flex:1; min-width:0; }
+  .rcard .nm b { display:block; font-size:14px; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .rcard .nm small { font-size:10.5px; color:var(--mut); }
+  .rcard .detail { font-size:12px; line-height:1.6; border-radius:9px;
+           padding:7px 11px; background:var(--input);
+           border:1px solid var(--line); color:var(--mut); }
+  .rcard .detail b { color:var(--txt); font-weight:600; }
+  .badges { display:flex; gap:6px; flex-wrap:wrap; }
+  .tbadge { font-size:9.5px; padding:3px 8px; border-radius:20px;
+           border:1px solid var(--line); color:var(--mut); white-space:nowrap;
+           max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+  .tbadge.warnb { color:var(--warn); border-color:var(--warn); }
+  .rcard .foot { display:flex; align-items:center; gap:4px;
+           border-top:1px solid var(--line); padding-top:8px; }
+  .rcard .foot .sp { flex:1; }
+  .iconbtn { background:none; border:0; color:var(--mut); cursor:pointer;
+           font-size:13.5px; padding:4px 8px; border-radius:7px; }
+  .iconbtn:hover { color:var(--txt); background:var(--hover); }
+  .iconbtn.danger:hover { color:var(--bad); }
+  .empty { text-align:center; color:var(--mut); padding:60px 0; font-size:14px;
+           grid-column:1/-1; line-height:2; }
+  .empty .big { font-size:44px; }
+
+  /* toggle switch */
+  .tgl { position:relative; width:38px; height:21px; flex:0 0 auto;
+         border-radius:20px; background:var(--line); cursor:pointer;
+         transition:background .15s; border:0; padding:0; }
+  .tgl::after { content:""; position:absolute; top:2.5px; left:3px; width:16px;
+         height:16px; border-radius:50%; background:#fff; transition:left .15s; }
+  .tgl.on { background:var(--good); }
+  .tgl.on::after { left:19px; }
+
+  /* ---- modals ---- */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.72); display:none;
+           z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+           padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(97vw, 640px); margin:0 auto;
+          padding:24px; box-shadow:var(--shadow); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead .micon { width:34px; height:34px; border-radius:10px; display:flex;
+          align-items:center; justify-content:center; font-size:17px;
+          background:var(--input); border:1px solid var(--line); }
+  .mhead h2 { font-size:17px; flex:1; }
+  .msub { color:var(--mut); font-size:12px; margin-bottom:14px; line-height:1.7; }
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:20px;
+           align-items:center; flex-wrap:wrap; }
+  .mfoot .sp { flex:1; }
+  .err { background:#3a1a22; border:1px solid #7a2a3a; color:#ff9aae;
+         border-radius:10px; padding:10px 13px; margin-top:12px; font-size:13px;
+         display:none; line-height:1.7; }
+  label { font-size:12px; color:var(--mut); display:flex; align-items:center;
+          gap:6px; margin:14px 0 5px; }
+  input[type=text], input[type=number] {
+    width:100%; padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--input); color:var(--txt); font-size:13.5px; }
+  input:focus { outline:none; border-color:var(--acc); }
+  .fieldnote { font-size:11px; color:var(--mut); margin-top:4px; line-height:1.6; }
+  .qmark { width:16px; height:16px; border-radius:50%; border:1px solid var(--line);
+          color:var(--mut); font-size:10px; display:inline-flex; align-items:center;
+          justify-content:center; cursor:pointer; flex:0 0 auto; background:none; }
+  .qmark:hover { color:var(--acc2); border-color:var(--acc2); }
+
+  /* type tiles */
+  .types { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+           gap:9px; margin-top:6px; }
+  .ttile { background:var(--input); border:1px solid var(--line); border-radius:12px;
+           padding:11px 12px; cursor:pointer; user-select:none; }
+  .ttile:hover { border-color:var(--acc); }
+  .ttile.on { border-color:var(--acc); background:var(--hover); }
+  .ttile .ti { font-size:19px; }
+  .ttile b { display:block; font-size:12.5px; margin-top:5px; }
+  .ttile small { font-size:10.5px; color:var(--mut); line-height:1.5; display:block;
+           margin-top:2px; }
+
+  /* entity / notify pickers */
+  .pickwrap { border:1px solid var(--line); border-radius:11px;
+           background:var(--input); margin-top:4px; }
+  .pickbar { display:flex; align-items:center; gap:8px; padding:8px 10px;
+           border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .pickbar input[type=text] { flex:1; min-width:130px; padding:7px 10px;
+           font-size:12.5px; background:var(--bg); }
+  .pickbar .cnt { font-size:11px; color:var(--acc2); white-space:nowrap; }
+  .pickbar label.inline { margin:0; font-size:11px; gap:5px; cursor:pointer; }
+  .picklist { max-height:200px; overflow-y:auto; padding:5px; }
+  .pickitem { display:flex; align-items:center; gap:9px; padding:6px 9px;
+           border-radius:8px; cursor:pointer; }
+  .pickitem:hover { background:var(--hover); }
+  .pickitem input { accent-color:var(--acc); width:15px; height:15px;
+           flex:0 0 auto; cursor:pointer; }
+  .pickitem .pn { flex:1; min-width:0; font-size:12.5px; }
+  .pickitem .pn small { display:block; font-size:10px; color:var(--mut);
+           font-family:Consolas, monospace; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .pickitem .st { font-size:10.5px; color:var(--mut); white-space:nowrap; }
+  .picknone { padding:16px; text-align:center; color:var(--mut); font-size:12px;
+           line-height:1.7; }
+
+  .paramrow { display:flex; gap:10px; flex-wrap:wrap; }
+  .paramrow > div { flex:1; min-width:140px; }
+
+  details.adv { margin-top:14px; border:1px solid var(--line); border-radius:11px;
+           background:var(--input); padding:0; }
+  details.adv summary { padding:10px 13px; font-size:12.5px; color:var(--mut);
+           cursor:pointer; user-select:none; }
+  details.adv[open] summary { border-bottom:1px solid var(--line);
+           color:var(--txt); }
+  details.adv .advbody { padding:2px 13px 13px; }
+
+  /* preview */
+  .preview { margin-top:14px; border:1px solid rgba(62,207,142,.3);
+           background:rgba(62,207,142,.06); border-radius:11px; padding:11px 13px;
+           font-size:12.5px; line-height:1.7; }
+  .preview b { color:var(--good); }
+  .yamlbtn { font-size:11px; color:var(--mut); cursor:pointer; background:none;
+           border:0; text-decoration:underline; padding:0; margin-top:6px; }
+  .yamlbtn:hover { color:var(--acc2); }
+  pre.yaml { display:none; margin-top:8px; background:var(--bg); border:1px solid
+           var(--line); border-radius:9px; padding:10px 12px; font-size:11px;
+           font-family:Consolas, monospace; overflow-x:auto; line-height:1.6;
+           color:var(--mut); max-height:220px; overflow-y:auto; }
+  pre.yaml.open { display:block; }
+
+  /* ---- toasts ---- */
+  #toasts { position:fixed; right:18px; bottom:18px; z-index:500; display:flex;
+        flex-direction:column; gap:8px; }
+  .toast { background:var(--bg2); border:1px solid var(--good); color:var(--txt);
+        border-radius:12px; padding:11px 16px; font-size:13px;
+        box-shadow:0 10px 30px rgba(0,0,0,.5); animation:tin .2s ease;
+        max-width:340px; line-height:1.6; }
+  .toast.bad { border-color:var(--bad); }
+  @keyframes tin { from { opacity:0; transform:translateY(8px); } }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .spinning { display:inline-block; animation:spin 1s linear infinite; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🚨</div>
+  <h1>Alert Maker<small>watchdog rules that notify you when something needs attention</small></h1>
+  <a class="ghost" href="/admin" target="_top">← Hub</a>
+  <button class="btn" id="newBtn">➕ New alert</button>
+</header>
+
+<main>
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <input id="search" type="text" placeholder="Search alerts…">
+    <div class="sp"></div>
+    <span class="stat" id="connStat"><span class="dot"></span>connecting…</span>
+  </div>
+
+  <div class="cards" id="list"><div class="empty">Loading alerts…</div></div>
+</main>
+
+<!-- builder -->
+<div class="modal" id="buildModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon" id="buildIcon">🚨</div>
+      <h2 id="buildTitle">New alert</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub">Pick what to watch, who to tell — Alert Maker builds the
+      automation for you.</div>
+
+    <label>Alert type
+      <button class="qmark" data-tip="type">?</button></label>
+    <div class="types" id="typeTiles"></div>
+
+    <div id="buildForm" style="display:none">
+      <label>Name
+        <button class="qmark" data-tip="name">?</button></label>
+      <input type="text" id="ruleName" placeholder="e.g. Front door left open">
+
+      <label><span id="entLabel">Entities to watch</span>
+        <button class="qmark" data-tip="entities">?</button></label>
+      <div class="pickwrap">
+        <div class="pickbar">
+          <input type="text" id="entSearch" placeholder="Search entities…">
+          <span class="cnt" id="entCount">0 selected</span>
+          <label class="inline"><input type="checkbox" id="entShowAll">show all</label>
+        </div>
+        <div class="picklist" id="entList"></div>
+      </div>
+
+      <div id="paramBox"></div>
+
+      <label>Send the notification to
+        <button class="qmark" data-tip="notify">?</button></label>
+      <div class="pickwrap">
+        <div class="picklist" id="notifyList" style="max-height:150px"></div>
+      </div>
+
+      <details class="adv" id="advBox">
+        <summary>✏️ Customize the notification text (optional)</summary>
+        <div class="advbody">
+          <label>Title</label>
+          <input type="text" id="cusTitle" placeholder="leave empty for the automatic title">
+          <label>Message</label>
+          <input type="text" id="cusMsg" placeholder="leave empty for the automatic message">
+          <div class="fieldnote">Home Assistant templates work here — e.g.
+            <b>{{ trigger.to_state.attributes.friendly_name }}</b> becomes the
+            entity's name and <b>{{ trigger.to_state.state }}</b> its state.</div>
+        </div>
+      </details>
+
+      <div class="preview" id="previewBox" style="display:none">
+        <div id="previewText"></div>
+        <button class="yamlbtn" id="yamlToggle">show the automation this creates ▾</button>
+        <pre class="yaml" id="yamlPre"></pre>
+      </div>
+    </div>
+
+    <div class="err" id="buildErr"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="saveBtn">Save alert</button>
+    </div>
+  </div>
+</div>
+
+<!-- confirm delete -->
+<div class="modal" id="confirmModal">
+  <div class="mbox" style="width:min(97vw,480px)">
+    <div class="mhead"><div class="micon">⚠️</div>
+      <h2>Delete this alert?</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="confirmSub"></div>
+    <div class="err" id="confirmErr"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn danger" id="confirmYes">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- tips -->
+<div class="modal" id="tipModal">
+  <div class="mbox" style="width:min(97vw,460px)">
+    <div class="mhead"><div class="micon">💡</div>
+      <h2 id="tipTitle">Tip</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="tipBody" style="font-size:13px"></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="static/app.js"></script>
+</body>
+</html>

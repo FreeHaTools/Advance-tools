@@ -1,0 +1,129 @@
+{
+  "id": "vacation_rental",
+  "name": "Vacation Rental",
+  "icon": "🏝️",
+  "description": "Guest-facing and deliberately harmless: lights, climate and comfort readings, plus Wi-Fi and check-out information. No locks, no alarm, nothing a guest can break.",
+  "tags": ["guest", "hospitality", "info", "landscape"],
+  "summary": [
+    "Four guest-safe light sliders",
+    "Simple climate card, no schedules or presets",
+    "Indoor and outdoor temperature and humidity",
+    "Wi-Fi name and password on screen",
+    "Check-out time and host contact panel"
+  ],
+  "canvas": { "w": 1280, "h": 800, "fit": "fit" },
+  "theme": {
+    "accent": "#2fc4a8", "bg": "#0d1512", "card": "#16211d",
+    "text": "#e9f4f0", "cols": 4, "radius": 18
+  },
+
+  "slots": [
+    { "key": "living_light", "label": "Living room light",
+      "hint": "Main light of the guest living area.",
+      "domain": "light", "required": true, "area_hint": "living room",
+      "keywords": ["living", "lounge", "salon", "main", "sitting"] },
+
+    { "key": "bedroom_light", "label": "Bedroom light",
+      "hint": "The light beside the bed.",
+      "domain": "light", "required": true, "area_hint": "bedroom",
+      "keywords": ["bedroom", "bed", "sleep", "master", "guest"] },
+
+    { "key": "kitchen_light", "label": "Kitchen light",
+      "hint": "Optional.",
+      "domain": "light", "required": false, "area_hint": "kitchen",
+      "keywords": ["kitchen", "counter", "dining", "cook"] },
+
+    { "key": "outdoor_light", "label": "Terrace / outdoor light",
+      "hint": "Optional — balcony, terrace or porch.",
+      "domain": "light", "required": false,
+      "keywords": ["outdoor", "outside", "terrace", "balcony", "porch",
+                   "garden", "patio"] },
+
+    { "key": "thermostat", "label": "Climate control",
+      "hint": "Air conditioning or heating for the guest area.",
+      "domain": "climate", "required": true,
+      "keywords": ["ac", "thermostat", "split", "hvac", "living", "guest"] },
+
+    { "key": "indoor_temperature", "label": "Indoor temperature",
+      "hint": "Shown as the big indoor reading.",
+      "domain": "sensor", "device_class": "temperature", "required": true,
+      "keywords": ["indoor", "inside", "living", "room", "guest"],
+      "exclude": ["outdoor", "outside", "cpu", "battery"] },
+
+    { "key": "outdoor_temperature", "label": "Outdoor temperature",
+      "hint": "Optional — helps guests decide what to wear.",
+      "domain": "sensor", "device_class": "temperature", "required": false,
+      "keywords": ["outdoor", "outside", "terrace", "balcony", "weather",
+                   "garden"] },
+
+    { "key": "indoor_humidity", "label": "Indoor humidity",
+      "hint": "Optional.",
+      "domain": "sensor", "device_class": "humidity", "required": false,
+      "keywords": ["indoor", "inside", "living", "room"],
+      "exclude": ["outdoor", "outside"] },
+
+    { "key": "media", "label": "Speaker or TV",
+      "hint": "Optional — something guests may play music on.",
+      "domain": "media_player", "required": false,
+      "keywords": ["speaker", "tv", "living", "sonos", "cast", "guest"] }
+  ],
+
+  "widgets": [
+    { "type": "box", "text": "LIGHTS", "x": 40, "y": 120, "w": 620, "h": 300 },
+    { "type": "box", "text": "COMFORT", "x": 40, "y": 444, "w": 620, "h": 316 },
+    { "type": "box", "text": "YOUR STAY", "x": 684, "y": 160, "w": 556,
+      "h": 600 },
+
+    { "type": "label", "text": "Welcome!", "x": 40, "y": 24, "w": 600, "h": 48,
+      "size": 34, "bold": true },
+    { "type": "label", "text": "Enjoy your stay — here is everything you need",
+      "x": 40, "y": 76, "w": 600, "h": 26, "size": 15, "color": "#8fb3aa" },
+
+    { "type": "clock", "skin": "clock-card", "x": 990, "y": 20, "w": 250,
+      "h": 120 },
+
+    { "type": "light", "skin": "light-slider", "x": 64, "y": 164, "w": 260,
+      "h": 110, "label": "Living room", "entity": "{{slot:living_light}}" },
+    { "type": "light", "skin": "light-slider", "x": 344, "y": 164, "w": 260,
+      "h": 110, "label": "Bedroom", "entity": "{{slot:bedroom_light}}" },
+    { "type": "light", "skin": "light-slider", "x": 64, "y": 290, "w": 260,
+      "h": 110, "label": "Kitchen", "entity": "{{slot:kitchen_light}}" },
+    { "type": "light", "skin": "light-slider", "x": 344, "y": 290, "w": 260,
+      "h": 110, "label": "Terrace", "entity": "{{slot:outdoor_light}}" },
+
+    { "type": "climate", "skin": "climate-card", "x": 64, "y": 490, "w": 240,
+      "h": 160, "entity": "{{slot:thermostat}}" },
+    { "type": "sensor", "skin": "sensor-card", "x": 344, "y": 490, "w": 200,
+      "h": 110, "label": "Inside", "entity": "{{slot:indoor_temperature}}" },
+    { "type": "sensor", "skin": "sensor-card", "x": 344, "y": 620, "w": 200,
+      "h": 110, "label": "Outside", "entity": "{{slot:outdoor_temperature}}" },
+    { "type": "sensor", "skin": "sensor-chip", "x": 64, "y": 684, "w": 190,
+      "h": 46, "label": "Humidity", "entity": "{{slot:indoor_humidity}}" },
+
+    { "type": "label", "text": "📶 Wi-Fi", "x": 712, "y": 196, "w": 300,
+      "h": 30, "size": 18, "bold": true },
+    { "type": "label", "text": "Network:  GuestWiFi", "x": 712, "y": 232,
+      "w": 480, "h": 26, "size": 15 },
+    { "type": "label", "text": "Password:  change-me-in-the-designer",
+      "x": 712, "y": 264, "w": 480, "h": 26, "size": 15 },
+    { "type": "line", "x": 712, "y": 308, "w": 480, "h": 4,
+      "color": "rgba(255,255,255,.14)" },
+
+    { "type": "label", "text": "🕚 Check-out", "x": 712, "y": 330, "w": 300,
+      "h": 30, "size": 18, "bold": true },
+    { "type": "label", "text": "Please check out by 11:00 AM.", "x": 712,
+      "y": 366, "w": 500, "h": 26, "size": 15 },
+    { "type": "label", "text": "Leave the keys on the kitchen table.",
+      "x": 712, "y": 398, "w": 500, "h": 26, "size": 15 },
+    { "type": "line", "x": 712, "y": 442, "w": 480, "h": 4,
+      "color": "rgba(255,255,255,.14)" },
+
+    { "type": "label", "text": "🆘 Need anything?", "x": 712, "y": 464,
+      "w": 300, "h": 30, "size": 18, "bold": true },
+    { "type": "label", "text": "Call your host — details in the welcome book.",
+      "x": 712, "y": 500, "w": 500, "h": 26, "size": 15 },
+
+    { "type": "media", "skin": "media-mini", "x": 712, "y": 556, "w": 280,
+      "h": 130, "entity": "{{slot:media}}" }
+  ]
+}

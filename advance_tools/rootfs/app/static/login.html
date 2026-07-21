@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f1420">
+<meta name="color-scheme" content="dark">
+<title>Advance Tools — Login</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/static/icons/icon-192.svg">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<meta name="application-name" content="Advance Tools">
+<meta name="apple-mobile-web-app-title" content="Advance Tools">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root { --bg:#0f1420; --card:#1a2233; --line:#2a3550; --txt:#e8edf7; --mut:#8b98b8;
+          --acc:#4f8cff; --acc2:#7b5cff; }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif;
+      -webkit-tap-highlight-color:transparent; }
+  html { -webkit-text-size-adjust:100%; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh; display:flex;
+         align-items:center; justify-content:center; touch-action:manipulation;
+         /* keep the card clear of notches and the iOS home indicator */
+         padding:max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+                 max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px;
+          padding:34px 30px; width:min(100%, 380px); }
+  h1 { font-size:20px; margin-bottom:6px; text-align:center; }
+  .sub { color:var(--mut); font-size:12px; text-align:center; margin-bottom:24px; }
+  label { display:block; font-size:13px; color:var(--mut); margin:14px 0 6px; }
+  /* 16px keeps iOS Safari from zooming in when a field takes focus, and the
+     min-height keeps every control above the 44px tap-target floor. */
+  input, select { width:100%; min-height:48px; padding:12px; border-radius:10px;
+          border:1px solid var(--line); background:#111827; color:var(--txt);
+          font-size:16px; }
+  input:focus, select:focus { outline:none; border-color:var(--acc); }
+  button { width:100%; margin-top:22px; min-height:50px; padding:13px; border:0;
+           border-radius:10px; background:var(--acc); color:#fff; font-size:16px;
+           cursor:pointer; touch-action:manipulation; }
+  button:active { transform:scale(.98); }
+  .err { background:#3a1a22; border:1px solid #7a2a3a; color:#ff9aae; border-radius:10px;
+         padding:10px; margin-top:16px; font-size:13px; display:none; text-align:center; }
+  #install { margin-top:18px; }
+  .credit { margin-top:22px; text-align:center; font-size:11px; color:#5b6784;
+            line-height:1.9; }
+  .credit a { display:inline-block; padding:6px 2px; color:#8b98b8;
+              text-decoration:none; }
+  .credit .support { display:block; margin-top:2px; }
+  @media (max-width: 400px) { .card { padding:26px 20px; } }
+</style>
+</head>
+<body>
+<form class="card" id="f">
+  <h1>🧰 Advance Tools</h1>
+  <div class="sub">Select a dashboard and sign in</div>
+
+  <label for="dash">Dashboard</label>
+  <select id="dash" name="dashboard"></select>
+
+  <label for="user">Username</label>
+  <input id="user" name="username" autocomplete="username" inputmode="text"
+         autocapitalize="none" autocorrect="off" spellcheck="false"
+         enterkeyhint="next" required>
+
+  <label for="pass">Password</label>
+  <input id="pass" type="password" name="password" autocomplete="current-password"
+         autocapitalize="none" autocorrect="off" spellcheck="false"
+         enterkeyhint="go" required>
+
+  <button type="submit">Sign in</button>
+  <div class="err" id="err"></div>
+  <div id="install" data-pwa-install hidden></div>
+  <div class="credit">
+    Advance Tools · built by Mike Fattahi ·
+    <a href="https://www.fattahi.us" target="_blank" rel="noopener">fattahi.us</a>
+    <span class="support">Free, and always will be. If it saved you an afternoon,
+      you can <a href="https://github.com/sponsors/FreeHaTools" target="_blank"
+      rel="noopener">buy me a coffee</a> ♥</span>
+  </div>
+</form>
+<script>
+const dash = document.getElementById('dash');
+const err = document.getElementById('err');
+
+fetch('/api/dashboards').then(r => r.json()).then(list => {
+  for (const d of list) {
+    const o = document.createElement('option');
+    o.value = d.slug; o.textContent = d.name;
+    dash.appendChild(o);
+  }
+  const a = document.createElement('option');
+  a.value = '__admin__'; a.textContent = '⚙️ Admin panel';
+  dash.appendChild(a);
+  // direct link support: /?d=slug preselects the dashboard
+  const want = new URLSearchParams(location.search).get('d');
+  if (want && [...dash.options].some(o => o.value === want)) dash.value = want;
+});
+
+document.getElementById('f').addEventListener('submit', async e => {
+  e.preventDefault();
+  err.style.display = 'none';
+  const res = await fetch('/api/login', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      username: document.getElementById('user').value.trim(),
+      password: document.getElementById('pass').value,
+      dashboard: dash.value
+    })
+  });
+  const data = await res.json();
+  if (data.ok) { location.href = data.url; }
+  else { err.textContent = data.error || 'Login failed'; err.style.display = 'block'; }
+});
+</script>
+<script src="/static/pwa.js" defer></script>
+</body>
+</html>

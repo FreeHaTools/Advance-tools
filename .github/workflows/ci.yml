@@ -1,0 +1,74 @@
+# Continuous integration for the Advance Tools add-on.
+#
+# Two jobs, each guarding a different failure mode that has reached users before:
+#
+#   verify      Runs scripts/verify.py — the repo's own check suite. Catches
+#               truncated files, invalid JSON/YAML/JS, config.yaml drifting away
+#               from VERSION in main.py, tool assets that were never committed,
+#               emoji destroyed by a bad text encoding, and an add-on that no
+#               longer boots or whose pages 404.
+#
+#   addon-lint  Runs the community Home Assistant add-on linter over
+#               advance_tools/, validating config.yaml against what the Supervisor
+#               actually expects (schema, arch, ports, ingress, image naming).
+#
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    name: Verify repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # verify.py shells out to `git ls-files` for the untracked-file and
+          # zero-byte guards, so it needs a real working tree, not a partial one.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js
+        # Only used by the `node --check` JavaScript syntax check. Without it
+        # that check reports SKIP rather than failing.
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install add-on runtime dependencies
+        # verify.py itself is stdlib-only; aiohttp is needed by the add-on so
+        # the boot smoke test can actually start main.py.
+        run: pip install --upgrade pip aiohttp
+
+      - name: Run checks
+        run: python scripts/verify.py --verbose
+
+      - name: Poller unit tests
+        # static/poll.js decides when every screen refreshes. A regression here
+        # is invisible in a syntax check but leaves tools stuck on "Loading…"
+        # (which is exactly what happened in 2.16.0), so it gets real tests.
+        run: node scripts/poll.test.js
+
+  addon-lint:
+    name: Home Assistant add-on lint
+    runs-on: ubuntu-latest
+    # continue-on-error: the community linter tracks upstream Supervisor schema
+    # changes and has historically flagged valid config on new HA releases. Its
+    # findings are advisory — treat them as review notes, not a merge blocker.
+    # The authoritative gate is the `verify` job above.
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lint add-on
+        uses: frenck/action-addon-linter@v2
+        with:
+          path: "./advance_tools"

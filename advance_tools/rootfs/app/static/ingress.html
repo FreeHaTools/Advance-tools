@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advance Tools</title>
+<style>
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:#0b0f19; color:#e8edf7; min-height:100vh; display:flex;
+         align-items:center; justify-content:center; padding:20px; }
+  .card { background:#161e2f; border:1px solid #28324c; border-radius:20px;
+          padding:40px 44px; text-align:center; max-width:420px;
+          box-shadow:0 20px 60px rgba(0,0,0,.45); }
+  .logo { width:64px; height:64px; border-radius:18px; margin:0 auto 18px;
+          display:flex; align-items:center; justify-content:center; font-size:30px;
+          background:linear-gradient(135deg,#4f8cff,#7b5cff); }
+  h1 { font-size:20px; margin-bottom:8px; }
+  p { font-size:13px; color:#8b98b8; line-height:1.9; margin-bottom:22px; }
+  a.btn { display:inline-block; background:linear-gradient(135deg,#4f8cff,#7b5cff);
+          color:#fff; text-decoration:none; padding:14px 34px; border-radius:12px;
+          font-size:15px; font-weight:700; }
+  a.btn:active { transform:scale(.97); }
+  .foot { margin-top:22px; font-size:11px; color:#5b6784; }
+  .foot a { color:#8b98b8; text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🧰</div>
+  <h1>Advance Tools</h1>
+  <p>Multi-user dashboards for your wall tablets.<br>
+     The admin console opens in a full window.</p>
+  <a class="btn" id="open" href="#" target="_top">Open Admin Console →</a>
+  <div class="foot">Advance Tools · built by Mike Fattahi ·
+    <a href="https://www.fattahi.us" target="_blank" rel="noopener">fattahi.us</a></div>
+</div>
+<script>
+  // Prefer the configured domain (injected by the server); otherwise build the
+  // direct IP link from the browser's current hostname.
+  const domain = "{{DOMAIN}}";
+  const url = domain
+    ? domain + "/admin"
+    : location.protocol + "//" + location.hostname + ":8234/admin";
+  const a = document.getElementById("open");
+  a.href = url;
+</script>
+</body>
+</html>

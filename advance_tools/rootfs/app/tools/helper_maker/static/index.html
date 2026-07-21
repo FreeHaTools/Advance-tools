@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Helper Maker — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#b17aff; --acc2:#22b8cf;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --hover:rgba(177,122,255,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .ghost.on { color:var(--acc); border-color:var(--acc);
+           background:rgba(177,122,255,.1); }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#12041f;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+  .btn.sm { padding:8px 15px; font-size:12.5px; }
+  .btn.danger { background:linear-gradient(135deg,#ff6b81,#ff9d5c); }
+  .btn[disabled] { opacity:.5; cursor:default; }
+
+  main { padding:20px 22px 110px; max-width:1180px; margin:0 auto; }
+
+  /* ---- stats strip ---- */
+  .stats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+  .statbox { background:var(--card); border:1px solid var(--line);
+             border-radius:12px; padding:10px 16px; min-width:110px; }
+  .statbox b { display:block; font-size:20px; }
+  .statbox span { font-size:10.5px; color:var(--mut); text-transform:uppercase;
+             letter-spacing:.08em; }
+  .statbox.link { cursor:pointer; } .statbox.link:hover { border-color:var(--acc); }
+
+  /* ---- toolbar ---- */
+  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:12px;
+             flex-wrap:wrap; }
+  #search { width:250px; padding:9px 12px; border-radius:10px;
+            border:1px solid var(--line); background:var(--input);
+            color:var(--txt); font-size:13px; }
+  #search:focus { outline:none; border-color:var(--acc); }
+  .toolbar select { padding:9px 10px; border-radius:10px; font-size:12.5px;
+            border:1px solid var(--line); background:var(--input); color:var(--txt); }
+  .toolbar .sp { flex:1; }
+  .stat { font-size:12px; color:var(--mut); }
+  .stat .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+            background:var(--bad); margin-right:5px; }
+  .stat .dot.ok { background:var(--good); }
+
+  /* ---- type chips ---- */
+  .chips { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:18px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; font-size:12px;
+          color:var(--mut); background:var(--card); border:1px solid var(--line);
+          border-radius:20px; padding:6px 13px; cursor:pointer; user-select:none; }
+  .chip:hover { color:var(--txt); border-color:var(--acc); }
+  .chip.on { color:#12041f; background:var(--acc); border-color:var(--acc);
+          font-weight:700; }
+  .chip .n { font-size:10px; opacity:.75; }
+
+  /* ---- helper cards ---- */
+  #list { display:grid; grid-template-columns:repeat(auto-fill, minmax(330px,1fr));
+          gap:12px; }
+  .hcard { background:var(--card); border:1px solid var(--line); border-radius:14px;
+           padding:14px 16px 13px; box-shadow:var(--shadow); position:relative;
+           display:flex; flex-direction:column; gap:10px; }
+  .hcard.disabled { opacity:.55; }
+  .hcard .top { display:flex; align-items:flex-start; gap:11px; }
+  .hcard .ticon { width:36px; height:36px; border-radius:10px; display:flex;
+           align-items:center; justify-content:center; font-size:18px;
+           background:var(--input); border:1px solid var(--line); flex:0 0 auto; }
+  .hcard .nm { flex:1; min-width:0; }
+  .hcard .nm b { display:block; font-size:14px; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .hcard .eid { font-size:10.5px; color:var(--mut);
+           font-family:Consolas, monospace; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+  .hcard .eid:hover { color:var(--acc2); }
+  .tbadge { font-size:9.5px; padding:3px 8px; border-radius:20px;
+           border:1px solid var(--line); color:var(--mut); white-space:nowrap;
+           flex:0 0 auto; }
+  .hcard .ctrl { display:flex; align-items:center; gap:9px; min-height:30px;
+           flex-wrap:wrap; }
+  .hcard .stateval { font-size:13px; font-weight:600; color:var(--acc2);
+           overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .hcard .stateval.off { color:var(--mut); font-weight:400; }
+  .hcard .foot { display:flex; align-items:center; gap:6px;
+           border-top:1px solid var(--line); padding-top:9px; }
+  .hcard .last { font-size:10.5px; color:var(--mut); flex:1; }
+  .iconbtn { background:none; border:0; color:var(--mut); cursor:pointer;
+           font-size:14px; padding:3px 7px; border-radius:7px; }
+  .iconbtn:hover { color:var(--txt); background:var(--hover); }
+  .iconbtn.danger:hover { color:var(--bad); }
+  .hcard .selbox { position:absolute; top:10px; right:10px; width:20px;
+           height:20px; border-radius:6px; border:2px solid var(--line);
+           background:var(--input); cursor:pointer; display:none;
+           align-items:center; justify-content:center; font-size:12px;
+           color:#12041f; }
+  body.bulk .hcard .selbox { display:flex; }
+  .hcard.selected { border-color:var(--acc); }
+  .hcard.selected .selbox { background:var(--acc); border-color:var(--acc); }
+  .empty { text-align:center; color:var(--mut); padding:60px 0; font-size:14px;
+           grid-column:1/-1; line-height:2; }
+
+  /* ---- quick controls ---- */
+  .sw { position:relative; width:44px; height:24px; border-radius:20px;
+        background:var(--line); cursor:pointer; transition:.2s; flex:0 0 auto; }
+  .sw::after { content:''; position:absolute; top:3px; left:3px; width:18px;
+        height:18px; border-radius:50%; background:#fff; transition:.2s; }
+  .sw.on { background:var(--good); }
+  .sw.on::after { left:23px; }
+  .stepper { display:flex; align-items:center; gap:2px; border:1px solid var(--line);
+        border-radius:9px; overflow:hidden; }
+  .stepper button { background:var(--input); border:0; color:var(--txt);
+        width:30px; height:28px; cursor:pointer; font-size:15px; }
+  .stepper button:hover { background:var(--hover); }
+  .stepper span { min-width:44px; text-align:center; font-size:13px;
+        font-weight:700; }
+  input[type=range].qr { flex:1; min-width:80px; accent-color:var(--acc); }
+  .ctrl select, .ctrl input[type=text], .ctrl input[type=time],
+  .ctrl input[type=date], .ctrl input[type=number] {
+        padding:6px 9px; border-radius:8px; border:1px solid var(--line);
+        background:var(--input); color:var(--txt); font-size:12px; }
+  .pressbtn { background:rgba(177,122,255,.13); border:1px solid var(--acc);
+        color:var(--acc); border-radius:9px; padding:6px 16px; cursor:pointer;
+        font-size:12.5px; font-weight:700; }
+  .pressbtn:active { transform:scale(.96); }
+  .timerrow button { font-size:12px; }
+
+  /* ---- hint (tooltip) system ---- */
+  .hint { display:inline-flex; align-items:center; justify-content:center;
+          width:16px; height:16px; border-radius:50%; border:1px solid var(--line);
+          background:var(--input); color:var(--mut); font-size:10px;
+          font-weight:700; cursor:help; margin-left:6px; vertical-align:1px;
+          user-select:none; flex:0 0 auto; }
+  .hint:hover { color:var(--acc2); border-color:var(--acc2); }
+  #tipbox { position:fixed; z-index:400; width:min(92vw, 360px);
+            background:#0d1424; border:1px solid var(--acc2); border-radius:14px;
+            padding:14px 16px; box-shadow:0 14px 40px rgba(0,0,0,.6);
+            display:none; font-size:12.5px; line-height:1.75; }
+  #tipbox b.t { display:block; color:var(--acc2); font-size:13px;
+                margin-bottom:4px; }
+  #tipbox .ex { margin-top:8px; background:var(--input); border:1px solid
+                var(--line); border-left:3px solid var(--acc); border-radius:8px;
+                padding:8px 11px; font-family:Consolas, monospace; font-size:11.5px;
+                white-space:pre-wrap; color:#e2d4f7; }
+  #tipbox .ex::before { content:'EXAMPLE'; display:block; font-family:"Segoe UI";
+                font-size:9px; letter-spacing:.12em; color:var(--mut);
+                margin-bottom:3px; }
+
+  /* ---- modals ---- */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.72); display:none;
+           z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+           padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(97vw, 760px); margin:0 auto;
+          padding:24px; box-shadow:var(--shadow); }
+  .mbox.wide { width:min(97vw, 980px); }
+  .mbox.narrow { width:min(97vw, 520px); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead .micon { width:34px; height:34px; border-radius:10px; display:flex;
+          align-items:center; justify-content:center; font-size:17px;
+          background:var(--input); border:1px solid var(--line); }
+  .mhead h2 { font-size:17px; flex:1; }
+  .msub { color:var(--mut); font-size:12px; margin-bottom:16px; line-height:1.7; }
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:20px;
+           align-items:center; flex-wrap:wrap; }
+  .mfoot .sp { flex:1; }
+  .err { background:#3a1a22; border:1px solid #7a2a3a; color:#ff9aae;
+         border-radius:10px; padding:10px 13px; margin-top:12px; font-size:13px;
+         display:none; line-height:1.7; }
+
+  label { font-size:12px; color:var(--mut); display:flex; align-items:center;
+          margin:12px 0 4px; }
+  label .req { color:var(--bad); margin-left:4px; }
+  input[type=text], input[type=time], input[type=number], input[type=date],
+  select, textarea {
+    width:100%; padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--input); color:var(--txt); font-size:13.5px; }
+  input:focus, select:focus, textarea:focus { outline:none;
+    border-color:var(--acc); }
+  textarea.mono { font-family:Consolas, monospace; font-size:12px;
+    min-height:72px; }
+  .grid { display:grid; gap:0 12px; } .g2 { grid-template-columns:1fr 1fr; }
+  .g3 { grid-template-columns:1fr 1fr 1fr; }
+  @media (max-width:640px){ .g2,.g3 { grid-template-columns:1fr; } }
+  .boolrow { display:flex; align-items:center; gap:10px; margin:12px 0 2px; }
+  .boolrow .bl { font-size:13px; flex:1; display:flex; align-items:center; }
+
+  /* options list editor (input_select) */
+  .optlist .orow { display:flex; gap:7px; margin-bottom:7px; align-items:center; }
+  .optlist .orow input { flex:1; }
+  .addline { display:inline-flex; align-items:center; gap:6px; font-size:12px;
+        color:var(--mut); background:var(--input); border:1px dashed var(--line);
+        border-radius:20px; padding:6px 13px; cursor:pointer; user-select:none;
+        margin-top:2px; }
+  .addline:hover { color:var(--txt); border-color:var(--acc); border-style:solid; }
+
+  /* duration editor */
+  .durrow { display:flex; gap:7px; align-items:center; }
+  .durrow input { width:70px; text-align:center; }
+  .durrow span { color:var(--mut); font-size:12px; }
+
+  /* schedule editor */
+  .schedday { display:flex; gap:8px; align-items:flex-start; padding:8px 0;
+        border-bottom:1px solid var(--line); }
+  .schedday:last-child { border-bottom:0; }
+  .schedday .dn { width:44px; font-size:12.5px; font-weight:700; padding-top:7px; }
+  .schedday .blocks { flex:1; display:flex; flex-direction:column; gap:6px; }
+  .schedblock { display:flex; gap:6px; align-items:center; }
+  .schedblock input { width:110px; }
+  .schedblock span { color:var(--mut); font-size:12px; }
+  .schedday .addline { padding:4px 11px; font-size:11px; align-self:flex-start; }
+
+  /* ---- type picker ---- */
+  .typegrid { display:grid; grid-template-columns:repeat(auto-fill,
+        minmax(210px,1fr)); gap:10px; margin-top:6px; }
+  .tpick { background:var(--input); border:1px solid var(--line);
+        border-radius:13px; padding:13px 14px; cursor:pointer; position:relative; }
+  .tpick:hover { border-color:var(--acc); background:var(--hover); }
+  .tpick .th { display:flex; align-items:center; gap:9px; margin-bottom:6px; }
+  .tpick .th .ti { font-size:19px; }
+  .tpick .th b { font-size:13.5px; }
+  .tpick p { font-size:11px; color:var(--mut); line-height:1.6; }
+  .tpick .lrn { position:absolute; top:9px; right:10px; font-size:10px;
+        color:var(--acc2); border:1px solid transparent; border-radius:7px;
+        padding:2px 7px; }
+  .tpick .lrn:hover { border-color:var(--acc2); }
+  .tsect { font-size:10.5px; color:var(--mut); text-transform:uppercase;
+        letter-spacing:.12em; margin:16px 0 8px; }
+
+  /* ---- learn panel ---- */
+  .learn h3 { font-size:12px; color:var(--acc2); text-transform:uppercase;
+        letter-spacing:.1em; margin:18px 0 7px; }
+  .learn p { font-size:13.5px; line-height:1.9; color:var(--txt); }
+  .learn ul { margin:4px 0 0 20px; }
+  .learn li { font-size:13px; line-height:1.9; color:var(--txt); }
+  .learn pre { background:#0a0f1c; border:1px solid var(--line);
+        border-left:3px solid var(--acc); border-radius:10px; padding:12px 15px;
+        font-family:Consolas, monospace; font-size:11.5px; line-height:1.7;
+        white-space:pre-wrap; color:#e2d4f7; overflow-x:auto; margin-top:6px; }
+
+  /* ---- usage / related ---- */
+  .relgroup { margin-top:14px; }
+  .relgroup .rh { font-size:11px; color:var(--mut); text-transform:uppercase;
+        letter-spacing:.1em; margin-bottom:6px; }
+  .relitem { display:flex; align-items:center; gap:9px; background:var(--input);
+        border:1px solid var(--line); border-radius:10px; padding:9px 12px;
+        margin-bottom:6px; font-size:13px; }
+  .relitem .rid { color:var(--mut); font-size:10.5px;
+        font-family:Consolas, monospace; margin-left:auto; }
+  .relnone { color:var(--good); font-size:13px; background:rgba(62,207,142,.08);
+        border:1px solid rgba(62,207,142,.3); border-radius:10px;
+        padding:11px 14px; margin-top:10px; line-height:1.7; }
+  .relwarn { color:var(--warn); font-size:12.5px;
+        background:rgba(255,184,107,.08); border:1px solid rgba(255,184,107,.35);
+        border-radius:10px; padding:11px 14px; margin-top:10px; line-height:1.7; }
+
+  /* ---- config-flow renderer ---- */
+  .flowdesc { font-size:12.5px; color:var(--mut); line-height:1.8;
+        background:var(--input); border:1px solid var(--line); border-radius:10px;
+        padding:10px 13px; margin:8px 0 4px; white-space:pre-wrap; }
+  .menuopt { display:flex; align-items:center; gap:10px; background:var(--input);
+        border:1px solid var(--line); border-radius:11px; padding:12px 14px;
+        cursor:pointer; margin-top:8px; font-size:13.5px; }
+  .menuopt:hover { border-color:var(--acc); background:var(--hover); }
+  .fielderr { color:var(--bad); font-size:11px; margin-top:3px; }
+
+  /* entity combo */
+  .combo-wrap { position:relative; }
+  .combo-list { position:absolute; left:0; right:0; top:calc(100% + 4px);
+        max-height:230px; overflow-y:auto; background:#0d1424;
+        border:1px solid var(--acc2); border-radius:10px; z-index:60;
+        display:none; box-shadow:0 14px 34px rgba(0,0,0,.55); }
+  .combo-list.open { display:block; }
+  .combo-it { padding:8px 12px; cursor:pointer; font-size:12.5px;
+        display:flex; gap:8px; align-items:baseline; }
+  .combo-it:hover, .combo-it.sel { background:rgba(34,184,207,.12); }
+  .combo-it .cn { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;
+        white-space:nowrap; }
+  .combo-it .cid { color:var(--mut); font-size:10.5px;
+        font-family:Consolas, monospace; overflow:hidden; text-overflow:ellipsis;
+        white-space:nowrap; max-width:46%; }
+  .chipsline { display:flex; flex-wrap:wrap; gap:6px; margin-top:7px; }
+  .echip { display:inline-flex; align-items:center; gap:6px; font-size:11.5px;
+        background:var(--input); border:1px solid var(--line); border-radius:16px;
+        padding:4px 10px; }
+  .echip button { background:none; border:0; color:var(--mut); cursor:pointer;
+        font-size:12px; padding:0; }
+  .echip button:hover { color:var(--bad); }
+
+  /* ---- bulk bar ---- */
+  #bulkbar { position:fixed; left:50%; transform:translateX(-50%); bottom:18px;
+        background:var(--bg2); border:1px solid var(--acc); border-radius:16px;
+        padding:12px 18px; display:none; align-items:center; gap:10px; z-index:90;
+        box-shadow:0 14px 44px rgba(0,0,0,.6); flex-wrap:wrap;
+        max-width:94vw; }
+  body.bulk #bulkbar { display:flex; }
+  #bulkbar b { font-size:13px; }
+
+  /* ---- toasts ---- */
+  #toasts { position:fixed; right:18px; bottom:18px; z-index:500; display:flex;
+        flex-direction:column; gap:8px; }
+  .toast { background:var(--bg2); border:1px solid var(--good); color:var(--txt);
+        border-radius:12px; padding:11px 16px; font-size:13px;
+        box-shadow:0 10px 30px rgba(0,0,0,.5); animation:tin .2s ease;
+        max-width:340px; line-height:1.6; }
+  .toast.bad { border-color:var(--bad); }
+  @keyframes tin { from { opacity:0; transform:translateY(8px); } }
+
+  .kbd { border:1px solid var(--line); border-bottom-width:2px; border-radius:5px;
+        padding:0 5px; font-size:10.5px; font-family:Consolas, monospace;
+        color:var(--mut); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🧩</div>
+  <h1>Helper Maker<small>create, control and understand every Home Assistant helper</small></h1>
+  <a class="ghost" href="/admin" target="_top">← Hub</a>
+  <button class="ghost" id="bulkToggle" title="Select multiple helpers">☑ Select</button>
+  <button class="btn" id="newBtn">＋ New Helper</button>
+</header>
+
+<main>
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <input id="search" type="text" placeholder="Search helpers…  ( / )">
+    <select id="sort">
+      <option value="name">Sort: name</option>
+      <option value="type">Sort: type</option>
+      <option value="changed">Sort: last changed</option>
+    </select>
+    <div class="sp"></div>
+    <span class="stat" id="connStat"><span class="dot"></span>connecting…</span>
+  </div>
+
+  <div class="chips" id="chips"></div>
+  <div id="list"><div class="empty">Loading helpers…</div></div>
+</main>
+
+<!-- bulk action bar -->
+<div id="bulkbar">
+  <b id="bulkCount">0 selected</b>
+  <button class="ghost" id="bulkAll">Select all</button>
+  <button class="ghost" id="bulkNone">Clear</button>
+  <button class="ghost" id="bulkExport" title="Download selected storage helpers as JSON">⬇ Export JSON</button>
+  <button class="ghost" id="bulkImport" title="Create helpers from a JSON export">⬆ Import JSON</button>
+  <button class="btn sm danger" id="bulkDelete">🗑 Delete selected</button>
+</div>
+<input type="file" id="importFile" accept="application/json" style="display:none">
+
+<!-- hover tooltip -->
+<div id="tipbox"></div>
+
+<!-- type picker -->
+<div class="modal" id="pickModal">
+  <div class="mbox wide">
+    <div class="mhead"><div class="micon">🧩</div>
+      <h2>What kind of helper?</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub">Pick a type — every card has a <b style="color:var(--acc2)">Learn</b>
+      button explaining what it does, when to use it, and a real automation example.</div>
+    <div id="pickGrid"></div>
+  </div>
+</div>
+
+<!-- storage helper form -->
+<div class="modal" id="formModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon" id="formIcon">🔘</div>
+      <h2 id="formTitle">New Toggle</h2>
+      <button class="ghost" data-learn id="formLearn">📖 Learn</button>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="formSub"></div>
+    <div id="formFields"></div>
+    <div class="err" id="formErr"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="formSave">Save helper</button>
+    </div>
+  </div>
+</div>
+
+<!-- config-flow renderer -->
+<div class="modal" id="flowModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon" id="flowIcon">🧺</div>
+      <h2 id="flowTitle">New Group</h2>
+      <button class="ghost" data-learn id="flowLearn">📖 Learn</button>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="flowSub"></div>
+    <div id="flowBody"></div>
+    <div class="err" id="flowErr"></div>
+    <div class="mfoot" id="flowFoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="flowNext">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- learn panel -->
+<div class="modal" id="learnModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon" id="learnIcon">📖</div>
+      <h2 id="learnTitle">Toggle</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="learn" id="learnBody"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="btn" id="learnCreate">＋ Create one</button>
+    </div>
+  </div>
+</div>
+
+<!-- usage finder -->
+<div class="modal" id="usageModal">
+  <div class="mbox narrow">
+    <div class="mhead"><div class="micon">🔎</div>
+      <h2 id="usageTitle">Where is this used?</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="usageSub"></div>
+    <div id="usageBody"><div class="empty">Searching…</div></div>
+  </div>
+</div>
+
+<!-- confirm dialog -->
+<div class="modal" id="confirmModal">
+  <div class="mbox narrow">
+    <div class="mhead"><div class="micon">⚠️</div>
+      <h2 id="confirmTitle">Delete helper?</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="confirmSub"></div>
+    <div id="confirmBody"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn danger" id="confirmYes">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="../../static/poll.js"></script>
+<script src="static/content.js"></script>
+<script src="static/app.js"></script>
+</body>
+</html>

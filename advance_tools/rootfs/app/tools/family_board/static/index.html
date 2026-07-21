@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Family Board — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#6be675; --acc2:#22b8cf;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --hover:rgba(107,230,117,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#04120a;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+  .btn.sm { padding:8px 15px; font-size:12.5px; }
+  .btn.danger { background:linear-gradient(135deg,#ff6b81,#ff9d5c); }
+  .btn[disabled] { opacity:.5; cursor:default; }
+  .stat { font-size:12px; color:var(--mut); white-space:nowrap; }
+  .stat .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+           background:var(--bad); margin-right:5px; }
+  .stat .dot.ok { background:var(--good); }
+
+  main { padding:20px 22px 90px; max-width:1280px; margin:0 auto; }
+
+  /* ---- tabs ---- */
+  .tabs { position:relative; display:inline-flex; gap:4px; background:var(--card);
+          border:1px solid var(--line); border-radius:16px; padding:5px;
+          margin-bottom:20px; }
+  .tab { position:relative; z-index:1; background:none; border:0; color:var(--mut);
+         padding:12px 26px; border-radius:12px; cursor:pointer; font-size:15.5px;
+         font-weight:600; min-height:48px; }
+  .tab.on { color:var(--txt); }
+  .tab .n { font-size:11px; opacity:.7; margin-left:4px; }
+  #tabline { position:absolute; top:5px; bottom:5px; left:0; width:0;
+         border-radius:12px; background:var(--hover);
+         border:1px solid var(--acc); transition:left .25s ease, width .25s ease; }
+  .tabpane { display:none; animation:fadein .18s ease; }
+  .tabpane.on { display:block; }
+  @keyframes fadein { from { opacity:0; transform:translateY(4px); } }
+
+  /* ---- shared empty state ---- */
+  .empty { text-align:center; color:var(--mut); padding:50px 16px; font-size:14.5px;
+           line-height:2.1; background:var(--card); border:1px dashed var(--line);
+           border-radius:16px; grid-column:1/-1; }
+  .empty .big { font-size:34px; display:block; margin-bottom:6px; }
+  .empty b { color:var(--txt); }
+
+  /* ---- Lists tab ---- */
+  #listsGrid { display:grid; grid-template-columns:repeat(auto-fill,
+          minmax(320px,1fr)); gap:16px; align-items:start; }
+  .listcol { background:var(--card); border:1px solid var(--line);
+          border-radius:16px; padding:16px; box-shadow:var(--shadow);
+          display:flex; flex-direction:column; gap:10px; }
+  .listcol .lhead { display:flex; align-items:center; gap:9px; }
+  .listcol .lhead b { flex:1; font-size:15.5px; overflow:hidden;
+          text-overflow:ellipsis; white-space:nowrap; }
+  .listcol .cnt { font-size:11px; color:var(--mut); background:var(--input);
+          border:1px solid var(--line); border-radius:14px; padding:3px 10px;
+          white-space:nowrap; }
+  .addrow { display:flex; gap:8px; position:relative; }
+  .addrow input { flex:1; padding:13px 14px; border-radius:12px; font-size:15px;
+          border:1px solid var(--line); background:var(--input); color:var(--txt); }
+  .addrow input:focus { outline:none; border-color:var(--acc); }
+  .addrow .okflash { position:absolute; right:12px; top:50%;
+          transform:translateY(-50%); color:var(--good); font-size:17px;
+          opacity:0; pointer-events:none; }
+  .addrow .okflash.go { animation:okpop .8s ease; }
+  @keyframes okpop { 0% { opacity:0; transform:translateY(-50%) scale(.4); }
+          25% { opacity:1; transform:translateY(-50%) scale(1.25); }
+          70% { opacity:1; } 100% { opacity:0; } }
+  .items { display:flex; flex-direction:column; }
+  .item { display:flex; align-items:center; gap:12px; min-height:52px;
+          padding:6px 4px; border-bottom:1px solid rgba(40,50,76,.55); }
+  .item:last-child { border-bottom:0; }
+  .item .cb { width:28px; height:28px; border-radius:9px; flex:0 0 auto;
+          border:2px solid var(--line); background:var(--input); cursor:pointer;
+          display:flex; align-items:center; justify-content:center;
+          font-size:16px; color:#04120a; transition:.15s; }
+  .item .cb:hover { border-color:var(--acc); }
+  .item.completed .cb { background:var(--good); border-color:var(--good); }
+  .item .sum { flex:1; font-size:15.5px; position:relative; cursor:pointer;
+          padding:8px 0; word-break:break-word; }
+  .item .sum::after { content:''; position:absolute; left:0; top:50%; height:2px;
+          width:0; background:var(--mut); transition:width .28s ease; }
+  .item.completed .sum { color:var(--mut); }
+  .item.completed .sum::after { width:100%; }
+  .item input.rn { flex:1; padding:9px 11px; border-radius:9px; font-size:15px;
+          border:1px solid var(--acc); background:var(--input); color:var(--txt); }
+  .item input.rn:focus { outline:none; }
+  .iconbtn { background:none; border:0; color:var(--mut); cursor:pointer;
+          font-size:15px; padding:8px 9px; border-radius:9px; flex:0 0 auto; }
+  .iconbtn:hover { color:var(--txt); background:var(--hover); }
+  .iconbtn.danger:hover { color:var(--bad); }
+  .donewrap { border-top:1px solid var(--line); padding-top:8px; }
+  .donewrap .dtog { background:none; border:0; color:var(--mut); cursor:pointer;
+          font-size:12.5px; padding:8px 4px; width:100%; text-align:left; }
+  .donewrap .dtog:hover { color:var(--txt); }
+  .donewrap .dbody { display:none; }
+  .donewrap.open .dbody { display:block; }
+  .listcol .lfoot { display:flex; justify-content:flex-end; }
+  .newcard { border:1px dashed var(--line); background:none; border-radius:16px;
+          min-height:150px; display:flex; flex-direction:column; gap:8px;
+          align-items:center; justify-content:center; cursor:pointer;
+          color:var(--mut); font-size:15px; }
+  .newcard:hover { border-color:var(--acc); color:var(--txt);
+          background:var(--hover); }
+  .newcard .plus { font-size:30px; }
+  .lerr { color:var(--warn); font-size:12px; line-height:1.6; }
+
+  /* ---- Chores tab ---- */
+  #choresGrid { display:grid; grid-template-columns:repeat(auto-fill,
+          minmax(280px,1fr)); gap:16px; align-items:start; margin-bottom:22px; }
+  .chore { background:var(--card); border:1px solid var(--line);
+          border-radius:16px; padding:16px; box-shadow:var(--shadow);
+          display:flex; flex-direction:column; gap:12px; position:relative; }
+  .chore.due { border-color:rgba(255,184,107,.55); }
+  .chore .top { display:flex; align-items:flex-start; gap:11px; }
+  .chore .cicon { width:46px; height:46px; border-radius:13px; display:flex;
+          align-items:center; justify-content:center; font-size:25px;
+          background:var(--input); border:1px solid var(--line); flex:0 0 auto; }
+  .chore .nm { flex:1; min-width:0; }
+  .chore .nm b { display:block; font-size:15.5px; }
+  .chore .nm .sub { font-size:11.5px; color:var(--mut); margin-top:2px; }
+  .chore .meta { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .pill { font-size:12px; border-radius:16px; padding:5px 12px;
+          border:1px solid var(--line); color:var(--mut); white-space:nowrap; }
+  .pill.who { color:var(--acc2); border-color:rgba(34,184,207,.5);
+          background:rgba(34,184,207,.08); font-weight:700; }
+  .pill.due { color:var(--warn); border-color:rgba(255,184,107,.5);
+          background:rgba(255,184,107,.08); font-weight:700; }
+  .pill.ok { color:var(--good); border-color:rgba(62,207,142,.5);
+          background:rgba(62,207,142,.08); font-weight:700; }
+  .pill.fire { color:#ffb86b; }
+  .chore .donebtn { width:100%; min-height:48px; font-size:15px; }
+  .chore .donebtn[disabled] { opacity:.45; }
+  #activity { background:var(--card); border:1px solid var(--line);
+          border-radius:16px; padding:16px 18px; }
+  #activity h3 { font-size:11px; color:var(--mut); text-transform:uppercase;
+          letter-spacing:.12em; margin-bottom:10px; }
+  .actrow { display:flex; gap:9px; align-items:baseline; font-size:13.5px;
+          padding:7px 0; border-bottom:1px solid rgba(40,50,76,.55); }
+  .actrow:last-child { border-bottom:0; }
+  .actrow .when { margin-left:auto; color:var(--mut); font-size:11.5px;
+          white-space:nowrap; }
+  .actrow b { color:var(--acc2); }
+
+  /* confetti burst */
+  .pop { position:fixed; width:9px; height:9px; border-radius:2px; z-index:600;
+          pointer-events:none; animation:fly .8s ease-out forwards; }
+  @keyframes fly { to { transform:translate(var(--dx), var(--dy)) rotate(560deg);
+          opacity:0; } }
+
+  /* ---- Notes tab ---- */
+  .notesbar { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  #notesGrid { column-count:4; column-gap:16px; }
+  @media (max-width:1100px){ #notesGrid { column-count:3; } }
+  @media (max-width:820px){ #notesGrid { column-count:2; } }
+  @media (max-width:540px){ #notesGrid { column-count:1; } }
+  .note { break-inside:avoid; margin-bottom:16px; border-radius:14px;
+          padding:14px 14px 10px; box-shadow:var(--shadow); color:#232014;
+          transform:rotate(-.4deg); }
+  .note:nth-child(even) { transform:rotate(.5deg); }
+  .note textarea { width:100%; background:none; border:0; resize:none;
+          font-size:15.5px; line-height:1.6; color:inherit; min-height:64px;
+          font-family:inherit; overflow:hidden; }
+  .note textarea:focus { outline:none; }
+  .note .nfoot { display:flex; align-items:center; gap:6px; margin-top:8px;
+          opacity:.85; }
+  .note .nfoot .when { font-size:10.5px; margin-right:auto; opacity:.7; }
+  .note .cdot { width:18px; height:18px; border-radius:50%; border:2px solid
+          rgba(0,0,0,.25); cursor:pointer; padding:0; }
+  .note .cdot:hover { border-color:rgba(0,0,0,.6); }
+  .note .ndel { background:none; border:0; cursor:pointer; font-size:14px;
+          color:rgba(0,0,0,.55); padding:4px 7px; border-radius:7px; }
+  .note .ndel:hover { color:#a3172c; background:rgba(0,0,0,.08); }
+  .n-yellow { background:#ffe9a3; } .n-pink { background:#ffc9dc; }
+  .n-blue { background:#bfe0ff; } .n-green { background:#c9f2c9; }
+  .n-orange { background:#ffd9ae; }
+
+  /* note audience */
+  .audrow { display:flex; align-items:center; gap:4px; margin-top:6px; }
+  .audbadge { background:rgba(0,0,0,.07); border:1px solid rgba(0,0,0,.2);
+          color:inherit; border-radius:12px; padding:4px 10px; font-size:11px;
+          cursor:pointer; max-width:100%; overflow:hidden;
+          text-overflow:ellipsis; white-space:nowrap; }
+  .audbadge:hover { border-color:rgba(0,0,0,.5); background:rgba(0,0,0,.12); }
+  .note .hint { border-color:rgba(0,0,0,.25); background:rgba(0,0,0,.06);
+          color:rgba(0,0,0,.55); }
+  .audpanel { background:rgba(255,255,255,.55); border:1px solid rgba(0,0,0,.16);
+          border-radius:10px; padding:10px 12px; margin-top:8px;
+          display:flex; flex-direction:column; gap:6px; }
+  .audpanel label.au { display:flex; align-items:center; gap:8px; margin:0;
+          color:inherit; font-size:12.5px; cursor:pointer; }
+  .audpanel input[type=radio], .audpanel input[type=checkbox] {
+          width:auto; accent-color:#1c7c3c; }
+  .audpanel .ulist { margin-left:22px; display:flex; flex-direction:column;
+          gap:4px; max-height:150px; overflow-y:auto; }
+  .audpanel .umut { font-size:11.5px; opacity:.65; }
+  .audpanel .applyrow { display:flex; justify-content:flex-end; }
+  .audapply { background:rgba(0,0,0,.75); color:#fff; border:0;
+          border-radius:8px; padding:6px 14px; font-size:12px; cursor:pointer;
+          font-weight:700; }
+  .audapply:hover { background:rgba(0,0,0,.9); }
+
+  /* note replies */
+  .replies { margin-top:8px; border-top:1px dashed rgba(0,0,0,.28);
+          padding-top:7px; display:flex; flex-direction:column; gap:4px; }
+  .reply { display:flex; gap:6px; align-items:baseline; font-size:12.5px;
+          line-height:1.5; }
+  .reply b { opacity:.8; white-space:nowrap; }
+  .reply .rtext { flex:1; word-break:break-word; }
+  .reply .rwhen { font-size:10px; opacity:.55; white-space:nowrap; }
+  .reply .rdel { background:none; border:0; cursor:pointer;
+          color:rgba(0,0,0,.4); font-size:11px; padding:2px 5px;
+          border-radius:6px; }
+  .reply .rdel:hover { color:#a3172c; background:rgba(0,0,0,.08); }
+  .replyrow input { width:100%; background:rgba(255,255,255,.55);
+          border:1px solid rgba(0,0,0,.2); border-radius:8px; padding:7px 9px;
+          font-size:12.5px; color:inherit; }
+  .replyrow input:focus { outline:none; border-color:rgba(0,0,0,.5); }
+  .replyrow input::placeholder { color:rgba(0,0,0,.4); }
+
+  /* ---- hint (tooltip) system ---- */
+  .hint { display:inline-flex; align-items:center; justify-content:center;
+          width:16px; height:16px; border-radius:50%; border:1px solid var(--line);
+          background:var(--input); color:var(--mut); font-size:10px;
+          font-weight:700; cursor:help; margin-left:6px; vertical-align:1px;
+          user-select:none; flex:0 0 auto; }
+  .hint:hover { color:var(--acc2); border-color:var(--acc2); }
+  #tipbox { position:fixed; z-index:400; width:min(92vw, 360px);
+          background:#0d1424; border:1px solid var(--acc2); border-radius:14px;
+          padding:14px 16px; box-shadow:0 14px 40px rgba(0,0,0,.6);
+          display:none; font-size:12.5px; line-height:1.75; }
+  #tipbox b.t { display:block; color:var(--acc2); font-size:13px;
+          margin-bottom:4px; }
+  #tipbox .ex { margin-top:8px; background:var(--input); border:1px solid
+          var(--line); border-left:3px solid var(--acc); border-radius:8px;
+          padding:8px 11px; font-family:Consolas, monospace; font-size:11.5px;
+          white-space:pre-wrap; color:#d7f7da; }
+  #tipbox .ex::before { content:'EXAMPLE'; display:block; font-family:"Segoe UI";
+          font-size:9px; letter-spacing:.12em; color:var(--mut);
+          margin-bottom:3px; }
+
+  /* ---- modals ---- */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.72); display:none;
+          z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+          padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(97vw, 620px); margin:0 auto;
+          padding:24px; box-shadow:var(--shadow); }
+  .mbox.narrow { width:min(97vw, 480px); }
+  .mbox.wide { width:min(97vw, 820px); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead .micon { width:34px; height:34px; border-radius:10px; display:flex;
+          align-items:center; justify-content:center; font-size:17px;
+          background:var(--input); border:1px solid var(--line); }
+  .mhead h2 { font-size:17px; flex:1; }
+  .msub { color:var(--mut); font-size:12px; margin-bottom:14px; line-height:1.7; }
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:20px;
+          align-items:center; flex-wrap:wrap; }
+  .mfoot .sp { flex:1; }
+  .err { background:#3a1a22; border:1px solid #7a2a3a; color:#ff9aae;
+          border-radius:10px; padding:10px 13px; margin-top:12px; font-size:13px;
+          display:none; line-height:1.7; }
+  label { font-size:12px; color:var(--mut); display:flex; align-items:center;
+          margin:14px 0 5px; }
+  label .req { color:var(--bad); margin-left:4px; }
+  input[type=text], textarea, select {
+          width:100%; padding:12px 13px; border-radius:10px;
+          border:1px solid var(--line); background:var(--input);
+          color:var(--txt); font-size:15px; }
+  input:focus, textarea:focus, select:focus { outline:none;
+          border-color:var(--acc); }
+
+  /* chore modal widgets */
+  .emojirow { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .em { width:44px; height:44px; border-radius:11px; border:1px solid var(--line);
+          background:var(--input); font-size:21px; cursor:pointer; }
+  .em:hover { border-color:var(--acc); background:var(--hover); }
+  .em.on { border-color:var(--acc); background:var(--hover);
+          box-shadow:0 0 0 1px var(--acc); }
+  .emojirow input { width:74px; text-align:center; font-size:20px;
+          padding:9px 6px; }
+  .chipin { display:flex; flex-wrap:wrap; gap:7px; align-items:center;
+          border:1px solid var(--line); background:var(--input);
+          border-radius:12px; padding:8px; cursor:text; }
+  .chipin:focus-within { border-color:var(--acc); }
+  .chipin input { flex:1; min-width:130px; border:0; background:none;
+          padding:8px 6px; font-size:14.5px; width:auto; }
+  .echip { display:inline-flex; align-items:center; gap:7px; font-size:13.5px;
+          background:var(--card); border:1px solid var(--line);
+          border-radius:16px; padding:7px 12px; }
+  .echip button { background:none; border:0; color:var(--mut); cursor:pointer;
+          font-size:13px; padding:0; }
+  .echip button:hover { color:var(--bad); }
+  .dayrow { display:flex; gap:6px; flex-wrap:wrap; }
+  .daypill { min-width:52px; min-height:44px; border-radius:11px;
+          border:1px solid var(--line); background:var(--input);
+          color:var(--mut); font-size:13px; font-weight:700; cursor:pointer; }
+  .daypill.on { color:#04120a; background:var(--acc); border-color:var(--acc); }
+
+  /* learn panel */
+  .learn h3 { font-size:12px; color:var(--acc2); text-transform:uppercase;
+          letter-spacing:.1em; margin:18px 0 7px; }
+  .learn p { font-size:13.5px; line-height:1.9; color:var(--txt); }
+  .learn ul { margin:4px 0 0 20px; }
+  .learn li { font-size:13px; line-height:1.9; color:var(--txt); }
+  .learn .exbox { background:#0a0f1c; border:1px solid var(--line);
+          border-left:3px solid var(--acc); border-radius:10px; padding:12px 15px;
+          font-size:12.5px; line-height:1.8; margin-top:6px; }
+
+  /* ---- toasts ---- */
+  #toasts { position:fixed; right:18px; bottom:18px; z-index:500; display:flex;
+          flex-direction:column; gap:8px; }
+  .toast { background:var(--bg2); border:1px solid var(--good); color:var(--txt);
+          border-radius:12px; padding:11px 16px; font-size:13px;
+          box-shadow:0 10px 30px rgba(0,0,0,.5); animation:tin .2s ease;
+          max-width:340px; line-height:1.6; }
+  .toast.bad { border-color:var(--bad); }
+  @keyframes tin { from { opacity:0; transform:translateY(8px); } }
+
+  @media (max-width:640px) {
+    header { padding:12px 14px; flex-wrap:wrap; }
+    main { padding:16px 12px 90px; }
+    .tabs { display:flex; width:100%; }
+    .tab { flex:1; padding:12px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📋</div>
+  <h1>Family Board<small>shopping lists, chore rotation and sticky notes for the whole family</small></h1>
+  <span class="stat" id="connStat"><span class="dot"></span>connecting…</span>
+  <button class="ghost" id="learnBtn">📖 Learn</button>
+  <a class="ghost" href="/admin" target="_top">← Hub</a>
+</header>
+
+<main>
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-tab="lists">🛒 Lists<span class="n" id="nLists"></span></button>
+    <button class="tab" data-tab="chores">🧹 Chores<span class="n" id="nChores"></span></button>
+    <button class="tab" data-tab="notes">📌 Notes<span class="n" id="nNotes"></span></button>
+    <div id="tabline"></div>
+  </div>
+
+  <section class="tabpane on" id="tab-lists">
+    <div id="listsGrid"><div class="empty">Loading your lists…</div></div>
+  </section>
+
+  <section class="tabpane" id="tab-chores">
+    <div id="choresGrid"></div>
+    <div id="activity" style="display:none">
+      <h3>Recent activity</h3>
+      <div id="actBody"></div>
+    </div>
+  </section>
+
+  <section class="tabpane" id="tab-notes">
+    <div class="notesbar">
+      <button class="btn" id="newNoteBtn">＋ Note</button>
+      <span class="stat">Notes autosave when you tap away. Use the audience
+        badge to choose who sees a note on dashboards.</span>
+      <span class="hint" data-tip="audience">?</span>
+    </div>
+    <div id="notesGrid"></div>
+  </section>
+</main>
+
+<!-- hover tooltip -->
+<div id="tipbox"></div>
+
+<!-- new list -->
+<div class="modal" id="listModal">
+  <div class="mbox narrow">
+    <div class="mhead"><div class="micon">🛒</div>
+      <h2>New list</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub">Creates a real Home Assistant to-do list (Local to-do).
+      It also shows up in the HA mobile app and works with voice assistants.</div>
+    <label>List name<span class="req">*</span></label>
+    <input type="text" id="listName" placeholder="Shopping, Weekend jobs, Packing…" maxlength="60">
+    <div class="err" id="listErr"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="listCreate">Create list</button>
+    </div>
+  </div>
+</div>
+
+<!-- chore editor -->
+<div class="modal" id="choreModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">🧹</div>
+      <h2 id="choreTitle">New chore</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub">A chore rotates automatically between the people you add —
+      every time it's marked done, the next person is up.</div>
+
+    <label>Chore name<span class="req">*</span></label>
+    <input type="text" id="choreName" placeholder="Dishes, Take out trash, Walk the dog…" maxlength="60">
+
+    <label>Icon</label>
+    <div class="emojirow" id="emojiRow"></div>
+
+    <label>Who takes turns?
+      <span class="hint" data-tip="rotation">?</span></label>
+    <div class="chipin" id="asgWrap">
+      <input type="text" id="asgInput" placeholder="Type a name, press Enter" maxlength="30">
+    </div>
+
+    <label>On which days?
+      <span class="hint" data-tip="days">?</span></label>
+    <div class="dayrow" id="dayRow"></div>
+
+    <div class="err" id="choreErr"></div>
+    <div class="mfoot">
+      <button class="ghost" id="choreDelete" style="display:none">🗑 Delete chore</button>
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="choreSave">Save chore</button>
+    </div>
+  </div>
+</div>
+
+<!-- learn -->
+<div class="modal" id="learnModal">
+  <div class="mbox wide learn">
+    <div class="mhead"><div class="micon">📖</div>
+      <h2>How the Family Board works</h2>
+      <button class="ghost" data-close>✕</button></div>
+
+    <h3>🛒 Lists</h3>
+    <p>Lists are real Home Assistant <b>to-do lists</b> — not something private
+      to this add-on. Anything you add here instantly appears in the
+      <b>HA mobile app</b> (To-do lists section) and can be used by
+      <b>voice assistants</b> ("add milk to the shopping list"). Anything added
+      from the phone or by voice shows up here within seconds.</p>
+    <ul>
+      <li>Tap the checkbox to mark an item done — it moves into the
+        collapsible <b>Done</b> section.</li>
+      <li>Tap an item's text (or the ✏️ icon) to rename it.</li>
+      <li><b>Clear completed</b> permanently removes everything in Done.</li>
+    </ul>
+
+    <h3>🧹 Chore rotation</h3>
+    <p>Each chore has a list of people who take turns. When someone taps
+      <b>Mark done</b>, the turn passes to the next person in the list.</p>
+    <div class="exbox">Chore <b>“Dishes 🍽️”</b> with people <b>Mom → Dad → Sam</b>:<br>
+      Monday it says <b>Today: Mom</b>. Mom marks it done → Tuesday it says
+      <b>Today: Dad</b>. After Sam it wraps back to Mom.<br>
+      The 🔥 streak counts how many due days in a row it was actually done.</div>
+    <p>Pick specific weekdays for a chore (e.g. Trash only on Tuesdays) or leave
+      all days off to make it a daily chore. "Due today" resets every midnight.</p>
+
+    <h3>📌 Notes</h3>
+    <p>Sticky notes are quick family reminders ("Grandma visits Sunday 🎂").
+      They live only in this add-on, autosave when you tap away, and can be
+      recolored with the dots at the bottom of each note.</p>
+    <ul>
+      <li><b>Audience</b> — the badge on each note decides who sees it on
+        dashboards: <b>🌍 Everyone</b>, or <b>👤 specific users</b>. Users are
+        the accounts people and wall tablets log in with, managed in
+        <b>Hub → Users</b>. Notes always stay visible here for admins.</li>
+      <li><b>Replies</b> — family members can answer a note straight from
+        their dashboard ("Done!", "Buy 2 please"). Replies show under the
+        note here; you can reply back or remove any reply with ✕. A user can
+        also remove their own reply from the dashboard.</li>
+    </ul>
+    <div class="exbox">Note <b>“Feed the cat before school 🐱”</b> targeted at
+      <b>kids_tablet</b> only shows on the tablet logged in as kids_tablet —
+      the kids tap reply “done ✔” and you see it here.</div>
+
+    <h3>🖥️ On dashboards</h3>
+    <p>Notes and shopping lists can be placed on end-user dashboards with the
+      <b>Family Notes</b> and <b>Shopping List</b> widgets in the
+      <b>Dashboard Maker</b> designer. What a dashboard can show is filtered
+      twice:</p>
+    <ul>
+      <li><b>Notes</b> follow their audience — a dashboard only shows notes
+        targeted at the user it is logged in as (or at everyone).</li>
+      <li><b>Lists</b> follow the dashboard's <b>entity allowlist</b> — only
+        <code>todo.*</code> entities allowed on that dashboard appear, and
+        items can be added/checked/cleared right from the tablet. Wildcards
+        like <code>todo.*</code> work in the allowlist.</li>
+    </ul>
+
+    <h3>💡 Tips</h3>
+    <ul>
+      <li>Put this board on a wall tablet — create a kiosk dashboard with
+        <b>Dashboard Maker</b> and keep the tablet logged in.</li>
+      <li>Give each tablet its own login (e.g. <b>kitchen_tablet</b>,
+        <b>kids_tablet</b>) so targeted notes land on the right screen.</li>
+      <li>Voice: "Hey Google / Alexa / Assist — add eggs to Shopping."</li>
+      <li>New lists need the <b>Local to-do</b> integration (built into every
+        recent Home Assistant). If creating a list fails, update HA Core.</li>
+    </ul>
+
+    <div class="mfoot"><div class="sp"></div>
+      <button class="ghost" data-close>Close</button></div>
+  </div>
+</div>
+
+<!-- confirm -->
+<div class="modal" id="confirmModal">
+  <div class="mbox narrow">
+    <div class="mhead"><div class="micon">⚠️</div>
+      <h2 id="confirmTitle">Are you sure?</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="confirmSub"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn danger" id="confirmYes">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="../../static/poll.js"></script>
+<script src="static/app.js"></script>
+</body>
+</html>

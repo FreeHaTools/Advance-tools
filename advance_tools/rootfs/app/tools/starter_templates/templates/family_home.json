@@ -1,0 +1,158 @@
+{
+  "id": "family_home",
+  "name": "Family Home",
+  "icon": "🏠",
+  "description": "The everyday wall tablet: room lights, the thermostat, doors and movement at a glance, the family shopping list and a big clock.",
+  "tags": ["lights", "climate", "family", "landscape"],
+  "summary": [
+    "Four room lights on dimmer rows",
+    "A big thermostat dial with a temperature trend",
+    "Doors, movement and smoke on a status rail",
+    "Your family to-do list, live",
+    "Clock, indoor and outdoor temperature"
+  ],
+  "canvas": { "w": 1280, "h": 800, "fit": "fit" },
+  "theme": {
+    "accent": "#4f8cff", "bg": "#0f1420", "card": "#1a2233",
+    "text": "#e8edf7", "cols": 4, "radius": 16
+  },
+
+  "slots": [
+    { "key": "living_room_light", "label": "Living room light",
+      "hint": "The main light of the room everyone sits in.",
+      "domain": "light", "required": true, "area_hint": "living room",
+      "keywords": ["living", "lounge", "salon", "sitting", "tv"] },
+
+    { "key": "kitchen_light", "label": "Kitchen light",
+      "hint": "Ceiling or counter light in the kitchen.",
+      "domain": "light", "required": true, "area_hint": "kitchen",
+      "keywords": ["kitchen", "cook", "counter", "pantry"] },
+
+    { "key": "bedroom_light", "label": "Bedroom light",
+      "hint": "Optional — leave empty to remove this row.",
+      "domain": "light", "required": false, "area_hint": "bedroom",
+      "keywords": ["bedroom", "master", "sleep", "night"] },
+
+    { "key": "hallway_light", "label": "Hallway / entry light",
+      "hint": "Optional — leave empty to remove this row.",
+      "domain": "light", "required": false, "area_hint": "hallway",
+      "keywords": ["hall", "entry", "entrance", "corridor", "foyer", "stairs"] },
+
+    { "key": "thermostat", "label": "Thermostat",
+      "hint": "The climate device the big dial controls.",
+      "domain": "climate", "required": true,
+      "keywords": ["thermostat", "heating", "hvac", "boiler", "living"] },
+
+    { "key": "indoor_temperature", "label": "Indoor temperature",
+      "hint": "Used for the big reading and the trend graph.",
+      "domain": "sensor", "device_class": "temperature", "required": true,
+      "keywords": ["indoor", "inside", "living", "room", "hall"],
+      "exclude": ["outdoor", "outside", "garden", "balcony", "cpu", "battery"] },
+
+    { "key": "outdoor_temperature", "label": "Outdoor temperature",
+      "hint": "Optional — your weather station or an outside sensor.",
+      "domain": "sensor", "device_class": "temperature", "required": false,
+      "keywords": ["outdoor", "outside", "garden", "balcony", "terrace",
+                   "weather", "yard"] },
+
+    { "key": "indoor_humidity", "label": "Indoor humidity",
+      "hint": "Optional.",
+      "domain": "sensor", "device_class": "humidity", "required": false,
+      "keywords": ["indoor", "inside", "living", "room", "hall"],
+      "exclude": ["outdoor", "outside", "garden"] },
+
+    { "key": "family_list", "label": "Family list",
+      "hint": "A to-do list (shopping, chores) rendered live on the tablet.",
+      "domain": "todo", "required": false,
+      "keywords": ["shopping", "grocery", "family", "chores", "todo", "list"] },
+
+    { "key": "front_door", "label": "Front door",
+      "hint": "Open/closed contact on the front door.",
+      "domain": "binary_sensor", "device_class": "door", "required": true,
+      "keywords": ["front", "entry", "entrance", "main", "door"] },
+
+    { "key": "motion", "label": "Movement",
+      "hint": "Optional — a motion sensor somewhere central.",
+      "domain": "binary_sensor", "device_class": "motion", "required": false,
+      "keywords": ["motion", "movement", "presence", "pir", "hall", "living"] },
+
+    { "key": "back_door", "label": "Back door / window",
+      "hint": "Optional second contact sensor.",
+      "domain": "binary_sensor", "required": false,
+      "keywords": ["back", "rear", "garden", "window", "balcony", "patio"],
+      "exclude": ["front"] },
+
+    { "key": "garage_door", "label": "Garage door",
+      "hint": "Optional.",
+      "domain": "binary_sensor", "device_class": "garage_door",
+      "required": false, "keywords": ["garage", "carport", "gate"] },
+
+    { "key": "smoke", "label": "Smoke / gas alarm",
+      "hint": "Optional — a nice thing to always see.",
+      "domain": "binary_sensor", "device_class": "smoke", "required": false,
+      "keywords": ["smoke", "fire", "gas", "co", "carbon"] },
+
+    { "key": "door_battery", "label": "Door sensor battery",
+      "hint": "Optional — reminds you before a sensor goes silent.",
+      "domain": "sensor", "device_class": "battery", "required": false,
+      "keywords": ["door", "front", "contact", "sensor"] }
+  ],
+
+  "widgets": [
+    { "type": "box", "text": "LIGHTS", "x": 40, "y": 100, "w": 620, "h": 254 },
+    { "type": "box", "text": "FAMILY LIST", "x": 40, "y": 378, "w": 340,
+      "h": 382, "requires": ["family_list"] },
+    { "type": "box", "text": "COMFORT", "x": 396, "y": 378, "w": 264, "h": 382 },
+    { "type": "box", "text": "CLIMATE", "x": 684, "y": 160, "w": 320, "h": 600 },
+    { "type": "box", "text": "AT A GLANCE", "x": 1020, "y": 160, "w": 220,
+      "h": 560 },
+
+    { "type": "label", "text": "Welcome home", "x": 40, "y": 20, "w": 500,
+      "h": 40, "size": 30, "bold": true },
+    { "type": "label", "text": "Everything you need, on one screen",
+      "x": 40, "y": 62, "w": 500, "h": 26, "size": 14, "color": "#8b98b8" },
+
+    { "type": "clock", "skin": "clock-card", "x": 990, "y": 20, "w": 250,
+      "h": 120 },
+
+    { "type": "light", "skin": "rgb-expand-pro", "x": 64, "y": 140, "w": 280,
+      "h": 82, "label": "Living room", "entity": "{{slot:living_room_light}}" },
+    { "type": "light", "skin": "rgb-expand-pro", "x": 360, "y": 140, "w": 280,
+      "h": 82, "label": "Kitchen", "entity": "{{slot:kitchen_light}}" },
+    { "type": "light", "skin": "rgb-expand-pro", "x": 64, "y": 240, "w": 280,
+      "h": 82, "label": "Bedroom", "entity": "{{slot:bedroom_light}}" },
+    { "type": "light", "skin": "rgb-expand-pro", "x": 360, "y": 240, "w": 280,
+      "h": 82, "label": "Hallway", "entity": "{{slot:hallway_light}}" },
+
+    { "type": "fblist", "skin": "fb-list", "x": 60, "y": 414, "w": 300,
+      "h": 340, "label": "Family list", "entity": "{{slot:family_list}}" },
+
+    { "type": "sensor", "skin": "sensor-card", "x": 416, "y": 418, "w": 200,
+      "h": 110, "label": "Inside", "entity": "{{slot:indoor_temperature}}" },
+    { "type": "sensor", "skin": "sensor-card", "x": 416, "y": 546, "w": 200,
+      "h": 110, "label": "Outside", "entity": "{{slot:outdoor_temperature}}" },
+    { "type": "sensor", "skin": "sensor-chip", "x": 421, "y": 678, "w": 190,
+      "h": 46, "label": "Humidity", "entity": "{{slot:indoor_humidity}}" },
+
+    { "type": "climate", "skin": "dial", "x": 714, "y": 215, "w": 260,
+      "h": 300, "entity": "{{slot:thermostat}}" },
+    { "type": "chart", "skin": "chart-spark", "x": 744, "y": 545, "w": 220,
+      "h": 120, "label": "Today", "hours": 24,
+      "entity": "{{slot:indoor_temperature}}" },
+    { "type": "sensor", "skin": "sensor-chip", "x": 749, "y": 690, "w": 190,
+      "h": 46, "label": "Outside", "entity": "{{slot:outdoor_temperature}}" },
+
+    { "type": "sensor", "skin": "led", "x": 1035, "y": 205, "w": 190, "h": 52,
+      "label": "Front door", "entity": "{{slot:front_door}}" },
+    { "type": "sensor", "skin": "led", "x": 1035, "y": 277, "w": 190, "h": 52,
+      "label": "Movement", "entity": "{{slot:motion}}" },
+    { "type": "sensor", "skin": "led", "x": 1035, "y": 349, "w": 190, "h": 52,
+      "label": "Back door", "entity": "{{slot:back_door}}" },
+    { "type": "sensor", "skin": "led", "x": 1035, "y": 421, "w": 190, "h": 52,
+      "label": "Garage", "entity": "{{slot:garage_door}}" },
+    { "type": "sensor", "skin": "led", "x": 1035, "y": 493, "w": 190, "h": 52,
+      "label": "Smoke", "entity": "{{slot:smoke}}" },
+    { "type": "sensor", "skin": "battery", "x": 1040, "y": 565, "w": 180,
+      "h": 120, "label": "Door sensor", "entity": "{{slot:door_battery}}" }
+  ]
+}

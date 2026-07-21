@@ -1,0 +1,9 @@
+{
+  "id": "alert_maker",
+  "name": "Alert Maker",
+  "icon": "🚨",
+  "color": "#ff6b6b",
+  "description": "User-friendly watchdog rules — 'left open too long', 'battery low', 'device went offline' and more. Pick entities, set a threshold, choose who gets notified. Alert Maker builds and manages the Home Assistant automations for you.",
+  "page": "/tools/alert_maker/",
+  "version": "1.0.0"
+}

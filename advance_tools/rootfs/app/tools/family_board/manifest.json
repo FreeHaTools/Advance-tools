@@ -1,0 +1,9 @@
+{
+  "id": "family_board",
+  "name": "Family Board",
+  "icon": "📋",
+  "color": "#6be675",
+  "description": "Shared shopping & to-do lists, chore rotation and sticky notes for the whole family — lists sync with the HA mobile app and voice assistants.",
+  "page": "/tools/family_board/",
+  "version": "1.0.0"
+}

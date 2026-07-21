@@ -1,0 +1,9 @@
+{
+  "id": "automation_maker",
+  "name": "Automation Maker",
+  "icon": "⚙️",
+  "color": "#3ecf8e",
+  "description": "Browse, run and build Home Assistant automations — visual WHEN/AND IF/THEN builder with searchable pickers, live YAML preview, and built-in help on every field.",
+  "page": "/tools/automation_maker/",
+  "version": "1.0.0"
+}

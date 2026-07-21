@@ -1,0 +1,9 @@
+{
+  "id": "climate_scheduler",
+  "name": "Climate Scheduler",
+  "icon": "🌡️",
+  "color": "#ff9d5c",
+  "description": "Paint visual weekly temperature schedules for your thermostats — the add-on enforces them every minute, no automations needed.",
+  "page": "/tools/climate_scheduler/",
+  "version": "1.0.0"
+}

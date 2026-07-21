@@ -1,0 +1,9 @@
+{
+  "id": "security_center",
+  "name": "Security Center",
+  "icon": "🛡️",
+  "color": "#ff6b81",
+  "description": "A real alarm panel: pick exactly which sensors and cameras it uses, arm Home/Away/Night with exit and entry delays, and choose what happens when it trips — siren, lights, locks, scenes and multi-channel alerts with a camera snapshot. Tablet keypad included.",
+  "page": "/tools/security_center/",
+  "version": "1.0.0"
+}

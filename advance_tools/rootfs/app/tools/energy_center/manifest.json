@@ -1,0 +1,9 @@
+{
+  "id": "energy_center",
+  "name": "Energy Center",
+  "icon": "⚡",
+  "color": "#ffd75c",
+  "description": "Energy consumption and cost dashboard built on Home Assistant's long-term statistics — track devices, see kWh per hour/day, and know exactly what your electricity costs.",
+  "page": "/tools/energy_center/",
+  "version": "1.0.0"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "starter_templates",
+  "name": "Starter Templates",
+  "icon": "📦",
+  "color": "#5aa9ff",
+  "description": "Never start from an empty canvas. Pick a ready-made dashboard layout, we auto-match it to the entities your home actually has, you review the matches and click Apply — a finished wall-tablet dashboard exists a second later.",
+  "page": "/tools/starter_templates/",
+  "version": "1.0.0"
+}

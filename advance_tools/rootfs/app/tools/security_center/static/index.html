@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security Center — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#b17aff; --acc2:#22b8cf;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --blue:#4d9fff;
+    --hover:rgba(177,122,255,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+
+  header { display:flex; align-items:center; gap:10px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; flex-wrap:wrap; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,#ff6b81,#b17aff); }
+  header h1 { font-size:16px; flex:1; min-width:150px; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .ghost.on { color:var(--acc); border-color:var(--acc);
+           background:rgba(177,122,255,.1); }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#12041f;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+  .btn.sm { padding:8px 15px; font-size:12.5px; }
+  .btn.danger { background:linear-gradient(135deg,#ff6b81,#ff9d5c); color:#2a0409; }
+  .btn[disabled] { opacity:.5; cursor:default; }
+
+  main { padding:16px 22px 90px; max-width:1180px; margin:0 auto; }
+  @media (max-width:520px) { header { padding:12px 14px; } main { padding:14px 12px 80px; } }
+
+  /* ---- tab bar ---- */
+  .tabbar { display:flex; gap:7px; overflow-x:auto; padding:12px 22px 0;
+            max-width:1180px; margin:0 auto; }
+  .tabbar button { padding:9px 17px; border-radius:20px; border:1px solid var(--line);
+            background:var(--input); color:var(--mut); font-size:13px;
+            cursor:pointer; white-space:nowrap; }
+  .tabbar button:hover { color:var(--txt); border-color:var(--acc); }
+  .tabbar button.on { background:var(--acc); border-color:var(--acc);
+            color:#12041f; font-weight:700; }
+  .tabbar button .badge { display:inline-block; min-width:17px; padding:0 5px;
+            border-radius:9px; background:var(--bad); color:#fff; font-size:10px;
+            font-weight:700; margin-left:5px; }
+  @media (max-width:520px) { .tabbar { padding:10px 12px 0; } }
+  .pane { display:none; }
+  .pane.on { display:block; }
+
+  /* ---- generic card / section ---- */
+  .card { background:var(--card); border:1px solid var(--line);
+          border-radius:16px; padding:16px 18px; box-shadow:var(--shadow);
+          margin-bottom:14px; }
+  .card > h3 { font-size:14px; margin-bottom:4px; display:flex;
+          align-items:center; gap:8px; flex-wrap:wrap; }
+  .card > h3 .sp { flex:1; }
+  .cardsub { font-size:12px; color:var(--mut); line-height:1.75;
+          margin-bottom:10px; }
+  .cardsub b { color:var(--txt); }
+  .sect { font-size:11px; color:var(--mut); text-transform:uppercase;
+          letter-spacing:.13em; margin:18px 0 9px; display:flex;
+          align-items:center; gap:7px; font-weight:700; flex-wrap:wrap; }
+  .sect .n { background:var(--card); border:1px solid var(--line);
+          border-radius:14px; padding:1px 9px; font-size:10px;
+          letter-spacing:normal; }
+  .sect .sp { flex:1; }
+  .note { font-size:12px; line-height:1.8; color:var(--mut);
+          background:rgba(34,184,207,.07); border:1px solid rgba(34,184,207,.28);
+          border-radius:11px; padding:10px 13px; margin:10px 0; }
+  .note b { color:var(--txt); }
+  .note.warn { background:rgba(255,184,107,.08);
+          border-color:rgba(255,184,107,.35); color:var(--warn); }
+  .note.warn b { color:var(--warn); }
+  .empty { text-align:center; color:var(--mut); padding:26px 14px;
+          font-size:12.5px; line-height:1.9; background:var(--card);
+          border:1px dashed var(--line); border-radius:14px; }
+
+  /* ---- status hero ---- */
+  .hero { display:flex; align-items:center; gap:20px; padding:22px 24px;
+          border-radius:20px; border:2px solid var(--line);
+          background:var(--card); box-shadow:var(--shadow); flex-wrap:wrap;
+          transition:border-color .4s, background .4s; margin-bottom:14px; }
+  .hero .shield { width:96px; height:96px; border-radius:50%; flex:0 0 auto;
+          display:flex; align-items:center; justify-content:center;
+          font-size:46px; background:var(--input);
+          border:3px solid var(--line); transition:border-color .4s; }
+  .hero .ht { min-width:180px; flex:1; }
+  .hero .hstate { font-size:26px; font-weight:800; letter-spacing:.01em;
+          line-height:1.2; }
+  .hero .hsub { font-size:12.5px; color:var(--mut); margin-top:6px;
+          line-height:1.7; }
+  .hero .hsub .dot { display:inline-block; width:8px; height:8px;
+          border-radius:50%; background:var(--bad); margin-right:5px; }
+  .hero .hsub .dot.ok { background:var(--good); }
+  .hero .hcause { margin-top:9px; font-size:13px; font-weight:700;
+          color:var(--bad); background:rgba(255,107,129,.1);
+          border:1px solid rgba(255,107,129,.45); border-radius:10px;
+          padding:8px 12px; display:none; line-height:1.6; }
+  .hero.s-triggered .hcause { display:block; }
+  .hero .hact { margin-left:auto; display:flex; flex-direction:column; gap:8px;
+          align-items:stretch; }
+  .hero .hact button { min-width:150px; }
+
+  /* state colours */
+  .hero.s-disarmed { border-color:var(--line); }
+  .hero.s-disarmed .shield { filter:grayscale(.4); }
+  .hero.s-disarmed .hstate { color:var(--mut); }
+  .hero.s-armed { border-color:rgba(77,159,255,.6); background:rgba(77,159,255,.05); }
+  .hero.s-armed .shield { border-color:var(--blue);
+          box-shadow:0 0 24px rgba(77,159,255,.32); }
+  .hero.s-armed .hstate { color:var(--blue); }
+  .hero.s-arming { border-color:rgba(255,184,107,.65); background:rgba(255,184,107,.06); }
+  .hero.s-arming .hstate { color:var(--warn); }
+  .hero.s-arming .shield { border-color:var(--warn); animation:pulseamber 1.1s infinite; }
+  .hero.s-triggered { border-color:var(--bad); background:rgba(255,107,129,.1);
+          animation:alarmflash .8s infinite; }
+  .hero.s-triggered .hstate { color:var(--bad); }
+  .hero.s-triggered .shield { border-color:var(--bad);
+          animation:shieldslam .8s infinite; }
+  @keyframes pulseamber {
+    0%   { box-shadow:0 0 0 0 rgba(255,184,107,.5); }
+    70%  { box-shadow:0 0 0 18px rgba(255,184,107,0); }
+    100% { box-shadow:0 0 0 0 rgba(255,184,107,0); }
+  }
+  @keyframes alarmflash {
+    0%,100% { background:rgba(255,107,129,.10); }
+    50%     { background:rgba(255,107,129,.24); }
+  }
+  @keyframes shieldslam {
+    0%,100% { transform:scale(1);   box-shadow:0 0 0 0 rgba(255,107,129,.55); }
+    50%     { transform:scale(1.06); box-shadow:0 0 0 20px rgba(255,107,129,0); }
+  }
+
+  /* countdown */
+  .cd { width:100%; margin-top:14px; display:none; }
+  .cd.on { display:block; }
+  .cd .cdtop { display:flex; align-items:baseline; gap:10px; font-size:12px;
+          color:var(--mut); margin-bottom:6px; flex-wrap:wrap; }
+  .cd .cdtop b { font-size:22px; color:var(--warn);
+          font-variant-numeric:tabular-nums; }
+  .cd .cdtop .sp { flex:1; }
+  .cdbar { height:12px; border-radius:8px; background:var(--input);
+          border:1px solid var(--line); overflow:hidden; }
+  .cdbar i { display:block; height:100%; width:0%;
+          background:linear-gradient(90deg,var(--warn),var(--bad));
+          transition:width .3s linear; }
+
+  /* ---- keypad ---- */
+  .kpwrap { display:grid; grid-template-columns:minmax(240px,320px) 1fr;
+          gap:18px; align-items:start; }
+  @media (max-width:760px) { .kpwrap { grid-template-columns:1fr; } }
+  .kpdots { display:flex; gap:11px; justify-content:center; margin:6px 0 4px;
+          min-height:18px; }
+  .kpdots i { width:14px; height:14px; border-radius:50%;
+          border:2px solid var(--line); display:inline-block; transition:.15s; }
+  .kpdots i.on { background:var(--acc); border-color:var(--acc); }
+  .kperr { text-align:center; color:var(--bad); font-size:12px; min-height:18px;
+          margin-bottom:6px; }
+  .kppad { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+  .kppad button { min-height:56px; font-size:21px; border-radius:14px;
+          border:1px solid var(--line); background:var(--input);
+          color:var(--txt); cursor:pointer; font-weight:700;
+          touch-action:manipulation; }
+  .kppad button:hover { border-color:var(--acc); }
+  .kppad button:active { transform:scale(.95); background:var(--hover); }
+  .kppad button.small { font-size:15px; color:var(--mut); font-weight:600; }
+  .shake { animation:shake .45s; }
+  @keyframes shake {
+    0%,100% { transform:translateX(0); }
+    20% { transform:translateX(-10px); } 40% { transform:translateX(10px); }
+    60% { transform:translateX(-7px); }  80% { transform:translateX(7px); }
+  }
+  .armgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+          gap:10px; }
+  .armbtn { min-height:66px; border-radius:14px; border:1px solid var(--line);
+          background:var(--input); color:var(--txt); cursor:pointer;
+          font-size:14px; font-weight:700; display:flex; flex-direction:column;
+          align-items:center; justify-content:center; gap:3px; padding:8px; }
+  .armbtn small { font-size:10.5px; color:var(--mut); font-weight:400;
+          text-align:center; line-height:1.4; }
+  .armbtn:active { transform:scale(.97); }
+  .armbtn.home:hover, .armbtn.home.on { border-color:var(--blue); color:var(--blue); }
+  .armbtn.away:hover, .armbtn.away.on { border-color:var(--bad); color:var(--bad); }
+  .armbtn.night:hover, .armbtn.night.on { border-color:var(--acc); color:var(--acc); }
+  .armbtn.off { grid-column:1/-1; }
+  .armbtn.off:hover { border-color:var(--good); color:var(--good); }
+  .armbtn[disabled] { opacity:.45; cursor:default; }
+  .armbtn.on { background:var(--hover); }
+  #pinCta { display:none; }
+  #pinCta.on { display:block; }
+
+  /* ---- toggles / rows ---- */
+  .togrow { display:flex; align-items:flex-start; gap:12px; padding:10px 0; }
+  .togrow .tt { flex:1; min-width:0; }
+  .togrow .tt b { font-size:13px; }
+  .togrow .tt p { font-size:11.5px; color:var(--mut); line-height:1.7;
+          margin-top:3px; }
+  .switch { position:relative; width:46px; height:26px; flex:0 0 auto;
+          border-radius:16px; background:var(--input);
+          border:1px solid var(--line); cursor:pointer; transition:.2s; }
+  .switch::after { content:''; position:absolute; top:3px; left:3px; width:18px;
+          height:18px; border-radius:50%; background:var(--mut); transition:.2s; }
+  .switch.on { background:rgba(62,207,142,.2); border-color:var(--good); }
+  .switch.on::after { left:23px; background:var(--good); }
+
+  /* ---- sensors ---- */
+  .toolbar { display:flex; gap:9px; align-items:center; flex-wrap:wrap;
+          margin-bottom:12px; }
+  .toolbar .sp { flex:1; }
+  input[type=text], input[type=number], input[type=password] {
+    padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--input); color:var(--txt); font-size:13.5px; width:100%; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--acc); }
+  #senSearch { width:240px; }
+  .dirty { font-size:12px; color:var(--warn); display:none; }
+  .dirty.on { display:inline; }
+  .saved { font-size:12px; color:var(--good); }
+
+  .srow { display:flex; align-items:center; gap:12px; padding:11px 13px;
+          background:var(--card); border:1px solid var(--line);
+          border-radius:13px; margin-bottom:8px; flex-wrap:wrap; }
+  .srow.off { opacity:.55; }
+  .srow .sicon { font-size:19px; flex:0 0 auto; }
+  .srow .smain { flex:1; min-width:160px; }
+  .srow .smain b { font-size:13px; display:block; overflow:hidden;
+          text-overflow:ellipsis; white-space:nowrap; }
+  .srow .smain .sid { font-size:10px; color:var(--mut);
+          font-family:Consolas, monospace; overflow:hidden;
+          text-overflow:ellipsis; white-space:nowrap; }
+  .sbadge { font-size:9.5px; padding:3px 9px; border-radius:20px;
+          border:1px solid var(--line); color:var(--mut); white-space:nowrap;
+          text-transform:uppercase; letter-spacing:.07em; font-weight:700; }
+  .sbadge.open { color:var(--bad); border-color:rgba(255,107,129,.5);
+          background:rgba(255,107,129,.08); }
+  .sbadge.ok { color:var(--good); border-color:rgba(62,207,142,.45);
+          background:rgba(62,207,142,.07); }
+  .sbadge.auto { color:var(--acc2); border-color:rgba(34,184,207,.45); }
+  .chips { display:flex; gap:5px; flex-wrap:wrap; }
+  .chip { font-size:11px; padding:6px 12px; border-radius:18px;
+          border:1px solid var(--line); background:var(--input);
+          color:var(--mut); cursor:pointer; user-select:none;
+          white-space:nowrap; }
+  .chip:hover { color:var(--txt); border-color:var(--acc); }
+  .chip.on { background:var(--acc); border-color:var(--acc); color:#12041f;
+          font-weight:700; }
+  .chip.on.blue { background:var(--blue); border-color:var(--blue); color:#04121f; }
+  .chip.on.warn { background:var(--warn); border-color:var(--warn); color:#241403; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:18px;
+          overflow:hidden; }
+  .seg button { padding:6px 12px; font-size:11px; border:0; cursor:pointer;
+          background:var(--input); color:var(--mut); white-space:nowrap; }
+  .seg button.on { background:var(--warn); color:#241403; font-weight:700; }
+  .seg button.on.inst { background:var(--bad); color:#2a0409; }
+
+  /* ---- multi-select ---- */
+  .spick { width:22px; height:22px; flex:0 0 auto; border-radius:7px;
+          border:2px solid var(--line); background:var(--input);
+          cursor:pointer; display:flex; align-items:center;
+          justify-content:center; font-size:13px; color:#12041f;
+          user-select:none; }
+  .spick:hover { border-color:var(--acc); }
+  .srow.picked { border-color:var(--acc);
+          box-shadow:0 0 0 1px var(--acc) inset; opacity:1; }
+  .srow.picked .spick { background:var(--acc); border-color:var(--acc); }
+  .sect .selbtn { font-size:11px; padding:5px 11px; }
+  #senBulk { position:fixed; left:50%; transform:translateX(-50%);
+          bottom:18px; z-index:80; display:none; align-items:center; gap:8px;
+          flex-wrap:wrap; max-width:94vw; padding:12px 16px;
+          background:var(--bg2); border:1px solid var(--acc);
+          border-radius:16px; box-shadow:0 14px 44px rgba(0,0,0,.6); }
+  #senBulk.on { display:flex; }
+  #senBulk b { font-size:13px; white-space:nowrap; }
+  #senBulk .div { width:1px; height:22px; background:var(--line); }
+  #senBulk .hint { font-size:11px; color:var(--mut); }
+
+  /* ---- cameras ---- */
+  .cams { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+          gap:12px; }
+  .cam { position:relative; border:1px solid var(--line); border-radius:14px;
+          overflow:hidden; background:#000; cursor:pointer; }
+  .cam.on { border-color:var(--good); box-shadow:0 0 0 2px rgba(62,207,142,.25); }
+  .cam img { width:100%; aspect-ratio:16/9; object-fit:cover; display:block;
+          background:#05080f; }
+  .cam .cn { position:absolute; left:0; right:0; bottom:0; padding:18px 11px 8px;
+          font-size:12px; font-weight:600; display:flex; align-items:center;
+          gap:7px; background:linear-gradient(transparent, rgba(0,0,0,.85)); }
+  .cam .cn .cid { font-size:9.5px; color:#b9c4dc; font-weight:400;
+          overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cam .pick { position:absolute; top:9px; right:9px; width:26px; height:26px;
+          border-radius:8px; border:2px solid rgba(255,255,255,.5);
+          background:rgba(0,0,0,.55); display:flex; align-items:center;
+          justify-content:center; font-size:14px; color:transparent; }
+  .cam.on .pick { background:var(--good); border-color:var(--good); color:#04220f; }
+  .cam .unav { position:absolute; inset:0; display:none; align-items:center;
+          justify-content:center; color:var(--mut); font-size:12px;
+          background:var(--input); }
+  .cam.broken .unav { display:flex; }
+
+  /* ---- pickers (actions / alerts) ---- */
+  .picker { border:1px solid var(--line); border-radius:12px;
+          background:var(--input); max-height:220px; overflow-y:auto;
+          margin-top:6px; }
+  .prow { display:flex; gap:10px; align-items:center; padding:9px 13px;
+          font-size:13px; cursor:pointer; user-select:none; }
+  .prow:hover { background:var(--hover); }
+  .prow input { width:16px; height:16px; accent-color:var(--acc); flex:0 0 auto; }
+  .prow .pn { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;
+          white-space:nowrap; }
+  .prow .pid { font-size:10px; color:var(--mut); font-family:Consolas, monospace;
+          overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+          max-width:45%; }
+  .pnone { padding:12px 13px; font-size:12px; color:var(--mut); line-height:1.7; }
+  .summary { font-size:14px; line-height:1.9; background:var(--input);
+          border:1px solid var(--line); border-left:3px solid var(--acc);
+          border-radius:11px; padding:13px 16px; }
+  .summary b { color:var(--acc2); }
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+          gap:14px; }
+  label { font-size:12px; color:var(--mut); display:flex; align-items:center;
+          margin:12px 0 4px; }
+  textarea { width:100%; padding:9px 12px; border-radius:10px;
+          border:1px solid var(--line); background:var(--input);
+          color:var(--txt); font-size:13.5px; resize:vertical; min-height:64px;
+          font-family:"Segoe UI", Tahoma, sans-serif; }
+  .fieldnote { font-size:11px; color:var(--mut); margin-top:4px; line-height:1.7; }
+  .testout { margin-top:10px; font-size:12.5px; line-height:1.8; }
+  .testout .tline { display:flex; gap:8px; align-items:flex-start;
+          padding:6px 11px; border-radius:9px; background:var(--input);
+          border:1px solid var(--line); margin-bottom:6px;
+          font-family:Consolas, monospace; font-size:11.5px; }
+  .testout .tline.bad { border-color:rgba(255,107,129,.45); color:var(--bad); }
+  .testout .tline.ok { border-color:rgba(62,207,142,.4); color:var(--good); }
+
+  /* ---- events ---- */
+  #events { max-height:none; }
+  .ev { display:flex; gap:10px; align-items:flex-start; padding:11px 15px;
+          border-bottom:1px solid rgba(40,50,76,.55); font-size:12.5px; }
+  .ev:last-child { border-bottom:0; }
+  .ev .ei { width:24px; text-align:center; font-size:15px; flex:0 0 auto; }
+  .ev .eb { flex:1; min-width:0; line-height:1.55; }
+  .ev .eb small { display:block; color:var(--mut); font-size:10.5px; }
+  .ev.alert { background:rgba(255,107,129,.09);
+          border-left:3px solid var(--bad); padding-left:12px; }
+  .ev.alert .eb b { color:var(--bad); }
+  .evbox { background:var(--card); border:1px solid var(--line);
+          border-radius:16px; overflow:hidden; box-shadow:var(--shadow); }
+
+  /* ---- hint (tooltip) system ---- */
+  .hint { display:inline-flex; align-items:center; justify-content:center;
+          width:16px; height:16px; border-radius:50%; border:1px solid var(--line);
+          background:var(--input); color:var(--mut); font-size:10px;
+          font-weight:700; cursor:help; margin-left:6px; vertical-align:1px;
+          user-select:none; flex:0 0 auto; }
+  .hint:hover { color:var(--acc2); border-color:var(--acc2); }
+  #tipbox { position:fixed; z-index:400; width:min(92vw, 360px);
+            background:#0d1424; border:1px solid var(--acc2); border-radius:14px;
+            padding:14px 16px; box-shadow:0 14px 40px rgba(0,0,0,.6);
+            display:none; font-size:12.5px; line-height:1.75; }
+  #tipbox b.t { display:block; color:var(--acc2); font-size:13px;
+                margin-bottom:4px; }
+  #tipbox .ex { margin-top:8px; background:var(--input); border:1px solid
+                var(--line); border-left:3px solid var(--acc); border-radius:8px;
+                padding:8px 11px; font-family:Consolas, monospace; font-size:11.5px;
+                white-space:pre-wrap; color:#e2d4f7; }
+  #tipbox .ex::before { content:'EXAMPLE'; display:block; font-family:"Segoe UI";
+                font-size:9px; letter-spacing:.12em; color:var(--mut);
+                margin-bottom:3px; }
+
+  /* ---- modals ---- */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.72); display:none;
+           z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+           padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(97vw, 640px); margin:0 auto;
+          padding:24px; box-shadow:var(--shadow); }
+  .mbox.narrow { width:min(95vw, 420px); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead .micon { width:34px; height:34px; border-radius:10px; display:flex;
+          align-items:center; justify-content:center; font-size:17px;
+          background:var(--input); border:1px solid var(--line); flex:0 0 auto; }
+  .mhead h2 { font-size:17px; flex:1; }
+  .msub { color:var(--mut); font-size:12px; margin-bottom:14px; line-height:1.75; }
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:20px;
+           align-items:center; flex-wrap:wrap; }
+  .mfoot .sp { flex:1; }
+  .err { background:#3a1a22; border:1px solid #7a2a3a; color:#ff9aae;
+         border-radius:10px; padding:10px 13px; margin-top:12px; font-size:13px;
+         display:none; line-height:1.7; }
+
+  /* ---- help modal ---- */
+  .helpstep { display:flex; gap:12px; margin-top:14px; }
+  .helpstep .hnum { width:26px; height:26px; border-radius:50%; flex:0 0 auto;
+        background:linear-gradient(135deg,var(--acc),var(--acc2));
+        color:#12041f; font-weight:700; font-size:13px; display:flex;
+        align-items:center; justify-content:center; }
+  .helpstep .htxt { font-size:12.5px; line-height:1.75; color:var(--mut); }
+  .helpstep .htxt b { color:var(--txt); }
+
+  /* ---- lightbox ---- */
+  #lightbox .mbox { width:min(97vw, 980px); padding:14px; }
+  #lightbox img { width:100%; border-radius:12px; display:block;
+        background:#000; min-height:200px; object-fit:contain; }
+  #lightbox .lb-bar { display:flex; align-items:center; gap:10px;
+        padding:4px 4px 10px; }
+  #lightbox .lb-bar b { flex:1; font-size:14px; }
+
+  /* ---- toasts ---- */
+  #toasts { position:fixed; right:18px; bottom:18px; z-index:500; display:flex;
+        flex-direction:column; gap:8px; }
+  .toast { background:var(--bg2); border:1px solid var(--good); color:var(--txt);
+        border-radius:12px; padding:11px 16px; font-size:13px;
+        box-shadow:0 10px 30px rgba(0,0,0,.5); animation:tin .2s ease;
+        max-width:340px; line-height:1.6; }
+  .toast.bad { border-color:var(--bad); }
+  @keyframes tin { from { opacity:0; transform:translateY(8px); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🛡️</div>
+  <h1>Security Center<small>arm your home, pick the sensors, decide what happens</small></h1>
+  <a class="ghost" href="/admin" target="_top">← Hub</a>
+  <button class="ghost" id="helpBtn" title="How does this tool work?">❓ How it works</button>
+  <button class="ghost" id="pinBtn" title="Create or change the PIN">🔢 PIN</button>
+  <button class="btn danger sm" id="panicBtn" title="Trigger the alarm right now">🚨 Panic</button>
+</header>
+
+<nav class="tabbar" id="tabbar">
+  <button data-tab="status" class="on">🛡️ Status</button>
+  <button data-tab="sensors">🎛️ Sensors</button>
+  <button data-tab="cameras">📷 Cameras</button>
+  <button data-tab="actions">⚡ Actions</button>
+  <button data-tab="alerts">🔔 Alerts</button>
+  <button data-tab="log">📜 Log</button>
+</nav>
+
+<main>
+
+<!-- =============================================== STATUS =============== -->
+<section class="pane on" id="pane-status">
+
+  <div class="hero s-disarmed" id="hero">
+    <div class="shield" id="heroIcon">🛡️</div>
+    <div class="ht">
+      <div class="hstate" id="heroState">Loading…</div>
+      <div class="hsub" id="heroSub"><span class="dot"></span>connecting…</div>
+      <div class="hcause" id="heroCause"></div>
+    </div>
+    <div class="hact" id="heroAct">
+      <button class="btn danger" id="heroDisarm" style="display:none">🔕 Disarm now</button>
+    </div>
+    <div class="cd" id="cdBox">
+      <div class="cdtop">
+        <span id="cdLabel">Exit delay</span>
+        <b id="cdTime">0:00</b>
+        <span class="sp"></span>
+        <span id="cdHint">leave through the door you marked as delayed</span>
+      </div>
+      <div class="cdbar"><i id="cdBar"></i></div>
+    </div>
+  </div>
+
+  <div class="note warn" id="pinCta">
+    🔢 <b>You have not created a PIN yet.</b> The alarm cannot be armed without
+    one — the same PIN arms, disarms and unlocks the dashboard keypad.
+    <button class="btn sm" id="pinCtaBtn" style="margin-left:8px">Create a PIN</button>
+  </div>
+
+  <div class="card">
+    <h3>🔢 Keypad
+      <span class="hint" data-title="Keypad"
+        data-tip="Type your PIN with the pad (or your keyboard — digits, Backspace and Enter all work), then press an arm button or Disarm. The dots show how many digits you have entered; the code itself is never displayed.">?</span>
+      <span class="sp"></span>
+    </h3>
+    <div class="cardsub">Enter your PIN, then choose what to do.</div>
+    <div class="kpwrap">
+      <div>
+        <div class="kpdots" id="kpDots"></div>
+        <div class="kperr" id="kpErr"></div>
+        <div class="kppad" id="kpPad">
+          <button data-d="1">1</button><button data-d="2">2</button><button data-d="3">3</button>
+          <button data-d="4">4</button><button data-d="5">5</button><button data-d="6">6</button>
+          <button data-d="7">7</button><button data-d="8">8</button><button data-d="9">9</button>
+          <button class="small" data-clear>Clear</button>
+          <button data-d="0">0</button>
+          <button class="small" data-del>⌫</button>
+        </div>
+      </div>
+      <div>
+        <div class="armgrid">
+          <button class="armbtn home" id="armHome">🏠 Arm Home
+            <small>you stay inside — perimeter only</small></button>
+          <button class="armbtn away" id="armAway">🚗 Arm Away
+            <small>nobody home — everything watched</small></button>
+          <button class="armbtn night" id="armNight">🌙 Arm Night
+            <small>sleeping — your night sensors</small></button>
+          <button class="armbtn off" id="disarmBtn">🔕 Disarm
+            <small>turn the alarm off</small></button>
+        </div>
+        <div class="note" style="margin-bottom:0">
+          💡 Which sensors each mode watches is up to you — set it per sensor on
+          the <b>🎛️ Sensors</b> tab.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>⚙ Panel options</h3>
+    <div class="togrow">
+      <div class="switch" id="allowDash"></div>
+      <div class="tt">
+        <b>Allow the dashboard keypad</b>
+        <p>Lets the Security keypad card (available in <b>Dashboard Maker</b>) arm
+          and disarm from a wall tablet or phone dashboard, using the same PIN.
+          Turn this off and only this admin page can arm or disarm.</p>
+      </div>
+    </div>
+    <div class="togrow">
+      <button class="ghost" id="changePinBtn">🔢 Create / change PIN…</button>
+    </div>
+  </div>
+
+</section>
+
+<!-- =============================================== SENSORS ============== -->
+<section class="pane" id="pane-sensors">
+  <div class="card">
+    <h3>🎛️ Which sensors does security use?
+      <span class="sp"></span>
+      <span class="dirty" id="senDirty">● Unsaved changes</span>
+      <button class="btn sm" id="senSave" disabled>Save sensors</button>
+    </h3>
+    <div class="cardsub">
+      Every sensor Home Assistant exposes is listed below. Turn <b>Use</b> off for
+      anything security should ignore, then pick which modes watch it and whether
+      it is instant or delayed. Nothing is saved until you press <b>Save sensors</b>.
+    </div>
+    <div class="note">
+      <b>Delayed</b> = you get the entry countdown to type your code; use it for the
+      door you walk in through.
+      <b>Instant</b> = the alarm fires immediately; use it for windows and inside
+      sensors.<br>
+      Entities marked <span class="sbadge auto">auto</span> are automatic defaults
+      picked for you — they stay automatic until you change something, then your
+      choice wins.
+    </div>
+    <div class="toolbar">
+      <input id="senSearch" type="text" placeholder="Search sensors…">
+      <button class="ghost selbtn" id="senPickShown">☑ Select all shown</button>
+      <button class="ghost selbtn" id="senPickNone">Clear selection</button>
+      <span class="sp"></span>
+      <span class="saved" id="senCount"></span>
+    </div>
+    <div class="note" style="margin-bottom:10px">
+      💡 Tick the boxes on the left to pick several sensors at once — then use the
+      bar at the bottom to change them all together. <b>Shift-click</b> selects a
+      whole range. Or just edit a single row directly with its own chips.
+    </div>
+    <div id="senGroups"><div class="empty">Loading sensors…</div></div>
+  </div>
+</section>
+
+<!-- =============================================== CAMERAS ============== -->
+<section class="pane" id="pane-cameras">
+  <div class="card">
+    <h3>📷 Cameras used by security
+      <span class="sp"></span>
+      <span class="dirty" id="camDirty">● Unsaved changes</span>
+      <button class="btn sm" id="camSave" disabled>Save cameras</button>
+    </h3>
+    <div class="cardsub">
+      Click a camera to select or deselect it. When the alarm is triggered, a
+      snapshot from every selected camera is taken and attached to the phone
+      notification, so you can see what happened without opening an app.
+    </div>
+    <div class="note">
+      Thumbnails refresh about every 10 seconds. A “no image” placeholder only
+      means the snapshot failed right now — the camera can still be used.
+      Click the picture (not the checkbox) to open it full size.
+    </div>
+    <div class="cams" id="camList"><div class="empty">Loading cameras…</div></div>
+  </div>
+</section>
+
+<!-- =============================================== ACTIONS ============== -->
+<section class="pane" id="pane-actions">
+  <div class="card">
+    <h3>⚡ What happens when the alarm goes off
+      <span class="sp"></span>
+      <span class="dirty" id="actDirty">● Unsaved changes</span>
+      <button class="btn sm" id="actSave" disabled>Save actions</button>
+    </h3>
+    <div class="cardsub">Pick anything you want to happen the moment the alarm
+      triggers. Everything runs at once.</div>
+    <div class="summary" id="actSummary">When triggered: nothing yet — pick some
+      actions below.</div>
+
+    <div class="grid2" style="margin-top:16px">
+      <div>
+        <label>🔊 Sirens
+          <span class="hint" data-title="Sirens"
+            data-tip="siren.* entities are turned on for the siren duration set under Timings, then turned off again.">?</span>
+        </label>
+        <div class="picker" id="pickSirens"></div>
+      </div>
+      <div>
+        <label>💡 Lights to turn on
+          <span class="hint" data-title="Lights"
+            data-tip="Lights are switched on at full brightness. A lit house is the cheapest deterrent there is. They are not switched off automatically.">?</span>
+        </label>
+        <div class="picker" id="pickLights"></div>
+      </div>
+      <div>
+        <label>🔌 Switches to turn on
+          <span class="hint" data-title="Switches"
+            data-tip="Any switch.* entity — a plug with a lamp or a bell, a strobe, anything.">?</span>
+        </label>
+        <div class="picker" id="pickSwitches"></div>
+      </div>
+      <div>
+        <label>🔒 Locks to lock
+          <span class="hint" data-title="Locks"
+            data-tip="These locks are locked when the alarm fires, so an intruder cannot simply open another door.">?</span>
+        </label>
+        <div class="picker" id="pickLocks"></div>
+      </div>
+      <div>
+        <label>🎬 Scenes to activate</label>
+        <div class="picker" id="pickScenes"></div>
+      </div>
+      <div>
+        <label>📜 Scripts to run
+          <span class="hint" data-title="Scripts"
+            data-tip="Anything you cannot express here — a phone call, a gate, an MQTT message — build it as a Home Assistant script and pick it here.">?</span>
+        </label>
+        <div class="picker" id="pickScripts"></div>
+      </div>
+    </div>
+
+    <div class="togrow" style="margin-top:14px">
+      <div class="switch" id="actSnapshot"></div>
+      <div class="tt">
+        <b>📸 Take camera snapshots</b>
+        <p>Grabs a picture from every camera selected on the <b>📷 Cameras</b> tab
+          and attaches it to the alert notification.</p>
+      </div>
+    </div>
+
+    <div class="togrow">
+      <div class="switch" id="ttsEnabled"></div>
+      <div class="tt">
+        <b>🗣️ Announce out loud (text-to-speech)</b>
+        <p>Speaks a message on the speakers you choose. Great as a deterrent —
+          an intruder hearing “the alarm has been triggered” usually leaves.</p>
+      </div>
+    </div>
+    <div id="ttsBox">
+      <label>Speakers to announce on</label>
+      <div class="picker" id="pickMedia"></div>
+      <label>Message to speak</label>
+      <input type="text" id="ttsMessage" placeholder="Attention. The alarm has been triggered.">
+      <div class="fieldnote">Keep it short — long sentences get cut off by some
+        speakers.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>⏱ Timings
+      <span class="sp"></span>
+      <span class="dirty" id="timDirty">● Unsaved changes</span>
+      <button class="btn sm" id="timSave" disabled>Save timings</button>
+    </h3>
+    <div class="cardsub">All three are in seconds.</div>
+    <div class="grid2">
+      <div>
+        <label>🚪 Exit delay</label>
+        <input type="number" id="delExit" min="0" max="600" step="5">
+        <div class="fieldnote">How long you have to leave after arming Away before
+          the system actually starts watching. Set it to how long it takes you to
+          walk out and close the door.</div>
+      </div>
+      <div>
+        <label>🔑 Entry delay</label>
+        <input type="number" id="delEntry" min="0" max="600" step="5">
+        <div class="fieldnote">How long you have to type your PIN after opening a
+          sensor marked <b>Delayed</b>. If the countdown runs out, the alarm fires.</div>
+      </div>
+      <div>
+        <label>🔊 Siren duration</label>
+        <input type="number" id="delSiren" min="0" max="3600" step="10">
+        <div class="fieldnote">How long the sirens stay on after a trigger before
+          switching themselves off. Many countries limit this to 180 seconds.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================== ALERTS =============== -->
+<section class="pane" id="pane-alerts">
+  <div class="card">
+    <h3>🔔 Where alerts are sent
+      <span class="sp"></span>
+      <span class="dirty" id="chanDirty">● Unsaved changes</span>
+      <button class="btn sm" id="chanSave" disabled>Save alerts</button>
+    </h3>
+    <div class="cardsub">
+      Tick every service that should receive the alarm message — you can pick as
+      many as you like and they are all notified at the same time.
+    </div>
+    <div class="picker" id="chanList" style="max-height:300px"></div>
+    <div class="note warn">
+      <b>Want email or SMS?</b> This list only shows notify services that already
+      exist in Home Assistant. Advance Tools cannot create them for you.
+      For <b>email</b>, add an SMTP notify integration in HA
+      (<i>Settings → Devices &amp; services → Add integration → SMTP</i>).
+      For <b>SMS</b>, add an SMS gateway integration such as Twilio, or use a
+      messaging app like Telegram. Once it exists, the new
+      <b>notify.…</b> service appears in this list automatically — just reload
+      this page.
+    </div>
+    <div class="toolbar" style="margin-top:12px">
+      <button class="ghost" id="testBtn">📨 Send test alert</button>
+      <span class="sp"></span>
+    </div>
+    <div class="testout" id="testOut"></div>
+  </div>
+</section>
+
+<!-- =============================================== LOG ================== -->
+<section class="pane" id="pane-log">
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:9px;padding:14px 18px;
+                border-bottom:1px solid var(--line)">
+      <b style="font-size:14px">📜 Event log</b>
+      <span class="hint" data-title="Event log"
+        data-tip="Everything the monitor sees: doors opening and closing, motion, locks, people arriving or leaving, arming, disarming and triggers. Red rows are alerts — a watched sensor tripped while armed. Hover a time to see the exact timestamp.">?</span>
+      <span style="flex:1"></span>
+      <button class="ghost" id="logRefresh">↻ Refresh</button>
+    </div>
+    <div id="events"><div class="empty" style="border:0;background:none">Loading…</div></div>
+  </div>
+</section>
+
+</main>
+
+<!-- hover tooltip -->
+<div id="tipbox"></div>
+
+<!-- =============================================== PIN MODAL ============ -->
+<div class="modal" id="pinModal">
+  <div class="mbox narrow">
+    <div class="mhead"><div class="micon">🔢</div>
+      <h2 id="pinHead">Create a PIN</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="pinMsub">Choose 4 to 8 digits. You will need this code
+      to arm and disarm the alarm.</div>
+    <div id="pinOldWrap">
+      <label>Current PIN</label>
+      <input type="password" id="pinOld" inputmode="numeric" autocomplete="off"
+             maxlength="8" placeholder="••••">
+    </div>
+    <label>New PIN</label>
+    <input type="password" id="pinNew" inputmode="numeric" autocomplete="off"
+           maxlength="8" placeholder="4–8 digits">
+    <label>Repeat the new PIN</label>
+    <input type="password" id="pinNew2" inputmode="numeric" autocomplete="off"
+           maxlength="8" placeholder="type it again">
+    <div class="fieldnote">Digits only. Avoid 1234 and your year of birth — this
+      code is also what unlocks the wall-tablet keypad.</div>
+    <div class="err" id="pinErr2"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="pinSave">Save PIN</button>
+    </div>
+  </div>
+</div>
+
+<!-- =============================================== CONFIRM ============== -->
+<div class="modal" id="confirmModal">
+  <div class="mbox narrow">
+    <div class="mhead"><div class="micon">⚠️</div>
+      <h2 id="confirmTitle">Are you sure?</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="confirmSub"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn danger" id="confirmYes">Yes, do it</button>
+    </div>
+  </div>
+</div>
+
+<!-- =============================================== HELP ================= -->
+<div class="modal" id="helpModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">❓</div>
+      <h2>How Security Center works</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="helpstep"><div class="hnum">1</div><div class="htxt">
+      <b>Create a PIN.</b> One code arms, disarms and unlocks the dashboard
+      keypad. It is 4 to 8 digits and you can change it any time from
+      <b>🔢 PIN</b> in the top bar.</div></div>
+    <div class="helpstep"><div class="hnum">2</div><div class="htxt">
+      <b>Choose your sensors.</b> On the <b>🎛️ Sensors</b> tab every door, window,
+      motion sensor and lock in your home is listed. Turn off the ones security
+      should ignore (the shed door, a sensor you only use for automations), and
+      tick which modes watch each one.</div></div>
+    <div class="helpstep"><div class="hnum">3</div><div class="htxt">
+      <b>The three arming modes.</b>
+      <b>🏠 Home</b> — you are inside, so normally only doors and windows are
+      watched and you can move around freely.
+      <b>🚗 Away</b> — nobody is home, so everything is watched.
+      <b>🌙 Night</b> — you are asleep: perimeter plus the sensors downstairs,
+      but not the ones on your way to the bathroom. What each mode watches is
+      whatever you tick per sensor.</div></div>
+    <div class="helpstep"><div class="hnum">4</div><div class="htxt">
+      <b>Exit and entry delay.</b> After arming Away the <b>exit delay</b> counts
+      down so you can leave without tripping your own alarm. When you come back and
+      open a sensor marked <b>Delayed</b>, the <b>entry delay</b> counts down while
+      you walk to the keypad and type your code. Sensors marked <b>Instant</b>
+      give no grace period at all.</div></div>
+    <div class="helpstep"><div class="hnum">5</div><div class="htxt">
+      <b>What triggers the alarm.</b> A sensor that is in use, ticked for the
+      current mode, and changes to open / detected while the system is armed. An
+      instant sensor triggers immediately; a delayed one starts the entry
+      countdown, and only triggers if the countdown reaches zero. The 🚨 Panic
+      button triggers everything straight away, no delay.</div></div>
+    <div class="helpstep"><div class="hnum">6</div><div class="htxt">
+      <b>What happens then.</b> Everything you picked on the <b>⚡ Actions</b> tab
+      runs at once: sirens sound for the siren duration, lights and switches turn
+      on, doors lock, scenes and scripts run, snapshots are taken and speakers
+      announce your message. At the same time every notify service ticked on the
+      <b>🔔 Alerts</b> tab receives a message.</div></div>
+    <div class="helpstep"><div class="hnum">7</div><div class="htxt">
+      <b>Everything is logged.</b> The <b>📜 Log</b> tab keeps the recent history —
+      who armed, which sensor opened, when the alarm fired. Alerts are red.</div></div>
+    <div class="note warn" style="margin-top:16px">
+      ⚠ <b>Honest limitation.</b> This is a convenience layer built on top of
+      Home Assistant. It only works while Home Assistant and the Advance Tools
+      add-on are running and your sensors are online — a power cut, a crashed
+      add-on or a flat sensor battery means no alarm. There is no battery backup,
+      no tamper detection and nobody is watching on the other end. It is
+      <b>not</b> a certified or professionally monitored alarm system, and it
+      should not be relied on as one.
+    </div>
+    <div class="mfoot"><div class="sp"></div>
+      <button class="btn" data-close>Got it</button></div>
+  </div>
+</div>
+
+<!-- =============================================== LIGHTBOX ============= -->
+<div class="modal" id="lightbox">
+  <div class="mbox">
+    <div class="lb-bar">
+      <b id="lbName">Camera</b>
+      <button class="ghost" id="lbRefresh">↻ Refresh</button>
+      <button class="ghost" data-close>✕</button>
+    </div>
+    <img id="lbImg" alt="camera snapshot">
+  </div>
+</div>
+
+<!-- bulk actions for the selected sensors -->
+<div id="senBulk">
+  <b id="senBulkCount">0 selected</b>
+  <span class="div"></span>
+  <button class="chip" data-bulk="use">✓ Use</button>
+  <button class="chip" data-bulk="unuse">✗ Don't use</button>
+  <span class="div"></span>
+  <button class="chip blue" data-bulk="mode-home">🏠 Home</button>
+  <button class="chip blue" data-bulk="mode-away">🚗 Away</button>
+  <button class="chip blue" data-bulk="mode-night">🌙 Night</button>
+  <span class="div"></span>
+  <button class="chip warn" data-bulk="delayed">⏳ Delayed</button>
+  <button class="chip warn" data-bulk="instant">⚡ Instant</button>
+  <span class="div"></span>
+  <button class="ghost selbtn" data-bulk="clear">Clear</button>
+</div>
+
+<div id="toasts"></div>
+
+<script src="../../static/poll.js"></script>
+<script src="static/app.js"></script>
+</body>
+</html>

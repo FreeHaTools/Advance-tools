@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f1420">
+<meta name="color-scheme" content="dark">
+<title>Dashboard</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/static/icons/icon-192.svg">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Advance Tools">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root { --accent:#4f8cff; --bg:#0f1420; --card:#1a2233; --text:#e8edf7;
+          --radius:14px; --mut:#8b98b8; }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif;
+      -webkit-tap-highlight-color:transparent; }
+  /* The dashboard shell must never move: overscroll-behavior kills the iOS
+     rubber-band bounce that otherwise exposes a white strip above/below a
+     kiosk panel. This is deliberately scoped to this page only — the hub and
+     the setup wizard still scroll normally. */
+  html, body { height:100%; overflow:hidden; overscroll-behavior:none;
+               touch-action:manipulation; }
+  body { background:var(--bg); color:var(--text);
+         -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+
+  #stage { position:absolute; transform-origin:top left; }
+  /* #cv must be opaque: the scaled stage is a backdrop root, so glass cards'
+     backdrop-filter can only sample content inside it. Without a background
+     the blur samples nothing and renders smearing/inner-shadow artifacts
+     (most visible on desktop where the scale factor is large/fractional). */
+  #cv { position:relative; background:var(--bg); }
+  .el { position:absolute; user-select:none; animation:at-in .5s both; }
+  .el .inner { width:100%; height:100%; }
+  @keyframes at-in { from { opacity:0; transform:translateY(10px); }
+                     to { opacity:1; transform:none; } }
+  .el.hidden-by-tab { display:none; }
+  .el.tap { cursor:pointer; }
+
+  /* tab pills overlay */
+  #tabbar { position:fixed; top:calc(10px + env(safe-area-inset-top)); left:50%;
+            transform:translateX(-50%); display:none; gap:8px; z-index:40;
+            max-width:calc(100vw - 24px); flex-wrap:wrap; justify-content:center; }
+  #tabbar.show { display:flex; }
+  .tb { background:rgba(10,14,24,.72); backdrop-filter:blur(8px); color:var(--mut);
+        border:1px solid rgba(255,255,255,.14); border-radius:22px; padding:8px 18px;
+        min-height:44px; display:inline-flex; align-items:center;
+        font-size:14px; cursor:pointer; user-select:none; transition:.2s;
+        touch-action:manipulation; }
+  .tb.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+  /* visible logout */
+  #logoutbtn { position:fixed; top:calc(10px + env(safe-area-inset-top));
+       right:calc(12px + env(safe-area-inset-right)); z-index:40;
+       background:rgba(10,14,24,.72); color:var(--mut); border:1px solid
+       rgba(255,255,255,.14); padding:8px 16px; min-height:44px;
+       border-radius:8px; cursor:pointer; touch-action:manipulation;
+       font-size:13px; display:none; }
+
+  /* hidden-logout overlay */
+  #lo-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:60;
+       display:none; align-items:center; justify-content:center; }
+  #lo-overlay.open { display:flex; }
+  #lo-box { background:var(--card); border:1px solid rgba(255,255,255,.15);
+       border-radius:16px; padding:30px 36px; text-align:center;
+       max-width:calc(100vw - 32px); }
+  #lo-box button { margin:14px 8px 0; padding:12px 28px; min-height:48px;
+       border-radius:10px; border:0; font-size:15px; cursor:pointer;
+       touch-action:manipulation; }
+  #lo-yes { background:#ff6b81; color:#2d0a12; }
+  #lo-no { background:rgba(255,255,255,.12); color:var(--text); }
+
+  #conn { position:fixed; bottom:calc(8px + env(safe-area-inset-bottom));
+          right:calc(12px + env(safe-area-inset-right)); font-size:11px;
+          color:var(--mut); opacity:.75; z-index:40; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="cv"></div></div>
+<div id="tabbar"></div>
+<button id="logoutbtn">Logout</button>
+<div id="lo-overlay"><div id="lo-box">
+  <div style="font-size:17px">End this session?</div>
+  <button id="lo-yes">Logout</button><button id="lo-no">Stay</button>
+</div></div>
+<div id="conn"></div>
+<script src="/static/styles.js?v=100"></script>
+<script src="/static/packs.js?v=100"></script>
+<script src="/static/widgets.js?v=100"></script>
+</body>
+</html>

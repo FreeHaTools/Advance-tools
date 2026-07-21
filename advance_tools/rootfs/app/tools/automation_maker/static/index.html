@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automation Maker — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#3ecf8e; --acc2:#22b8cf;
+    --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --trig:#ffb86b; --cond:#4f8cff; --act:#3ecf8e;
+    --hover:rgba(62,207,142,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#03241a;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+
+  main { padding:20px 22px 60px; max-width:1080px; margin:0 auto; }
+  .toolbar { display:flex; align-items:center; gap:12px; margin-bottom:16px;
+             flex-wrap:wrap; }
+  .toolbar h2 { font-size:16px; }
+  .toolbar .sp { flex:1; }
+  .stat { font-size:12px; color:var(--mut); }
+  #search { width:220px; padding:9px 12px; border-radius:10px;
+            border:1px solid var(--line); background:var(--input);
+            color:var(--txt); font-size:13px; }
+  #search:focus { outline:none; border-color:var(--acc); }
+
+  /* ------- list ------- */
+  .auto { display:flex; align-items:center; gap:14px; background:var(--card);
+          border:1px solid var(--line); border-radius:14px; padding:14px 16px;
+          margin-bottom:10px; box-shadow:var(--shadow); }
+  .auto .nm { flex:1; min-width:0; }
+  .auto .nm b { display:block; font-size:14px; overflow:hidden;
+                text-overflow:ellipsis; white-space:nowrap; }
+  .auto .nm span { font-size:11px; color:var(--mut); }
+  .badge { font-size:10px; padding:3px 9px; border-radius:20px;
+           border:1px solid var(--line); color:var(--mut); white-space:nowrap;
+           cursor:default; }
+  .badge.yaml { color:var(--warn); border-color:rgba(255,184,107,.4); }
+  .acts { display:flex; gap:6px; align-items:center; flex-wrap:wrap;
+          justify-content:flex-end; }
+  .sw { position:relative; width:44px; height:24px; border-radius:20px;
+        background:var(--line); cursor:pointer; transition:.2s; flex:0 0 auto; }
+  .sw::after { content:''; position:absolute; top:3px; left:3px; width:18px;
+        height:18px; border-radius:50%; background:#fff; transition:.2s; }
+  .sw.on { background:var(--acc); }
+  .sw.on::after { left:23px; }
+  .empty { text-align:center; color:var(--mut); padding:50px 0; font-size:14px; }
+
+  /* ------- hint (tooltip) system ------- */
+  .hint { display:inline-flex; align-items:center; justify-content:center;
+          width:16px; height:16px; border-radius:50%; border:1px solid var(--line);
+          background:var(--input); color:var(--mut); font-size:10px;
+          font-weight:700; cursor:help; margin-left:6px; vertical-align:1px;
+          user-select:none; flex:0 0 auto; }
+  .hint:hover { color:var(--acc2); border-color:var(--acc2); }
+  #tipbox { position:fixed; z-index:400; width:min(92vw, 360px);
+            background:#0d1424; border:1px solid var(--acc2); border-radius:14px;
+            padding:14px 16px; box-shadow:0 14px 40px rgba(0,0,0,.6);
+            display:none; font-size:12.5px; line-height:1.75; }
+  #tipbox b.t { display:block; color:var(--acc2); font-size:13px;
+                margin-bottom:4px; }
+  #tipbox .ex { margin-top:8px; background:var(--input); border:1px solid
+                var(--line); border-left:3px solid var(--acc); border-radius:8px;
+                padding:8px 11px; font-family:Consolas, monospace; font-size:11.5px;
+                white-space:pre-wrap; color:#cfe8dc; }
+  #tipbox .ex::before { content:'EXAMPLE'; display:block; font-family:"Segoe UI";
+                font-size:9px; letter-spacing:.12em; color:var(--mut);
+                margin-bottom:3px; }
+
+  /* ------- builder ------- */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.7); display:none;
+           z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+           padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(98vw, 1060px); margin:0 auto;
+          padding:24px; box-shadow:var(--shadow); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead h2 { font-size:17px; flex:1; }
+  .msub { color:var(--mut); font-size:12px; margin-bottom:16px; }
+  .cols { display:grid; grid-template-columns:1fr 320px; gap:20px; }
+  @media (max-width:920px) { .cols { grid-template-columns:1fr; } }
+
+  label { font-size:12px; color:var(--mut); display:flex; align-items:center;
+          margin:10px 0 4px; }
+  input[type=text], input[type=time], input[type=number], select, textarea {
+    width:100%; padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--input); color:var(--txt); font-size:13.5px; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--acc); }
+  textarea.json, textarea.tpl { font-family:Consolas, monospace; font-size:12px;
+    min-height:56px; }
+  .grid { display:grid; gap:10px; } .g2 { grid-template-columns:1fr 1fr; }
+  .g3 { grid-template-columns:1fr 1fr 1fr; }
+  @media (max-width:640px){ .g2,.g3 { grid-template-columns:1fr; } }
+
+  /* flow sections */
+  .fsec { border-radius:14px; border:1px solid var(--line); background:var(--input);
+          padding:14px 16px 16px; margin-top:16px; position:relative; }
+  .fsec.trig { border-left:4px solid var(--trig); }
+  .fsec.cond { border-left:4px solid var(--cond); }
+  .fsec.act  { border-left:4px solid var(--act); }
+  .fsec > .fh { display:flex; align-items:center; gap:9px; }
+  .fsec > .fh b { font-size:13.5px; letter-spacing:.02em; }
+  .fsec > .fh .fi { width:26px; height:26px; border-radius:8px; display:flex;
+        align-items:center; justify-content:center; font-size:14px; }
+  .fsec.trig .fi { background:rgba(255,184,107,.15); }
+  .fsec.cond .fi { background:rgba(79,140,255,.15); }
+  .fsec.act  .fi { background:rgba(62,207,142,.15); }
+  .fsec > .fh .fd { font-size:11px; color:var(--mut); flex:1; }
+  .conn { width:2px; height:18px; margin-left:28px;
+          background:linear-gradient(var(--line), var(--line)); }
+
+  /* quick-add chips */
+  .addrow { display:flex; flex-wrap:wrap; gap:7px; margin-top:11px; }
+  .addchip { display:inline-flex; align-items:center; gap:6px; font-size:12px;
+        color:var(--mut); background:var(--card); border:1px dashed var(--line);
+        border-radius:20px; padding:6px 13px; cursor:pointer; user-select:none; }
+  .addchip:hover { color:var(--txt); border-color:var(--acc); border-style:solid; }
+
+  /* blocks */
+  .block { border:1px solid var(--line); border-radius:12px; background:var(--card);
+           padding:12px 14px 13px; margin-top:11px; position:relative; }
+  .block .bh { display:flex; align-items:center; gap:8px; }
+  .block .bh .bi { font-size:15px; }
+  .block .bh b { font-size:13px; flex:1; }
+  .block .rm { background:none; border:0; color:var(--mut); cursor:pointer;
+           font-size:14px; padding:2px 6px; }
+  .block .rm:hover { color:var(--bad); }
+  .block .sum { margin-top:10px; font-size:11.5px; color:var(--acc2);
+           background:rgba(34,184,207,.07); border-radius:8px; padding:6px 10px;
+           line-height:1.6; }
+  .block .sum::before { content:'→ '; }
+
+  /* combo (searchable dropdown) */
+  .combo-wrap { position:relative; }
+  .combo-list { position:absolute; left:0; right:0; top:calc(100% + 4px);
+        max-height:240px; overflow-y:auto; background:#0d1424;
+        border:1px solid var(--acc2); border-radius:10px; z-index:60;
+        display:none; box-shadow:0 14px 34px rgba(0,0,0,.55); }
+  .combo-list.open { display:block; }
+  .combo-it { padding:8px 12px; cursor:pointer; font-size:12.5px;
+        display:flex; gap:8px; align-items:baseline; }
+  .combo-it:hover, .combo-it.sel { background:rgba(34,184,207,.12); }
+  .combo-it .cn { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;
+        white-space:nowrap; }
+  .combo-it .cid { color:var(--mut); font-size:10.5px;
+        font-family:Consolas, monospace; overflow:hidden; text-overflow:ellipsis;
+        white-space:nowrap; max-width:46%; }
+  .combo-it .cst { color:var(--acc); font-size:10.5px; flex:0 0 auto; }
+
+  /* weekdays */
+  .wdays { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+  .wd { border:1px solid var(--line); border-radius:8px; padding:5px 10px;
+        font-size:11.5px; color:var(--mut); cursor:pointer; user-select:none; }
+  .wd.on { color:#03241a; background:var(--acc); border-color:var(--acc);
+        font-weight:700; }
+
+  /* preview / side panel */
+  .side { position:sticky; top:14px; align-self:start; }
+  .side .sh { font-size:11px; color:var(--mut); text-transform:uppercase;
+        letter-spacing:.1em; margin:2px 0 8px; }
+  #preview { background:#0a0f1c; border:1px solid var(--line); border-radius:12px;
+        padding:13px 15px; font-family:Consolas, monospace; font-size:11.5px;
+        line-height:1.7; white-space:pre-wrap; color:#b8d4c6; max-height:420px;
+        overflow-y:auto; }
+  #preview .k { color:var(--acc2); }
+  .sidehelp { margin-top:14px; background:var(--input); border:1px solid var(--line);
+        border-radius:12px; padding:12px 14px; font-size:11.5px; color:var(--mut);
+        line-height:1.8; }
+  .sidehelp b { color:var(--txt); }
+
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:20px;
+           align-items:center; }
+  .err { background:#3a1a22; border:1px solid #7a2a3a; color:#ff9aae;
+         border-radius:10px; padding:10px 13px; margin-top:12px; font-size:13px;
+         display:none; line-height:1.7; }
+
+  /* info modal (YAML explanation etc.) */
+  .imodal { position:fixed; inset:0; background:rgba(4,7,14,.7); display:none;
+        align-items:center; justify-content:center; z-index:300;
+        backdrop-filter:blur(3px); padding:16px; }
+  .imodal.open { display:flex; }
+  .ibox { background:var(--card); border:1px solid var(--line); border-radius:16px;
+        width:min(94vw, 460px); padding:24px; box-shadow:var(--shadow); }
+  .ibox h3 { font-size:15px; margin-bottom:10px; }
+  .ibox p { font-size:13px; color:var(--mut); line-height:1.9; margin-bottom:8px; }
+  .ibox code { background:var(--input); border-radius:6px; padding:2px 7px;
+        font-size:12px; color:var(--acc2); }
+
+  #toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+           background:var(--acc); color:#03241a; padding:11px 26px;
+           border-radius:10px; font-size:14px; display:none; z-index:500;
+           font-weight:600; box-shadow:var(--shadow); }
+  #toast.bad { background:var(--bad); color:#2d0a12; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">⚙️</div>
+  <h1>Automation Maker <small>Advance Tools</small></h1>
+  <a class="ghost" href="/admin" target="_top">⌂ Hub</a>
+</header>
+<main>
+  <div class="toolbar">
+    <h2>Automations</h2>
+    <span class="stat" id="stat">loading…</span>
+    <span class="sp"></span>
+    <input id="search" type="text" placeholder="🔍 Search automations…">
+    <button class="btn" onclick="openBuilder()">＋ New automation</button>
+  </div>
+  <div id="list"></div>
+</main>
+
+<!-- ================= builder ================= -->
+<div class="modal" id="builder">
+  <div class="mbox">
+    <div class="mhead">
+      <h2 id="b-title">New automation</h2>
+      <button class="ghost" onclick="closeBuilder()">✕ Close</button>
+    </div>
+    <div class="msub">Build it visually — every field has a
+      <span class="hint" style="cursor:default">?</span> button with a full
+      explanation and an example. Saved automations also appear in Home
+      Assistant's own automation editor.</div>
+
+    <div class="cols">
+      <div>
+        <label>Name <span class="hint" data-tip="alias"></span></label>
+        <input type="text" id="b-alias" placeholder="Turn on hallway light at sunset">
+        <label>Description (optional) <span class="hint" data-tip="description"></span></label>
+        <input type="text" id="b-desc" placeholder="Notes for future-you about what this does">
+
+        <!-- WHEN -->
+        <div class="fsec trig">
+          <div class="fh"><span class="fi">⚡</span><b>WHEN</b>
+            <span class="fd">the event that starts the automation (trigger)</span>
+            <span class="hint" data-tip="sec_trigger"></span></div>
+          <div id="b-triggers"></div>
+          <div class="addrow" id="add-trig"></div>
+        </div>
+        <div class="conn"></div>
+
+        <!-- AND IF -->
+        <div class="fsec cond">
+          <div class="fh"><span class="fi">🔍</span><b>AND IF</b>
+            <span class="fd">optional checks — all must be true to continue</span>
+            <span class="hint" data-tip="sec_condition"></span></div>
+          <div id="b-conditions"></div>
+          <div class="addrow" id="add-cond"></div>
+        </div>
+        <div class="conn"></div>
+
+        <!-- THEN -->
+        <div class="fsec act">
+          <div class="fh"><span class="fi">▶️</span><b>THEN</b>
+            <span class="fd">what to do, in order (actions)</span>
+            <span class="hint" data-tip="sec_action"></span></div>
+          <div id="b-actions"></div>
+          <div class="addrow" id="add-act"></div>
+        </div>
+
+        <label style="margin-top:16px">Run mode
+          <span class="hint" data-tip="mode"></span></label>
+        <select id="b-mode">
+          <option value="single">single — ignore triggers while already running</option>
+          <option value="restart">restart — cancel the run and start over</option>
+          <option value="queued">queued — finish, then run again</option>
+          <option value="parallel">parallel — run several at the same time</option>
+        </select>
+
+        <div class="err" id="b-err"></div>
+      </div>
+
+      <div class="side">
+        <div class="sh">Live preview</div>
+        <div id="preview"></div>
+        <div class="sidehelp">
+          <b>How to read this:</b> the preview is the exact configuration that
+          will be saved to Home Assistant, shown as YAML. If you're used to HA's
+          YAML editor, this is the same thing you'd write by hand.
+        </div>
+      </div>
+    </div>
+
+    <div class="mfoot">
+      <span class="stat" id="b-state"></span>
+      <button class="ghost" onclick="closeBuilder()">Cancel</button>
+      <button class="btn" onclick="saveAutomation()">💾 Save automation</button>
+    </div>
+  </div>
+</div>
+
+<!-- info modal -->
+<div class="imodal" id="imodal">
+  <div class="ibox">
+    <h3 id="im-title"></h3>
+    <div id="im-body"></div>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px">
+      <button class="ghost" onclick="document.getElementById('imodal').classList.remove('open')">Close</button>
+      <button class="btn" id="im-action" style="display:none"
+        onclick="IM_ACTION && IM_ACTION()"></button>
+    </div>
+  </div>
+</div>
+
+<div id="tipbox"></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const API = '/api/tools/automation_maker';
+let ENTITIES = [], SERVICES = [], EDIT_ID = null, ALL = [], YAML_IDS = new Set();
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(msg, bad) {
+  const t = $('#toast');
+  t.textContent = msg; t.className = bad ? 'bad' : ''; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+let IM_ACTION = null;
+function info(title, html, actionLabel, actionFn) {
+  $('#im-title').textContent = title;
+  $('#im-body').innerHTML = html;
+  const ab = $('#im-action');
+  if (actionLabel) {
+    ab.style.display = 'inline-block';
+    ab.textContent = actionLabel;
+    IM_ACTION = actionFn;
+  } else { ab.style.display = 'none'; IM_ACTION = null; }
+  $('#imodal').classList.add('open');
+}
+
+/* ============================================================ TIPS
+   Every ? bubble reads from here: title, description, example. */
+const TIPS = {
+  alias: { t: 'Name', d: 'A short human-readable name. This is what you see in every list, in notifications and in Home Assistant itself. Pick something that describes the result.', e: 'Turn on hallway light at sunset' },
+  description: { t: 'Description', d: 'Free-text notes, only for humans. Great for explaining WHY the automation exists — future-you will thank you.', e: 'Lights the hallway for the kids before bedtime. Added 2026-07.' },
+  mode: { t: 'Run mode', d: 'What happens if the automation triggers again while a previous run is still busy (e.g. still waiting in a Delay).\n• single — ignore the new trigger (safest, default)\n• restart — stop the old run, start fresh (good for motion lights)\n• queued — run them one after another\n• parallel — run all at once', e: 'Motion light with a 2-min "off" delay → use restart, so every new motion restarts the countdown.' },
+  sec_trigger: { t: 'WHEN — triggers', d: 'A trigger is the event that WAKES UP the automation: a light turns on, a sensor crosses a value, a time is reached… You can add several — ANY one of them firing starts the automation.', e: 'Trigger 1: sun sets.\nTrigger 2: someone arrives home.\nEither one runs the actions.' },
+  sec_condition: { t: 'AND IF — conditions', d: 'Conditions are optional gate checks. After a trigger fires, ALL conditions must be true, otherwise nothing happens. Use them to limit when the automation is allowed to act.', e: 'Trigger: motion detected.\nCondition: time is after 22:00.\n→ light only reacts to motion at night.' },
+  sec_action: { t: 'THEN — actions', d: 'The actual work, executed top to bottom: call services (turn things on/off, notify…), wait with a Delay, or Wait-until something happens. Order matters.', e: '1. Turn on light\n2. Delay 00:05:00\n3. Turn off light' },
+
+  t_state: { t: 'Entity state changes', d: 'Fires when an entity changes state. Leave From/To empty to fire on ANY change, or fill them to only fire on a specific transition. "For" makes it wait: the entity must STAY in that state for the given time before firing.', e: 'Entity: binary_sensor.front_door\nTo: on\n→ fires the moment the door opens.' },
+  t_numeric: { t: 'Numeric value crosses a threshold', d: 'Watches a numeric sensor and fires when the value CROSSES above/below your threshold (it fires on the crossing, not continuously while it stays there). You can set one or both bounds.', e: 'Entity: sensor.living_room_temperature\nBelow: 18\n→ fires when the room drops under 18°.' },
+  t_time: { t: 'At a specific time', d: 'Fires once a day at an exact clock time. Combine with a Time-window or Weekday condition to limit which days it actually does something.', e: 'At: 07:30 → every morning at 07:30.' },
+  t_pattern: { t: 'Repeating interval', d: 'Fires on a repeating clock pattern. Use /N for "every N": minutes "/15" = every 15 minutes. A plain number means "at that value": hours "6" = only at 6 o\'clock. Leave a field empty for "any".', e: 'Minutes: /30 → every half hour.\nHours: /2, Minutes: 0 → every 2 hours on the hour.' },
+  t_sun: { t: 'Sun — sunrise / sunset', d: 'Fires at sunrise or sunset for your home location. Offset shifts it: negative = before, positive = after, format HH:MM:SS.', e: 'Event: sunset, Offset: -00:30:00\n→ 30 minutes BEFORE sunset.' },
+  t_template: { t: 'Template (advanced)', d: 'A Jinja2 template that fires when it becomes true. This is the power-user escape hatch — anything you can express in a template can be a trigger.', e: "{{ states('sensor.power') | float > 3000 }}" },
+
+  c_state: { t: 'Entity is in a state', d: 'Passes only if the entity is CURRENTLY in the given state at the moment the trigger fires.', e: 'Entity: person.mike, State: home\n→ only act when Mike is home.' },
+  c_numeric: { t: 'Numeric value is above/below', d: 'Passes if the sensor value is currently above and/or below your bounds.', e: 'Entity: sensor.outdoor_temp, Below: 5\n→ only when it is cold outside.' },
+  c_time: { t: 'Time window & weekdays', d: 'Passes only between After and Before (crossing midnight is fine, e.g. 22:00 → 06:00), and only on the selected weekdays (none selected = every day).', e: 'After 22:00, Before 06:30, Mon–Fri\n→ weeknights only.' },
+  c_template: { t: 'Template (advanced)', d: 'A Jinja2 template; passes when it renders true.', e: "{{ state_attr('climate.living', 'temperature') > 22 }}" },
+
+  a_service: { t: 'Call a service', d: 'The main action type: services do everything in HA — turn things on/off, set temperature, send notifications, run scripts… Pick the service, choose the target entity, and optionally pass extra data as JSON.', e: 'Service: light.turn_on\nEntity: light.hallway\nData: {"brightness_pct": 60, "transition": 2}' },
+  a_delay: { t: 'Delay', d: 'Pauses the actions for a fixed time, then continues with the next one. If the automation triggers again during the delay, the Run mode decides what happens.', e: '00:05:00 → wait 5 minutes.' },
+  a_wait: { t: 'Wait until', d: 'Pauses until an entity reaches a state (or the timeout runs out). With "continue on timeout" enabled, the following actions still run after the timeout; disabled, the run stops there.', e: 'Wait until binary_sensor.door = off\nTimeout: 00:02:00\n→ wait max 2 min for the door to close.' },
+  a_stop: { t: 'Stop', d: 'Ends the automation run right here. Useful as a guard after a Wait-until that timed out.', e: 'Wait for door to close (2 min) → Stop if it never closed.' },
+
+  f_entity: { t: 'Entity', d: 'The device or sensor this block works with. Start typing to search by friendly name or entity id — the list shows the live state of each entity.', e: 'light.office_room — "Office light" (state: off)' },
+  f_from: { t: 'From (optional)', d: 'Only fire if the entity was previously in THIS state. Leave empty to accept any previous state.', e: 'From: off, To: on → only off→on, not unavailable→on.' },
+  f_to: { t: 'To (optional)', d: 'Only fire if the entity changes INTO this state. Leave empty for any new state.', e: 'on · off · home · open · playing' },
+  f_for: { t: 'For (optional)', d: 'The entity must STAY in the state this long before the trigger fires. Format HH:MM:SS. Prevents reacting to short blips.', e: '00:10:00 → only if it stays 10 full minutes.' },
+  f_above: { t: 'Above', d: 'Numeric lower bound: block matches when the value is greater than this. You can combine with Below for a range.', e: '25 → matches 25.1, 30, 100…' },
+  f_below: { t: 'Below', d: 'Numeric upper bound: block matches when the value is less than this.', e: '18 → matches 17.9, 10, -5…' },
+  f_at: { t: 'Time', d: 'Clock time in your home timezone, 24-hour format.', e: '07:30 · 18:45 · 23:59' },
+  f_offset: { t: 'Offset', d: 'Shift relative to the sun event. Negative = before, positive = after. Format ±HH:MM:SS.', e: '-00:45:00 → 45 minutes before.' },
+  f_service: { t: 'Service', d: 'domain.service — what to actually do. Type to search all services available on your Home Assistant.', e: 'light.turn_on · switch.toggle · notify.notify · script.morning · vacuum.start' },
+  f_data: { t: 'Extra data (JSON, optional)', d: 'Additional parameters for the service, written as JSON. Each service accepts different fields — same as the YAML "data:" block in HA.', e: '{"brightness_pct": 80}\n{"message": "Door opened!", "title": "Alert"}\n{"temperature": 22.5}' },
+  f_delay: { t: 'Delay duration', d: 'How long to pause, HH:MM:SS.', e: '00:00:30 → 30 seconds · 01:30:00 → 1.5 hours' },
+  f_timeout: { t: 'Timeout (optional)', d: 'Max time to wait, HH:MM:SS. Empty = wait forever.', e: '00:02:00' },
+  f_cont: { t: 'Continue on timeout', d: 'ON: if the timeout expires, keep running the next actions anyway.\nOFF: a timeout ends the run here.', e: 'Waiting for a door to close before locking? Turn this OFF so you never lock an open door.' },
+  f_wstate: { t: 'Wait for state', d: 'The state the entity must reach for the wait to finish.', e: 'off · closed · home' },
+  f_template: { t: 'Jinja2 template', d: 'Full Home Assistant templating — states(), state_attr(), filters, math. Must render true/false.', e: "{{ states('sensor.humidity') | float > 60 }}" },
+};
+
+/* tip popover */
+const tipbox = $('#tipbox');
+document.addEventListener('click', ev => {
+  const h = ev.target.closest('.hint[data-tip]');
+  if (!h) { tipbox.style.display = 'none'; return; }
+  const tip = TIPS[h.dataset.tip];
+  if (!tip) return;
+  tipbox.innerHTML = `<b class="t">${esc(tip.t)}</b>${esc(tip.d).replace(/\n/g,'<br>')}` +
+    (tip.e ? `<div class="ex">${esc(tip.e)}</div>` : '');
+  tipbox.style.display = 'block';
+  const r = h.getBoundingClientRect(), tw = Math.min(innerWidth * .92, 360);
+  tipbox.style.left = Math.max(8, Math.min(innerWidth - tw - 8, r.left - 40)) + 'px';
+  tipbox.style.top = Math.min(innerHeight - tipbox.offsetHeight - 10,
+                              r.bottom + 8) + 'px';
+  ev.stopPropagation();
+});
+document.querySelectorAll('.hint[data-tip]').forEach(h => h.textContent = '?');
+new MutationObserver(() =>
+  document.querySelectorAll('.hint[data-tip]:empty').forEach(h => h.textContent = '?')
+).observe(document.body, { childList: true, subtree: true });
+
+/* ============================================================ combo picker */
+function attachCombo(input, getItems) {
+  const wrap = document.createElement('div');
+  wrap.className = 'combo-wrap';
+  input.parentNode.insertBefore(wrap, input);
+  wrap.appendChild(input);
+  const list = document.createElement('div');
+  list.className = 'combo-list';
+  wrap.appendChild(list);
+  input.setAttribute('autocomplete', 'off');
+  const render = () => {
+    const q = input.value.toLowerCase().trim();
+    const items = getItems().filter(it =>
+      !q || it.id.toLowerCase().includes(q) ||
+      (it.name || '').toLowerCase().includes(q)).slice(0, 60);
+    if (!items.length) { list.classList.remove('open'); return; }
+    list.innerHTML = items.map(it =>
+      `<div class="combo-it" data-v="${esc(it.id)}">
+         <span class="cn">${esc(it.name || it.id)}</span>
+         <span class="cid">${esc(it.name ? it.id : '')}</span>
+         ${it.state != null ? `<span class="cst">${esc(it.state)}</span>` : ''}
+       </div>`).join('');
+    list.classList.add('open');
+    list.querySelectorAll('.combo-it').forEach(el => el.onmousedown = ev => {
+      ev.preventDefault();
+      input.value = el.dataset.v;
+      list.classList.remove('open');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  };
+  input.addEventListener('focus', render);
+  input.addEventListener('input', render);
+  input.addEventListener('blur', () =>
+    setTimeout(() => list.classList.remove('open'), 150));
+}
+const entityItems = () => ENTITIES;
+const serviceItems = () => SERVICES;
+
+/* ============================================================ list */
+async function load() {
+  let d;
+  try { d = await (await fetch(`${API}/automations`)).json(); }
+  catch (e) { $('#stat').textContent = '⚠ cannot reach server'; return; }
+  ALL = d.automations || [];
+  $('#stat').textContent = d.connected
+    ? `${ALL.length} automations · ${ALL.filter(a => a.state === 'on').length} enabled`
+    : '⚠ not connected to Home Assistant';
+  renderList();
+}
+function renderList() {
+  const q = $('#search').value.toLowerCase().trim();
+  const list = $('#list');
+  const autos = ALL.filter(a => !q || a.name.toLowerCase().includes(q) ||
+                                a.entity_id.toLowerCase().includes(q));
+  if (!autos.length) {
+    list.innerHTML = `<div class="empty">${ALL.length
+      ? 'Nothing matches your search.'
+      : 'No automations yet — create your first one!'}</div>`;
+    return;
+  }
+  list.innerHTML = autos.map(a => {
+    const yaml = !a.id || YAML_IDS.has(a.id);
+    return `
+    <div class="auto">
+      <div class="sw ${a.state === 'on' ? 'on' : ''}"
+           onclick="toggleAuto('${esc(a.entity_id)}', this)"></div>
+      <div class="nm"><b>${esc(a.name)}</b>
+        <span>${a.last_triggered
+          ? 'last run ' + new Date(a.last_triggered).toLocaleString()
+          : 'never triggered'} · mode: ${esc(a.mode)}</span></div>
+      ${yaml ? `<span class="badge yaml"
+          onclick="explainYaml('${esc(a.name)}','${esc(a.entity_id)}','${esc(a.id || '')}')"
+          title="Defined in YAML — click for details">YAML · read-only</span>` : ''}
+      <div class="acts">
+        <button class="ghost" onclick="runAuto('${esc(a.entity_id)}')">▶ Run</button>
+        ${yaml ? `
+          <button class="ghost" title="Convert into an editable copy"
+            onclick="explainYaml('${esc(a.name)}','${esc(a.entity_id)}','${esc(a.id || '')}')">🔁 Convert</button>` : ''}
+        ${a.id && !yaml ? `
+          <button class="ghost" onclick="editAuto('${esc(a.id)}', false, '${esc(a.name)}', '${esc(a.entity_id)}')">✏️ Edit</button>
+          <button class="ghost" onclick="editAuto('${esc(a.id)}', true, '${esc(a.name)}', '${esc(a.entity_id)}')"
+                  title="Copy into a new automation">⧉</button>
+          <button class="ghost" style="color:var(--bad)"
+                  onclick="delAuto('${esc(a.id)}','${esc(a.name)}')">🗑</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+$('#search').addEventListener('input', renderList);
+
+function explainYaml(name, eid, aid) {
+  info('Convert this YAML automation?',
+    `<p><b style="color:var(--txt)">${esc(name)}</b> is defined in a YAML file
+     (<code>configuration.yaml</code> or a package), so it can't be edited
+     directly — not even by HA's own automation editor.</p>
+     <p><b style="color:var(--txt)">🔁 Convert</b> fixes that. It will:</p>
+     <p>1. read the automation's definition from your YAML files
+        (read-only — your files are <b>never modified</b>)<br>
+     2. create an identical, fully <b>editable copy</b> in Home Assistant's
+        UI store<br>
+     3. <b>disable</b> the YAML original so it doesn't run twice</p>
+     <p>The old YAML block stays in your files (disabled) — delete it whenever
+     you like. You can also keep using <b>enable/disable</b> and <b>▶ Run</b>
+     without converting.</p>`,
+    '🔁 Convert to editable',
+    () => convertAuto(eid, aid, name));
+}
+
+async function convertAuto(eid, aid, name) {
+  $('#imodal').classList.remove('open');
+  toast('Converting…');
+  let r, d;
+  try {
+    r = await fetch(`${API}/convert`, { method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ entity_id: eid, id: aid || null, alias: name }) });
+    d = await r.json();
+  } catch (e) { toast('Network error', true); return; }
+  if (!r.ok) {
+    info('Convert failed', `<p>${esc(d.message || d.error || 'Unknown error')}</p>
+      <p>You can still edit the automation manually in its YAML file with the
+      File editor add-on.</p>`);
+    return;
+  }
+  toast('Converted ✓ — opening the editor…');
+  setTimeout(async () => {
+    await load();
+    editAuto(d.id, false, name, '');
+  }, 1500);
+}
+
+async function act(entity_id, action) {
+  const r = await fetch(`${API}/action`, { method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ entity_id, action }) });
+  if (!r.ok) toast((await r.json()).error || 'failed', true);
+}
+async function toggleAuto(eid, el) {
+  const on = el.classList.contains('on');
+  el.classList.toggle('on');
+  await act(eid, on ? 'off' : 'on');
+  setTimeout(load, 600);
+}
+async function runAuto(eid) { await act(eid, 'trigger'); toast('Triggered ▶'); }
+async function delAuto(id, name) {
+  if (!confirm(`Delete automation "${name}"?\nThis cannot be undone.`)) return;
+  const r = await fetch(`${API}/config/${encodeURIComponent(id)}`,
+                        { method: 'DELETE' });
+  if (r.ok) { toast('Deleted'); setTimeout(load, 800); }
+  else toast((await r.json()).error || 'delete failed', true);
+}
+
+/* ============================================================ block registry */
+const H = (tipKey, label) =>
+  `<label>${label} <span class="hint" data-tip="${tipKey}">?</span></label>`;
+const entityField = (cls, val) => H('f_entity', 'Entity') +
+  `<input type="text" class="${cls} centity" value="${esc(val)}"
+     placeholder="Type to search entities…">`;
+
+const TRIG_DEFS = {
+  state: { icon: '🔀', name: 'Entity state', tip: 't_state',
+    html: t => entityField('t-entity', t.entity_id) +
+      `<div class="grid g3">
+        <div>${H('f_from', 'From (optional)')}
+          <input class="t-from" value="${esc(t.from)}" placeholder="any"></div>
+        <div>${H('f_to', 'To (optional)')}
+          <input class="t-to" value="${esc(t.to)}" placeholder="any"></div>
+        <div>${H('f_for', 'For (optional)')}
+          <input class="t-for" value="${esc(fmtFor(t.for))}" placeholder="00:00:00"></div>
+      </div>`,
+    read: (v) => {
+      const o = { platform: 'state', entity_id: v('t-entity') };
+      if (v('t-from')) o.from = v('t-from');
+      if (v('t-to')) o.to = v('t-to');
+      if (v('t-for')) o.for = v('t-for');
+      return o;
+    },
+    sum: v => `When ${v('t-entity') || '…'} changes` +
+      (v('t-from') ? ` from "${v('t-from')}"` : '') +
+      (v('t-to') ? ` to "${v('t-to')}"` : '') +
+      (v('t-for') ? ` and stays for ${v('t-for')}` : '') },
+  numeric_state: { icon: '📈', name: 'Numeric threshold', tip: 't_numeric',
+    html: t => entityField('t-entity', t.entity_id) +
+      `<div class="grid g2">
+        <div>${H('f_above', 'Above')}
+          <input class="t-above" type="number" step="any" value="${esc(t.above)}"></div>
+        <div>${H('f_below', 'Below')}
+          <input class="t-below" type="number" step="any" value="${esc(t.below)}"></div>
+      </div>`,
+    read: v => {
+      const o = { platform: 'numeric_state', entity_id: v('t-entity') };
+      if (v('t-above') !== '') o.above = parseFloat(v('t-above'));
+      if (v('t-below') !== '') o.below = parseFloat(v('t-below'));
+      return o;
+    },
+    sum: v => `When ${v('t-entity') || '…'} goes` +
+      (v('t-above') !== '' ? ` above ${v('t-above')}` : '') +
+      (v('t-below') !== '' ? ` below ${v('t-below')}` : '') },
+  time: { icon: '⏰', name: 'At a time', tip: 't_time',
+    html: t => H('f_at', 'Time') +
+      `<input class="t-at" type="time" value="${esc(String(t.at || '18:00').slice(0,5))}">`,
+    read: v => ({ platform: 'time', at: v('t-at') + ':00' }),
+    sum: v => `Every day at ${v('t-at') || '…'}` },
+  time_pattern: { icon: '🔁', name: 'Interval', tip: 't_pattern',
+    html: t => `<div class="grid g3">
+        <div><label>Hours</label><input class="t-hours" value="${esc(t.hours)}" placeholder="* or /2"></div>
+        <div><label>Minutes</label><input class="t-minutes" value="${esc(t.minutes)}" placeholder="/15"></div>
+        <div><label>Seconds</label><input class="t-seconds" value="${esc(t.seconds)}" placeholder=""></div>
+      </div>`,
+    read: v => {
+      const o = { platform: 'time_pattern' };
+      if (v('t-hours')) o.hours = v('t-hours');
+      if (v('t-minutes')) o.minutes = v('t-minutes');
+      if (v('t-seconds')) o.seconds = v('t-seconds');
+      return o;
+    },
+    sum: v => `Repeating: hours=${v('t-hours') || 'any'},` +
+      ` minutes=${v('t-minutes') || 'any'}, seconds=${v('t-seconds') || 'any'}` },
+  sun: { icon: '🌅', name: 'Sunrise / sunset', tip: 't_sun',
+    html: t => `<div class="grid g2">
+        <div><label>Event</label><select class="t-event">
+          <option value="sunset" ${t.event === 'sunset' ? 'selected' : ''}>Sunset</option>
+          <option value="sunrise" ${t.event === 'sunrise' ? 'selected' : ''}>Sunrise</option>
+        </select></div>
+        <div>${H('f_offset', 'Offset (optional)')}
+          <input class="t-offset" value="${esc(t.offset)}" placeholder="-00:30:00"></div>
+      </div>`,
+    read: v => {
+      const o = { platform: 'sun', event: v('t-event') };
+      if (v('t-offset')) o.offset = v('t-offset');
+      return o;
+    },
+    sum: v => `At ${v('t-event')}` +
+      (v('t-offset') ? ` with offset ${v('t-offset')}` : '') },
+  template: { icon: '🧠', name: 'Template (advanced)', tip: 't_template',
+    html: t => H('f_template', 'Fires when this renders true') +
+      `<textarea class="t-tpl tpl">${esc(t.value_template)}</textarea>`,
+    read: v => ({ platform: 'template', value_template: v('t-tpl') }),
+    sum: v => `When template becomes true` },
+};
+
+const COND_DEFS = {
+  state: { icon: '🎚️', name: 'Entity state is', tip: 'c_state',
+    html: c => entityField('c-entity', c.entity_id) +
+      `<label>State equals</label>
+       <input class="c-state" value="${esc(c.state)}" placeholder="home / on / off">`,
+    read: v => ({ condition: 'state', entity_id: v('c-entity'),
+                  state: v('c-state') }),
+    sum: v => `Only if ${v('c-entity') || '…'} is "${v('c-state') || '…'}"` },
+  numeric_state: { icon: '📊', name: 'Value above/below', tip: 'c_numeric',
+    html: c => entityField('c-entity', c.entity_id) +
+      `<div class="grid g2">
+        <div>${H('f_above', 'Above')}
+          <input class="c-above" type="number" step="any" value="${esc(c.above)}"></div>
+        <div>${H('f_below', 'Below')}
+          <input class="c-below" type="number" step="any" value="${esc(c.below)}"></div>
+      </div>`,
+    read: v => {
+      const o = { condition: 'numeric_state', entity_id: v('c-entity') };
+      if (v('c-above') !== '') o.above = parseFloat(v('c-above'));
+      if (v('c-below') !== '') o.below = parseFloat(v('c-below'));
+      return o;
+    },
+    sum: v => `Only if ${v('c-entity') || '…'} is` +
+      (v('c-above') !== '' ? ` above ${v('c-above')}` : '') +
+      (v('c-below') !== '' ? ` below ${v('c-below')}` : '') },
+  time: { icon: '🕐', name: 'Time window', tip: 'c_time',
+    html: c => `<div class="grid g2">
+        <div><label>After</label>
+          <input class="c-after" type="time" value="${esc(String(c.after || '08:00').slice(0,5))}"></div>
+        <div><label>Before</label>
+          <input class="c-before" type="time" value="${esc(String(c.before || '23:00').slice(0,5))}"></div>
+      </div>
+      <label style="margin-top:8px">Weekdays (none = every day)</label>
+      <div class="wdays">${['mon','tue','wed','thu','fri','sat','sun'].map(d =>
+        `<span class="wd ${(c.weekday || []).includes(d) ? 'on' : ''}"
+           data-d="${d}" onclick="this.classList.toggle('on'); refreshUI()">${d}</span>`).join('')}</div>`,
+    read: (v, el) => {
+      const o = { condition: 'time', after: v('c-after') + ':00',
+                  before: v('c-before') + ':00' };
+      const wd = [...el.querySelectorAll('.wd.on')].map(w => w.dataset.d);
+      if (wd.length) o.weekday = wd;
+      return o;
+    },
+    sum: (v, el) => {
+      const wd = [...el.querySelectorAll('.wd.on')].map(w => w.dataset.d);
+      return `Only between ${v('c-after')} and ${v('c-before')}` +
+        (wd.length ? ` on ${wd.join(', ')}` : '');
+    } },
+  template: { icon: '🧠', name: 'Template (advanced)', tip: 'c_template',
+    html: c => H('f_template', 'Passes when this renders true') +
+      `<textarea class="c-tpl tpl">${esc(c.value_template)}</textarea>`,
+    read: v => ({ condition: 'template', value_template: v('c-tpl') }),
+    sum: () => 'Only if template is true' },
+};
+
+const ACT_DEFS = {
+  service: { icon: '🛠️', name: 'Call a service', tip: 'a_service',
+    html: a => H('f_service', 'Service') +
+      `<input type="text" class="a-service cservice"
+         value="${esc(a.service || 'light.turn_on')}" placeholder="light.turn_on">` +
+      entityField('a-entity',
+        a.target?.entity_id || a.entity_id || (a.data || {}).entity_id || '') +
+      H('f_data', 'Extra data — JSON (optional)') +
+      `<textarea class="a-data json" placeholder='{"brightness_pct": 60}'>${
+        esc(dataNoEntity(a.data))}</textarea>`,
+    read: v => {
+      const o = { service: v('a-service') };
+      if (v('a-entity')) o.target = { entity_id: v('a-entity') };
+      const raw = v('a-data').trim();
+      if (raw) {
+        try { o.data = JSON.parse(raw); }
+        catch (e) { throw new Error('Extra data must be valid JSON, e.g. {"brightness_pct": 60}'); }
+      }
+      return o;
+    },
+    sum: v => `Call ${v('a-service') || '…'}` +
+      (v('a-entity') ? ` on ${v('a-entity')}` : '') },
+  delay: { icon: '⏳', name: 'Delay', tip: 'a_delay',
+    html: a => H('f_delay', 'Wait for') +
+      `<input class="a-delay" value="${esc(typeof a.delay === 'string'
+        ? a.delay : '00:00:05')}" placeholder="00:05:00">`,
+    read: v => ({ delay: v('a-delay') || '00:00:05' }),
+    sum: v => `Wait ${v('a-delay') || '…'}` },
+  wait: { icon: '⏸️', name: 'Wait until', tip: 'a_wait',
+    html: a => {
+      const wt = (a.wait_for_trigger && a.wait_for_trigger[0]) || {};
+      return entityField('a-wentity', wt.entity_id) +
+        `<div class="grid g2">
+          <div>${H('f_wstate', 'Reaches state')}
+            <input class="a-wstate" value="${esc(wt.to)}" placeholder="off"></div>
+          <div>${H('f_timeout', 'Timeout (optional)')}
+            <input class="a-timeout" value="${esc(fmtFor(a.timeout))}" placeholder="00:02:00"></div>
+        </div>
+        <label style="margin-top:8px">
+          <input type="checkbox" class="a-cont" style="width:auto; margin-right:7px"
+            ${a.continue_on_timeout !== false ? 'checked' : ''}>
+          Continue on timeout <span class="hint" data-tip="f_cont">?</span></label>`;
+    },
+    read: v => {
+      const o = { wait_for_trigger: [{ platform: 'state',
+        entity_id: v('a-wentity'), to: v('a-wstate') }] };
+      if (v('a-timeout')) o.timeout = v('a-timeout');
+      return o;
+    },
+    sum: v => `Wait until ${v('a-wentity') || '…'} = "${v('a-wstate') || '…'}"` +
+      (v('a-timeout') ? ` (max ${v('a-timeout')})` : '') },
+  stop: { icon: '🛑', name: 'Stop', tip: 'a_stop',
+    html: a => `<label>Reason (optional)</label>
+      <input class="a-stopr" value="${esc(a.stop)}" placeholder="done">`,
+    read: v => ({ stop: v('a-stopr') || 'stopped' }),
+    sum: () => 'Stop the automation run here' },
+};
+
+function fmtFor(f) {
+  if (!f) return '';
+  if (typeof f === 'string') return f;
+  const p = n => String(n || 0).padStart(2, '0');
+  return `${p(f.hours)}:${p(f.minutes)}:${p(f.seconds)}`;
+}
+function dataNoEntity(d) {
+  if (!d) return '';
+  const rest = Object.fromEntries(Object.entries(d).filter(([k]) => k !== 'entity_id'));
+  return Object.keys(rest).length ? JSON.stringify(rest) : '';
+}
+
+/* ============================================================ blocks */
+function addBlock(section, defs, type, data) {
+  const def = defs[type];
+  if (!def) return;
+  const div = document.createElement('div');
+  div.className = 'block';
+  div.dataset.type = type;
+  div.innerHTML = `
+    <div class="bh"><span class="bi">${def.icon}</span><b>${def.name}</b>
+      <span class="hint" data-tip="${def.tip}">?</span>
+      <button class="rm" title="Remove"
+        onclick="this.closest('.block').remove(); refreshUI()">✕</button></div>
+    <div class="bf">${def.html(data || {})}</div>
+    <div class="sum"></div>`;
+  $(section).appendChild(div);
+  div.querySelectorAll('.centity').forEach(i => attachCombo(i, entityItems));
+  div.querySelectorAll('.cservice').forEach(i => attachCombo(i, serviceItems));
+  refreshUI();
+}
+function readBlock(div, defs) {
+  const v = cls => {
+    const n = div.querySelector('.' + cls);
+    return n ? (n.type === 'checkbox' ? n.checked : n.value.trim()) : '';
+  };
+  return defs[div.dataset.type].read(v, div);
+}
+function sumBlock(div, defs) {
+  const v = cls => {
+    const n = div.querySelector('.' + cls);
+    return n ? (n.type === 'checkbox' ? n.checked : n.value.trim()) : '';
+  };
+  try { return defs[div.dataset.type].sum(v, div); } catch (e) { return ''; }
+}
+
+/* quick-add chips */
+function buildAddRows() {
+  const row = (defs, sec) => Object.entries(defs).map(([k, d]) =>
+    `<span class="addchip" onclick="addBlock('${sec}', ${defs === TRIG_DEFS
+      ? 'TRIG_DEFS' : defs === COND_DEFS ? 'COND_DEFS' : 'ACT_DEFS'}, '${k}')">
+      ${d.icon} ${d.name}</span>`).join('');
+  $('#add-trig').innerHTML = row(TRIG_DEFS, '#b-triggers');
+  $('#add-cond').innerHTML = row(COND_DEFS, '#b-conditions');
+  $('#add-act').innerHTML = row(ACT_DEFS, '#b-actions');
+}
+
+/* ============================================================ preview */
+function yamlify(o, ind) {
+  ind = ind || '';
+  if (Array.isArray(o))
+    return o.map(it => ind + '- ' + yamlify(it, ind + '  ').replace(
+      new RegExp('^' + ind + '  '), '')).join('\n');
+  if (o && typeof o === 'object')
+    return Object.entries(o).map(([k, v]) =>
+      (v && typeof v === 'object')
+        ? `${ind}${k}:\n${yamlify(v, ind + '  ')}`
+        : `${ind}${k}: ${typeof v === 'string' ? JSON.stringify(v) : v}`
+    ).join('\n');
+  return String(o);
+}
+function collect(strict) {
+  const alias = $('#b-alias').value.trim();
+  const read = (sel, defs) => [...$(sel).children].map(b => {
+    try { return readBlock(b, defs); }
+    catch (e) { if (strict) throw e; return { error: e.message }; }
+  });
+  const cfg = { alias, description: $('#b-desc').value.trim(),
+    trigger: read('#b-triggers', TRIG_DEFS),
+    condition: read('#b-conditions', COND_DEFS),
+    action: read('#b-actions', ACT_DEFS),
+    mode: $('#b-mode').value };
+  if (!cfg.description) delete cfg.description;
+  return cfg;
+}
+function refreshUI() {
+  [...$('#b-triggers').children].forEach(b =>
+    b.querySelector('.sum').textContent = sumBlock(b, TRIG_DEFS));
+  [...$('#b-conditions').children].forEach(b =>
+    b.querySelector('.sum').textContent = sumBlock(b, COND_DEFS));
+  [...$('#b-actions').children].forEach(b =>
+    b.querySelector('.sum').textContent = sumBlock(b, ACT_DEFS));
+  try {
+    const cfg = collect(false);
+    $('#preview').textContent = yamlify(cfg);
+  } catch (e) {}
+}
+document.addEventListener('input', ev => {
+  if (ev.target.closest('#builder')) refreshUI();
+});
+document.addEventListener('change', ev => {
+  if (ev.target.closest('#builder')) refreshUI();
+});
+
+/* ============================================================ normalize HA config */
+const asArr = x => Array.isArray(x) ? x : (x != null ? [x] : []);
+function normTrigger(t) {
+  const o = { ...t };
+  if (!o.platform && o.trigger) { o.platform = o.trigger; delete o.trigger; }
+  return o;
+}
+function normAction(a) {
+  const o = { ...a };
+  if (o.action && !o.service) { o.service = o.action; delete o.action; }
+  return o;
+}
+function actionType(a) {
+  if (a.delay !== undefined) return 'delay';
+  if (a.wait_for_trigger !== undefined || a.wait_template !== undefined) return 'wait';
+  if (a.stop !== undefined) return 'stop';
+  return 'service';
+}
+function triggerType(t) {
+  return TRIG_DEFS[t.platform] ? t.platform : 'template';
+}
+function condType(c) {
+  return COND_DEFS[c.condition] ? c.condition : 'template';
+}
+
+/* ============================================================ open/edit/save */
+function resetBuilder() {
+  ['#b-triggers', '#b-conditions', '#b-actions'].forEach(s => $(s).innerHTML = '');
+  $('#b-alias').value = ''; $('#b-desc').value = '';
+  $('#b-mode').value = 'single';
+  $('#b-err').style.display = 'none'; $('#b-state').textContent = '';
+}
+function openBuilder() {
+  EDIT_ID = null; resetBuilder();
+  $('#b-title').textContent = 'New automation';
+  addBlock('#b-triggers', TRIG_DEFS, 'state');
+  addBlock('#b-actions', ACT_DEFS, 'service');
+  $('#builder').classList.add('open');
+  refreshUI();
+}
+function closeBuilder() { $('#builder').classList.remove('open'); }
+
+async function editAuto(id, duplicate, name, eid) {
+  let r;
+  try { r = await fetch(`${API}/config/${encodeURIComponent(id)}`); }
+  catch (e) { toast('Network error', true); return; }
+  if (r.status === 404) {
+    YAML_IDS.add(id); renderList();
+    explainYaml(name || id, eid || '', id);
+    return;
+  }
+  if (!r.ok) {
+    toast((await r.json().catch(() => ({}))).error || `Error ${r.status}`, true);
+    return;
+  }
+  const cfg = (await r.json()).config || {};
+  EDIT_ID = duplicate ? null : id;
+  resetBuilder();
+  $('#b-title').textContent = duplicate
+    ? 'Duplicate: ' + (cfg.alias || '') : 'Edit automation';
+  $('#b-alias').value = (cfg.alias || '') + (duplicate ? ' (copy)' : '');
+  $('#b-desc').value = cfg.description || '';
+  $('#b-mode').value = cfg.mode || 'single';
+  const trigs = asArr(cfg.trigger ?? cfg.triggers).map(normTrigger);
+  const conds = asArr(cfg.condition ?? cfg.conditions);
+  const acts = asArr(cfg.action ?? cfg.actions).map(normAction);
+  trigs.length
+    ? trigs.forEach(t => addBlock('#b-triggers', TRIG_DEFS, triggerType(t), t))
+    : addBlock('#b-triggers', TRIG_DEFS, 'state');
+  conds.forEach(c => addBlock('#b-conditions', COND_DEFS, condType(c), c));
+  acts.length
+    ? acts.forEach(a => addBlock('#b-actions', ACT_DEFS, actionType(a), a))
+    : addBlock('#b-actions', ACT_DEFS, 'service');
+  $('#builder').classList.add('open');
+  refreshUI();
+}
+
+async function saveAutomation() {
+  const err = $('#b-err');
+  err.style.display = 'none';
+  try {
+    const cfg = collect(true);
+    if (!cfg.alias) throw new Error('Give the automation a name.');
+    if (!cfg.trigger.length)
+      throw new Error('Add at least one trigger in the WHEN section.');
+    if (!cfg.action.length)
+      throw new Error('Add at least one action in the THEN section.');
+    cfg.trigger.forEach(t => {
+      if ('entity_id' in t && !t.entity_id)
+        throw new Error('A trigger is missing its entity.');
+    });
+    cfg.action.forEach(a => {
+      if (a.service === '') throw new Error('An action is missing its service.');
+    });
+    $('#b-state').textContent = 'saving…';
+    const r = await fetch(`${API}/config`, { method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ id: EDIT_ID, config: cfg }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.message || d.error || `Save failed (${r.status})`);
+    closeBuilder(); toast('Automation saved ✓');
+    setTimeout(load, 1200);
+  } catch (e) {
+    err.textContent = '⚠ ' + e.message; err.style.display = 'block';
+    $('#b-state').textContent = '';
+  }
+}
+
+/* ============================================================ boot */
+async function boot() {
+  buildAddRows();
+  load();
+  try {
+    const ents = (await (await fetch('/api/admin/entities')).json()).entities || [];
+    ENTITIES = ents.map(e => ({ id: e.id, name: e.name, state: e.state }));
+  } catch (e) {}
+  try {
+    const svc = (await (await fetch(`${API}/services`)).json()).services || {};
+    SERVICES = Object.entries(svc).flatMap(([d, list]) =>
+      list.map(s => ({ id: `${d}.${s}`, name: `${d}.${s}` })));
+  } catch (e) {}
+  setInterval(() => { if (!$('#builder').classList.contains('open')) load(); },
+              30000);
+}
+boot();
+</script>
+</body>
+</html>

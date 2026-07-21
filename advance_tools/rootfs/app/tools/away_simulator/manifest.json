@@ -1,0 +1,9 @@
+{
+  "id": "away_simulator",
+  "name": "Away Simulator",
+  "icon": "🏠",
+  "color": "#b17aff",
+  "description": "Vacation presence simulation — replays the real on/off history of your lights and switches from a week ago with random time offsets, so the house looks lived-in while you are away. Auto-pauses when someone is home.",
+  "page": "/tools/away_simulator/",
+  "version": "1.0.0"
+}

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Energy Center — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#b17aff; --acc2:#22b8cf;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --hover:rgba(177,122,255,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+    --gold:#ffd75c; --gold2:#ff9d5c;
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--gold),var(--gold2)); }
+  header h1 { font-size:16px; flex:1; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .ghost.on { color:var(--acc); border-color:var(--acc);
+           background:rgba(177,122,255,.1); }
+  .btn { background:linear-gradient(135deg,var(--gold),var(--gold2)); color:#241a02;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+  .btn.sm { padding:8px 15px; font-size:12.5px; }
+  .btn.danger { background:linear-gradient(135deg,#ff6b81,#ff9d5c); }
+  .btn[disabled] { opacity:.5; cursor:default; }
+
+  main { padding:20px 22px 60px; max-width:1180px; margin:0 auto; }
+
+  /* ---- toolbar / range tabs ---- */
+  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:16px;
+             flex-wrap:wrap; }
+  .tabs { display:inline-flex; background:var(--card); border:1px solid var(--line);
+          border-radius:12px; padding:4px; gap:3px; }
+  .tabs button { background:none; border:0; color:var(--mut); padding:8px 16px;
+          border-radius:9px; cursor:pointer; font-size:13px; }
+  .tabs button:hover { color:var(--txt); }
+  .tabs button.on { background:linear-gradient(135deg,var(--gold),var(--gold2));
+          color:#241a02; font-weight:700; }
+  .toolbar .sp { flex:1; }
+  .stat { font-size:12px; color:var(--mut); }
+  .stat .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+            background:var(--bad); margin-right:5px; }
+  .stat .dot.ok { background:var(--good); }
+
+  /* ---- stat cards ---- */
+  .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr));
+           gap:12px; margin-bottom:18px; }
+  .statbox { background:var(--card); border:1px solid var(--line);
+             border-radius:14px; padding:14px 18px; box-shadow:var(--shadow);
+             position:relative; overflow:hidden; }
+  .statbox b { display:block; font-size:23px; margin-top:2px; }
+  .statbox b small { font-size:12px; color:var(--mut); font-weight:400; }
+  .statbox span.lbl { font-size:10.5px; color:var(--mut); text-transform:uppercase;
+             letter-spacing:.08em; display:inline-flex; align-items:center; }
+  .statbox .sub { font-size:11px; color:var(--mut); margin-top:3px;
+             overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .statbox .bic { position:absolute; right:10px; top:8px; font-size:22px;
+             opacity:.25; }
+
+  /* ---- panels ---- */
+  .panel { background:var(--card); border:1px solid var(--line);
+           border-radius:14px; padding:16px 18px; box-shadow:var(--shadow);
+           margin-bottom:16px; }
+  .phead { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .phead b { font-size:14px; }
+  .phead .psub { font-size:11px; color:var(--mut); }
+  .phead .sp { flex:1; }
+
+  /* ---- bar chart (pure CSS/HTML) ---- */
+  .chart { display:flex; align-items:stretch; gap:2px; height:230px;
+           padding-top:6px; }
+  .chart .col { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .chart .barzone { flex:1; display:flex; align-items:flex-end; }
+  .chart .bar { width:100%; border-radius:4px 4px 0 0; min-height:2px;
+           background:linear-gradient(180deg,var(--gold),#b9861e);
+           transform-origin:bottom; animation:grow .55s ease backwards;
+           cursor:pointer; }
+  .chart .bar.zero { background:var(--line); opacity:.4; }
+  .chart .bar:hover { filter:brightness(1.3); }
+  @keyframes grow { from { transform:scaleY(0); } }
+  .chart .xl { height:16px; font-size:9px; color:var(--mut); text-align:center;
+           padding-top:4px; overflow:hidden; white-space:nowrap; }
+  .chart.mini { height:150px; }
+  .chartempty { text-align:center; color:var(--mut); padding:40px 10px;
+           font-size:13px; line-height:2; }
+  #bartip { position:fixed; z-index:410; background:#0d1424;
+           border:1px solid var(--gold); border-radius:10px; padding:8px 12px;
+           font-size:12px; line-height:1.7; display:none; pointer-events:none;
+           box-shadow:0 10px 28px rgba(0,0,0,.55); white-space:nowrap; }
+  #bartip b { color:var(--gold); }
+
+  /* ---- top consumers ---- */
+  .crow { display:flex; align-items:center; gap:13px; background:var(--input);
+          border:1px solid var(--line); border-radius:12px; padding:11px 15px;
+          margin-bottom:8px; cursor:pointer; }
+  .crow:hover { border-color:var(--gold); }
+  .crow .rank { width:26px; height:26px; border-radius:8px; display:flex;
+          align-items:center; justify-content:center; font-size:11.5px;
+          font-weight:700; background:var(--card); border:1px solid var(--line);
+          color:var(--mut); flex:0 0 auto; }
+  .crow:first-child .rank { color:#241a02; border-color:var(--gold);
+          background:linear-gradient(135deg,var(--gold),var(--gold2)); }
+  .crow .cinfo { flex:1; min-width:0; }
+  .crow .cn { font-size:13.5px; font-weight:600; overflow:hidden;
+          text-overflow:ellipsis; white-space:nowrap; margin-bottom:6px; }
+  .crow .ctrack { height:7px; border-radius:6px; background:var(--bg);
+          overflow:hidden; }
+  .crow .cbar { height:100%; width:0; border-radius:6px;
+          background:linear-gradient(90deg,var(--gold),var(--gold2));
+          transition:width .7s cubic-bezier(.2,.7,.3,1); }
+  .crow .cnum { text-align:right; flex:0 0 auto; }
+  .crow .cnum b { display:block; font-size:14px; }
+  .crow .cnum span { font-size:11px; color:var(--mut); }
+
+  .empty { text-align:center; color:var(--mut); padding:46px 14px; font-size:14px;
+           line-height:2; }
+  .empty .big { font-size:34px; display:block; margin-bottom:6px; }
+
+  .notice { background:rgba(255,184,107,.08); border:1px solid
+           rgba(255,184,107,.35); color:var(--warn); border-radius:12px;
+           padding:12px 16px; font-size:13px; line-height:1.8;
+           margin-bottom:16px; display:none; }
+
+  /* ---- hint (tooltip) system ---- */
+  .hint { display:inline-flex; align-items:center; justify-content:center;
+          width:16px; height:16px; border-radius:50%; border:1px solid var(--line);
+          background:var(--input); color:var(--mut); font-size:10px;
+          font-weight:700; cursor:help; margin-left:6px; vertical-align:1px;
+          user-select:none; flex:0 0 auto; }
+  .hint:hover { color:var(--acc2); border-color:var(--acc2); }
+  #tipbox { position:fixed; z-index:400; width:min(92vw, 360px);
+            background:#0d1424; border:1px solid var(--acc2); border-radius:14px;
+            padding:14px 16px; box-shadow:0 14px 40px rgba(0,0,0,.6);
+            display:none; font-size:12.5px; line-height:1.75; }
+  #tipbox b.t { display:block; color:var(--acc2); font-size:13px;
+                margin-bottom:4px; }
+  #tipbox .ex { margin-top:8px; background:var(--input); border:1px solid
+                var(--line); border-left:3px solid var(--acc); border-radius:8px;
+                padding:8px 11px; font-family:Consolas, monospace; font-size:11.5px;
+                white-space:pre-wrap; color:#e2d4f7; }
+  #tipbox .ex::before { content:'EXAMPLE'; display:block; font-family:"Segoe UI";
+                font-size:9px; letter-spacing:.12em; color:var(--mut);
+                margin-bottom:3px; }
+
+  /* ---- modals ---- */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.72); display:none;
+           z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+           padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(97vw, 760px); margin:0 auto;
+          padding:24px; box-shadow:var(--shadow); }
+  .mbox.wide { width:min(97vw, 980px); }
+  .mbox.narrow { width:min(97vw, 520px); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead .micon { width:34px; height:34px; border-radius:10px; display:flex;
+          align-items:center; justify-content:center; font-size:17px;
+          background:var(--input); border:1px solid var(--line); }
+  .mhead h2 { font-size:17px; flex:1; }
+  .msub { color:var(--mut); font-size:12px; margin-bottom:16px; line-height:1.7; }
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:20px;
+           align-items:center; flex-wrap:wrap; }
+  .mfoot .sp { flex:1; }
+  .err { background:#3a1a22; border:1px solid #7a2a3a; color:#ff9aae;
+         border-radius:10px; padding:10px 13px; margin-top:12px; font-size:13px;
+         display:none; line-height:1.7; }
+
+  label { font-size:12px; color:var(--mut); display:flex; align-items:center;
+          margin:12px 0 4px; }
+  input[type=text], input[type=number], input[type=search], select {
+    width:100%; padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--input); color:var(--txt); font-size:13.5px; }
+  input:focus, select:focus { outline:none; border-color:var(--acc); }
+  .grid { display:grid; gap:0 12px; } .g2 { grid-template-columns:1fr 1fr; }
+  @media (max-width:640px){ .g2 { grid-template-columns:1fr; } }
+
+  /* ---- wizard ---- */
+  .wsteps { display:flex; gap:8px; margin-bottom:14px; }
+  .wstep { flex:1; display:flex; align-items:center; gap:8px; font-size:12px;
+           color:var(--mut); background:var(--input); border:1px solid var(--line);
+           border-radius:10px; padding:8px 12px; }
+  .wstep.on { color:var(--txt); border-color:var(--gold); }
+  .wstep .num { width:20px; height:20px; border-radius:50%; display:flex;
+           align-items:center; justify-content:center; font-size:10.5px;
+           font-weight:700; background:var(--card); border:1px solid var(--line);
+           flex:0 0 auto; }
+  .wstep.on .num { background:var(--gold); color:#241a02; border-color:var(--gold); }
+  .senslist { max-height:330px; overflow-y:auto; border:1px solid var(--line);
+           border-radius:12px; margin-top:10px; background:var(--input); }
+  .srow { display:flex; align-items:center; gap:11px; padding:10px 14px;
+           border-bottom:1px solid var(--line); cursor:pointer; }
+  .srow:last-child { border-bottom:0; }
+  .srow:hover { background:var(--hover); }
+  .srow .cb { width:19px; height:19px; border-radius:6px;
+           border:2px solid var(--line); background:var(--card); flex:0 0 auto;
+           display:flex; align-items:center; justify-content:center;
+           font-size:12px; color:#241a02; }
+  .srow.sel .cb { background:var(--gold); border-color:var(--gold); }
+  .srow .sn { flex:1; min-width:0; }
+  .srow .sn b { display:block; font-size:13px; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .srow .sid { font-size:10px; color:var(--mut); font-family:Consolas, monospace;
+           overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .srow .val { font-size:11.5px; color:var(--acc2); flex:0 0 auto; }
+  .ubadge { font-size:9.5px; padding:3px 8px; border-radius:20px;
+           border:1px solid var(--line); color:var(--mut); flex:0 0 auto; }
+  .selcount { font-size:12px; color:var(--mut); }
+
+  /* ---- drill-down ---- */
+  .drillstats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+  .drillstats .statbox { flex:1; min-width:130px; padding:11px 15px; }
+  .drillstats .statbox b { font-size:18px; }
+  .sharewrap { margin:4px 0 14px; }
+  .sharetrack { height:9px; border-radius:6px; background:var(--input);
+           overflow:hidden; border:1px solid var(--line); }
+  .sharebar { height:100%; width:0; border-radius:6px;
+           background:linear-gradient(90deg,var(--gold),var(--gold2));
+           transition:width .7s cubic-bezier(.2,.7,.3,1); }
+  .sharelbl { font-size:11px; color:var(--mut); margin-top:5px; }
+
+  /* ---- learn panel ---- */
+  .learn h3 { font-size:12px; color:var(--acc2); text-transform:uppercase;
+        letter-spacing:.1em; margin:18px 0 7px; }
+  .learn p { font-size:13.5px; line-height:1.9; color:var(--txt); }
+  .learn ul { margin:4px 0 0 20px; }
+  .learn li { font-size:13px; line-height:1.9; color:var(--txt); }
+  .learn pre { background:#0a0f1c; border:1px solid var(--line);
+        border-left:3px solid var(--acc); border-radius:10px; padding:12px 15px;
+        font-family:Consolas, monospace; font-size:11.5px; line-height:1.7;
+        white-space:pre-wrap; color:#e2d4f7; overflow-x:auto; margin-top:6px; }
+
+  /* ---- toasts ---- */
+  #toasts { position:fixed; right:18px; bottom:18px; z-index:500; display:flex;
+        flex-direction:column; gap:8px; }
+  .toast { background:var(--bg2); border:1px solid var(--good); color:var(--txt);
+        border-radius:12px; padding:11px 16px; font-size:13px;
+        box-shadow:0 10px 30px rgba(0,0,0,.5); animation:tin .2s ease;
+        max-width:340px; line-height:1.6; }
+  .toast.bad { border-color:var(--bad); }
+  @keyframes tin { from { opacity:0; transform:translateY(8px); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡</div>
+  <h1>Energy Center<small>consumption &amp; cost from long-term statistics</small></h1>
+  <a class="ghost" href="/admin" target="_top">← Hub</a>
+  <button class="ghost" id="learnBtn">📖 Learn</button>
+  <button class="ghost" id="refreshBtn" title="Refresh now (auto-refreshes every 60 s)">↻</button>
+  <button class="btn" id="setupBtn">⚙ Setup</button>
+</header>
+
+<main>
+  <div class="toolbar">
+    <div class="tabs" id="rangeTabs">
+      <button data-range="today" class="on">Today</button>
+      <button data-range="yesterday">Yesterday</button>
+      <button data-range="week">This week</button>
+      <button data-range="month">This month</button>
+    </div>
+    <span id="rangeHint"></span>
+    <div class="sp"></div>
+    <span class="stat" id="connStat"><span class="dot"></span>connecting…</span>
+  </div>
+
+  <div class="notice" id="notice"></div>
+
+  <div class="stats" id="statCards"></div>
+
+  <section class="panel" id="chartPanel">
+    <div class="phead">
+      <b>Consumption</b>
+      <span class="psub" id="chartSub"></span>
+      <span id="chartHint"></span>
+      <div class="sp"></div>
+    </div>
+    <div id="chart"></div>
+  </section>
+
+  <section class="panel" id="consumersPanel">
+    <div class="phead">
+      <b>Top consumers</b>
+      <span class="psub" id="consumersSub"></span>
+      <span id="consumersHint"></span>
+    </div>
+    <div id="consumers"></div>
+  </section>
+
+  <div id="firstRun" class="panel" style="display:none">
+    <div class="empty">
+      <span class="big">⚡</span>
+      <b>Welcome to Energy Center!</b><br>
+      Pick the energy sensors you want to track and set your electricity
+      price — the dashboard does the rest.<br><br>
+      <button class="btn" id="firstRunBtn">🚀 Get started</button>
+    </div>
+  </div>
+</main>
+
+<!-- hover tooltip (hints) -->
+<div id="tipbox"></div>
+<!-- chart bar tooltip -->
+<div id="bartip"></div>
+
+<!-- setup / first-run wizard -->
+<div class="modal" id="setupModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">⚙</div>
+      <h2 id="wizTitle">Energy Center setup</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="wizSub"></div>
+
+    <div class="wsteps">
+      <div class="wstep on" id="wstep1"><span class="num">1</span>Pick sensors</div>
+      <div class="wstep" id="wstep2"><span class="num">2</span>Price &amp; currency</div>
+    </div>
+
+    <div id="wizPage1">
+      <label>Search
+        <span id="pickHint"></span></label>
+      <input type="search" id="sensSearch" placeholder="Filter by name or entity id…">
+      <div class="senslist" id="sensList">
+        <div class="empty">Loading energy sensors…</div>
+      </div>
+      <div style="margin-top:9px; display:flex; align-items:center; gap:10px">
+        <span class="selcount" id="selCount">0 selected</span>
+        <div style="flex:1"></div>
+        <button class="ghost" id="selNone">Clear</button>
+      </div>
+    </div>
+
+    <div id="wizPage2" style="display:none">
+      <div class="grid g2">
+        <div>
+          <label>Price per kWh<span id="priceHint"></span></label>
+          <input type="number" id="priceInput" min="0" step="0.0001" placeholder="e.g. 0.24">
+        </div>
+        <div>
+          <label>Currency symbol<span id="curHint"></span></label>
+          <input type="text" id="curInput" maxlength="8" placeholder="$  €  £  T">
+        </div>
+      </div>
+      <div style="margin-top:18px; display:flex; align-items:center; gap:9px">
+        <input type="checkbox" id="dashToggle" checked
+               style="width:16px; height:16px; accent-color:var(--gold); cursor:pointer; flex:0 0 auto">
+        <label for="dashToggle" style="margin:0; cursor:pointer; color:var(--txt); font-size:13px">
+          Allow the Energy Summary widget on dashboards</label>
+        <span id="dashHint"></span>
+      </div>
+    </div>
+
+    <div class="err" id="wizErr"></div>
+    <div class="mfoot">
+      <button class="ghost" id="wizBack" style="display:none">← Back</button>
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="wizNext">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- drill-down -->
+<div class="modal" id="drillModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">🔌</div>
+      <h2 id="drillTitle">Device</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="drillSub"></div>
+    <div class="drillstats" id="drillStats"></div>
+    <div class="sharewrap">
+      <div class="sharetrack"><div class="sharebar" id="drillShareBar"></div></div>
+      <div class="sharelbl" id="drillShareLbl"></div>
+    </div>
+    <div id="drillChart"></div>
+  </div>
+</div>
+
+<!-- learn -->
+<div class="modal" id="learnModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">📖</div>
+      <h2>How Energy Center works</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="learn">
+      <h3>Long-term statistics</h3>
+      <p>Home Assistant's recorder keeps <b>long-term statistics</b> for every
+        energy sensor: one compact summary per hour that is <b>never purged</b>,
+        even when normal history is deleted after a few days. This tool reads
+        that data — the exact same source HA's built-in Energy dashboard
+        uses — so your monthly totals stay accurate forever. Note: hourly
+        detail older than your recorder's retention still exists, but data
+        only starts accumulating from the moment a sensor first reports.</p>
+
+      <h3>kW vs kWh — power vs energy</h3>
+      <ul>
+        <li><b>W / kW (power)</b> is how hard a device is working <i>right
+          now</i> — like the speedometer of a car.</li>
+        <li><b>Wh / kWh (energy)</b> is how much it consumed <i>over
+          time</i> — like the odometer. Your utility bills you per kWh.</li>
+      </ul>
+      <p>Energy Center only tracks <b>energy</b> sensors (kWh, Wh, MWh) whose
+        value keeps increasing like a meter.</p>
+
+      <h3>Getting per-device energy</h3>
+      <ul>
+        <li><b>Smart plugs with energy monitoring</b> (Shelly, TP-Link Kasa/Tapo,
+          Sonoff POW, Zigbee plugs…) usually expose a kWh sensor out of the
+          box — just track it here.</li>
+        <li><b>Only have a W (power) sensor?</b> Create a
+          <b>Riemann sum integral</b> helper: open the
+          <b>Helper Maker</b> tool → New Helper → <b>Integral</b>, pick your
+          power sensor, method <i>left</i>, unit prefix <i>k</i>, unit
+          time <i>hours</i>. That gives you a kWh sensor you can track here
+          about an hour later.</li>
+      </ul>
+
+      <h3>How cost is computed</h3>
+      <p>Cost = consumption × your flat price per kWh:</p>
+      <pre>cost = kWh_in_range × price_per_kWh
+e.g.  12.4 kWh × 0.24 = 2.98</pre>
+      <p>Find your price on your electricity bill (the per-kWh rate). If you
+        have a variable/tiered tariff, use your average rate — the totals will
+        be a close estimate rather than exact.</p>
+
+      <h3>Energy Summary dashboard widget</h3>
+      <p>Dashboards (wall tablets) can show a read-only <b>Energy Summary</b>
+        widget with the total consumption, cost and top consumers for a
+        range. Any user who is logged in and has access to that dashboard can
+        see it — no admin rights needed, and nothing can be changed from the
+        widget. Summaries are cached for two minutes, so polling tablets
+        never strain the recorder. You can switch the widget off with
+        <b>"Allow the Energy Summary widget on dashboards"</b> in ⚙ Setup.</p>
+
+      <h3>Good to know</h3>
+      <ul>
+        <li>Statistics are written <b>once an hour</b> — a brand-new sensor
+          shows data after roughly an hour.</li>
+        <li>"Today" and "Yesterday" show hourly buckets; "This week" and
+          "This month" show daily buckets.</li>
+        <li>Meter resets (a sensor going back to 0) are handled by HA's
+          statistics engine, so totals stay correct.</li>
+        <li>The dashboard auto-refreshes every 60 seconds.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<script src="/tools/energy_center/static/app.js"></script>
+</body>
+</html>

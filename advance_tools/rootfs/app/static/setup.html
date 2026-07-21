@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f19">
+<meta name="color-scheme" content="dark">
+<title>Welcome — Advance Tools</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/static/icons/icon-192.svg">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<meta name="application-name" content="Advance Tools">
+<meta name="apple-mobile-web-app-title" content="Advance Tools">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#4f8cff; --acc2:#22b8cf;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --hover:rgba(79,140,255,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif;
+      -webkit-tap-highlight-color:transparent; }
+  html { -webkit-text-size-adjust:100%; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         touch-action:manipulation;
+         -webkit-font-smoothing:antialiased; line-height:1.55; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+  a { color:var(--acc); }
+
+  header { display:flex; align-items:center; gap:12px;
+           padding:calc(14px + env(safe-area-inset-top))
+                   calc(18px + env(safe-area-inset-right)) 14px
+                   calc(18px + env(safe-area-inset-left));
+           background:var(--bg2); border-bottom:1px solid var(--line); }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px; flex:0 0 auto;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; font-weight:600; }
+  header h1 small { display:block; font-size:10.5px; color:var(--mut); font-weight:400; }
+
+  main { padding:20px calc(16px + env(safe-area-inset-right))
+                 calc(80px + env(safe-area-inset-bottom))
+                 calc(16px + env(safe-area-inset-left));
+         max-width:760px; margin:0 auto; }
+
+  /* ---- progress ---- */
+  .steps { display:flex; gap:6px; list-style:none; padding:0; margin:0 0 20px;
+           background:var(--card); border:1px solid var(--line); border-radius:16px;
+           padding:10px; box-shadow:var(--shadow); }
+  .steps li { flex:1; display:flex; flex-direction:column; align-items:center;
+           gap:6px; text-align:center; min-width:0; }
+  .steps .bul { width:28px; height:28px; border-radius:50%; flex:0 0 auto;
+           border:1px solid var(--line); background:var(--input); color:var(--mut);
+           display:flex; align-items:center; justify-content:center;
+           font-size:12.5px; font-weight:700; transition:.2s; }
+  .steps .lbl { font-size:10.5px; color:var(--mut); letter-spacing:.04em;
+           overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+           max-width:100%; }
+  .steps li.on .bul { border-color:var(--acc); color:#06101f;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  .steps li.on .lbl { color:var(--txt); }
+  .steps li.done .bul { border-color:var(--good); color:var(--good);
+           background:rgba(62,207,142,.12); }
+  .steps li.done .lbl { color:var(--mut); }
+
+  /* ---- cards ---- */
+  .card { background:var(--card); border:1px solid var(--line); border-radius:18px;
+          padding:24px 22px; box-shadow:var(--shadow); }
+  .card + .card { margin-top:14px; }
+  h2 { font-size:20px; margin-bottom:8px; font-weight:650; }
+  .lead { color:var(--mut); font-size:14px; line-height:1.8; }
+  .lead b { color:var(--txt); font-weight:600; }
+  .hr { height:1px; background:var(--line); margin:20px 0; border:0; }
+
+  .plan { list-style:none; padding:0; margin:18px 0 0; display:flex;
+          flex-direction:column; gap:10px; }
+  .plan li { display:flex; gap:12px; align-items:flex-start;
+          background:var(--input); border:1px solid var(--line);
+          border-radius:12px; padding:11px 13px; }
+  .plan .pic { font-size:17px; flex:0 0 auto; line-height:1.4; }
+  .plan b { display:block; font-size:13.5px; margin-bottom:2px; }
+  .plan span { font-size:12.5px; color:var(--mut); line-height:1.7; }
+
+  /* ---- status pill ---- */
+  .status { display:flex; align-items:center; gap:10px; margin-top:18px;
+            background:var(--input); border:1px solid var(--line);
+            border-radius:12px; padding:11px 13px; font-size:12.5px;
+            color:var(--mut); line-height:1.7; }
+  .status .dot { width:10px; height:10px; border-radius:50%; flex:0 0 auto;
+            background:var(--mut); }
+  .status.ok .dot { background:var(--good); }
+  .status.warn .dot { background:var(--warn); }
+  .status.bad .dot { background:var(--bad); }
+  .status b { color:var(--txt); }
+
+  /* ---- buttons ---- */
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+         margin-top:22px; }
+  .row .sp { flex:1; }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#06101f;
+         border:0; padding:0 24px; min-height:46px; border-radius:12px;
+         cursor:pointer; font-size:15px; font-weight:700; text-decoration:none;
+         display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .btn:active { transform:scale(.99); }
+  .btn[disabled], .btn.off { opacity:.45; cursor:default; pointer-events:none; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+         color:var(--mut); padding:0 18px; min-height:46px; border-radius:12px;
+         cursor:pointer; font-size:14px; text-decoration:none;
+         display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .ghost[disabled], .ghost.off { opacity:.45; cursor:default; pointer-events:none; }
+  .btn, .ghost, .link, .eye { touch-action:manipulation; }
+  .link { background:none; border:0; color:var(--mut); font-size:13px;
+         cursor:pointer; padding:8px 4px; min-height:44px;
+         text-decoration:underline; }
+  .link:hover { color:var(--txt); }
+  :focus-visible { outline:2px solid var(--acc); outline-offset:2px; }
+
+  /* ---- fields ---- */
+  label { display:block; font-size:12.5px; color:var(--mut); margin:16px 0 6px; }
+  /* 16px stops iOS Safari zooming the page when a field takes focus. */
+  input[type=text], input[type=password] {
+        width:100%; min-height:48px; padding:12px 13px; border-radius:12px;
+        border:1px solid var(--line); background:var(--input); color:var(--txt);
+        font-size:16px; }
+  input:focus { outline:none; border-color:var(--acc); }
+  input.mono { font-family:Consolas, monospace; font-size:16px; }
+  select { width:100%; min-height:48px; padding:10px 12px; border-radius:11px;
+        border:1px solid var(--line); background:var(--input); color:var(--txt);
+        font-size:16px; }
+  select:focus { outline:none; border-color:var(--acc); }
+  .pwwrap { position:relative; }
+  .pwwrap input { padding-right:56px; }
+  .eye { position:absolute; top:0; right:0; height:100%; width:50px; border:0;
+        background:none; color:var(--mut); cursor:pointer; font-size:17px;
+        border-radius:0 12px 12px 0; }
+  .eye:hover { color:var(--txt); }
+  .fieldnote { font-size:11.5px; color:var(--mut); margin-top:6px; line-height:1.7; }
+  .fieldnote.bad { color:var(--bad); }
+  .fieldnote.ok { color:var(--good); }
+
+  /* ---- strength meter ---- */
+  .meter { margin-top:14px; }
+  .bar { height:8px; border-radius:6px; background:var(--input);
+        border:1px solid var(--line); overflow:hidden; }
+  .bar i { display:block; height:100%; width:0; background:var(--bad);
+        transition:width .18s ease, background .18s ease; }
+  .meterhead { display:flex; align-items:center; gap:8px; margin-bottom:6px;
+        font-size:12px; color:var(--mut); }
+  .meterhead b { margin-left:auto; font-size:12px; color:var(--mut); }
+  .rules { list-style:none; padding:0; margin:12px 0 0; display:flex;
+        flex-direction:column; gap:5px; }
+  .rules li { font-size:12px; color:var(--mut); display:flex; gap:8px;
+        align-items:flex-start; line-height:1.7; }
+  .rules li .mk { width:15px; flex:0 0 auto; color:var(--mut); }
+  .rules li.ok { color:var(--good); }
+  .rules li.ok .mk { color:var(--good); }
+
+  /* ---- error box ---- */
+  .err { background:#3a1a22; border:1px solid #7a2a3a; color:#ff9aae;
+         border-radius:12px; padding:11px 14px; margin-top:16px; font-size:13px;
+         display:none; line-height:1.7; }
+  .err.show { display:block; }
+  .note { background:var(--input); border:1px solid var(--line); color:var(--mut);
+         border-radius:12px; padding:11px 14px; margin-top:16px; font-size:12.5px;
+         line-height:1.7; }
+  .note.good { border-color:rgba(62,207,142,.4); background:rgba(62,207,142,.07);
+         color:var(--good); }
+  .note.warn { border-color:rgba(255,184,107,.4); background:rgba(255,184,107,.07);
+         color:var(--warn); }
+
+  /* ---- template cards ---- */
+  .tgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+         gap:11px; margin-top:16px; }
+  .tcard { background:var(--input); border:1px solid var(--line);
+         border-radius:14px; padding:13px 14px; cursor:pointer; text-align:left;
+         color:var(--txt); display:flex; flex-direction:column; gap:7px;
+         min-height:44px; }
+  .tcard:hover { border-color:var(--acc); }
+  .tcard.on { border-color:var(--acc); background:var(--hover); }
+  .tcard .th { display:flex; align-items:center; gap:9px; }
+  .tcard .tic { width:34px; height:34px; border-radius:10px; flex:0 0 auto;
+         display:flex; align-items:center; justify-content:center; font-size:17px;
+         background:var(--card); border:1px solid var(--line); }
+  .tcard .tn { font-size:14px; font-weight:650; overflow:hidden;
+         text-overflow:ellipsis; white-space:nowrap; }
+  .tcard .td { font-size:12px; color:var(--mut); line-height:1.65; }
+  .tags { display:flex; gap:5px; flex-wrap:wrap; }
+  .tag { font-size:9.5px; padding:3px 8px; border-radius:20px;
+         border:1px solid var(--line); color:var(--mut); white-space:nowrap;
+         text-transform:uppercase; letter-spacing:.06em; }
+
+  .slot { background:var(--input); border:1px solid var(--line);
+         border-radius:12px; padding:11px 13px; margin-top:9px; }
+  .slot .sl { font-size:13px; font-weight:600; margin-bottom:2px; }
+  .slot .sh { font-size:11.5px; color:var(--mut); margin-bottom:8px;
+         line-height:1.7; }
+
+  /* ---- done step ---- */
+  .recap { list-style:none; padding:0; margin:16px 0 0; display:flex;
+         flex-direction:column; gap:8px; }
+  .recap li { display:flex; gap:10px; align-items:flex-start; font-size:13px;
+         color:var(--mut); line-height:1.8; }
+  .recap li b { color:var(--txt); font-weight:600; }
+  .recap .mk { color:var(--good); flex:0 0 auto; }
+  .actions { display:flex; flex-direction:column; gap:10px; margin-top:22px; }
+  .foot { text-align:center; font-size:11px; color:#5b6784; margin-top:26px;
+         line-height:1.9; }
+  .foot a { color:var(--mut); text-decoration:none; }
+  /* One quiet line at the end of the wizard — never a popup, never blocking. */
+  .support { margin:20px 0 0; padding-top:14px; font-size:12px; line-height:1.9;
+         color:var(--mut); border-top:1px dashed var(--line); }
+  .support a { color:var(--acc); text-decoration:none; }
+
+  #toasts { position:fixed; right:14px; bottom:14px; z-index:500; display:flex;
+         flex-direction:column; gap:8px; }
+  .toast { background:var(--bg2); border:1px solid var(--good); color:var(--txt);
+         border-radius:12px; padding:11px 16px; font-size:13px;
+         box-shadow:0 10px 30px rgba(0,0,0,.5); animation:tin .2s ease;
+         max-width:min(86vw,340px); line-height:1.6; }
+  .toast.bad { border-color:var(--bad); }
+  @keyframes tin { from { opacity:0; transform:translateY(8px); } }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .spinning { display:inline-block; animation:spin 1s linear infinite; }
+
+  .hide { display:none !important; }
+
+  @media (max-width:520px) {
+    main { padding:16px 12px 60px; }
+    .card { padding:20px 16px; border-radius:16px; }
+    h2 { font-size:18px; }
+    .steps .lbl { font-size:9.5px; }
+    .row .btn, .row .ghost { width:100%; }
+    .row .sp { display:none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation:none !important; transition:none !important; }
+    .btn:active { transform:none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🧰</div>
+  <h1>Advance Tools<small>First-time setup</small></h1>
+</header>
+
+<main>
+
+  <!-- boot / loading -->
+  <div class="card" id="boot">
+    <h2>Getting things ready</h2>
+    <p class="lead"><span class="spinning">⏳</span> Checking your installation…</p>
+  </div>
+
+  <!-- setup already complete -->
+  <div class="card hide" id="already">
+    <h2>✅ Setup is already complete</h2>
+    <p class="lead">This installation has already been through the setup wizard,
+       so there is nothing to do here.</p>
+    <div class="row">
+      <a class="btn" href="/admin" id="alreadyGo">Open Advance Tools</a>
+    </div>
+  </div>
+
+  <!-- the wizard -->
+  <div class="hide" id="wizard">
+    <ol class="steps" id="steps">
+      <li id="dot1"><span class="bul">1</span><span class="lbl">Welcome</span></li>
+      <li id="dot2"><span class="bul">2</span><span class="lbl">Password</span></li>
+      <li id="dot3"><span class="bul">3</span><span class="lbl">Layout</span></li>
+      <li id="dot4"><span class="bul">4</span><span class="lbl">Done</span></li>
+    </ol>
+
+    <!-- ============ STEP 1 ============ -->
+    <section class="card hide" id="s1">
+      <h2>👋 Welcome to Advance Tools</h2>
+      <p class="lead">Advance Tools turns your Home Assistant into a set of simple,
+        family-friendly panels — dashboards, alarms, schedules and reminders that
+        anyone in the house can use from a phone or a wall tablet.
+        <b>This short setup takes about two minutes</b> and gets you a secure,
+        working panel straight away.</p>
+
+      <ul class="plan">
+        <li><span class="pic">🔐</span><span><b>Create your password</b>
+          <span>Replace the temporary one so nobody else can control your home.</span></span></li>
+        <li><span class="pic">🎨</span><span><b>Pick a starter layout</b>
+          <span>We build a first dashboard from your existing devices. Optional.</span></span></li>
+        <li><span class="pic">🚀</span><span><b>Start using it</b>
+          <span>Open your panel, explore the tools, read the built-in manual.</span></span></li>
+      </ul>
+
+      <div class="status" id="conn"><span class="dot"></span>
+        <span id="connTxt">Checking the connection to Home Assistant…</span></div>
+
+      <div class="row">
+        <button class="btn" id="btnStart" type="button">Get started</button>
+      </div>
+    </section>
+
+    <!-- ============ STEP 2 ============ -->
+    <form class="card hide" id="s2" autocomplete="off">
+      <h2>🔐 Create your password</h2>
+      <p class="lead">Advance Tools can unlock doors, disarm your alarm and control
+        everything in your home. Right now it is protected by a temporary password
+        that everyone knows — <b>please choose a real one before you go any
+        further</b>.</p>
+
+      <label for="pw">New password</label>
+      <div class="pwwrap">
+        <input id="pw" type="password" autocomplete="new-password"
+               inputmode="text" spellcheck="false" placeholder="At least 8 characters">
+        <button class="eye" id="btnEye" type="button" aria-label="Show password"
+                title="Show password">👁</button>
+      </div>
+
+      <div class="meter">
+        <div class="meterhead"><span>Password strength</span><b id="meterTxt">—</b></div>
+        <div class="bar"><i id="meterFill"></i></div>
+        <ul class="rules">
+          <li id="ruleLen"><span class="mk">○</span><span>At least 8 characters</span></li>
+          <li id="ruleCommon"><span class="mk">○</span><span>Not a commonly used password</span></li>
+          <li id="ruleUser"><span class="mk">○</span><span>Different from your username</span></li>
+        </ul>
+      </div>
+
+      <label for="pw2">Confirm password</label>
+      <input id="pw2" type="password" autocomplete="new-password"
+             spellcheck="false" placeholder="Type it once more">
+      <div class="fieldnote" id="matchNote">Both fields must match.</div>
+
+      <div class="err" id="errPw"></div>
+
+      <div class="row">
+        <button class="btn" id="btnPw" type="submit">Save password</button>
+        <span class="sp"></span>
+        <span class="fieldnote" id="pwUserNote"></span>
+      </div>
+    </form>
+
+    <!-- ============ STEP 3 ============ -->
+    <form class="card hide" id="s3" autocomplete="off">
+      <h2>🎨 Pick a starter layout</h2>
+      <p class="lead">Choose a ready-made dashboard and we will fill it with the
+        devices you already have. You can change everything later — or
+        <b>skip this and start from a blank panel</b>.</p>
+
+      <div class="note hide" id="tplUnavailable">
+        Starter layouts are not available on this installation yet — no problem,
+        you can build a dashboard any time from the Dashboard Maker tool.
+      </div>
+
+      <div class="tgrid hide" id="tplGrid"></div>
+
+      <div class="hide" id="tplDetail">
+        <hr class="hr">
+        <div class="note" id="tplSummary">Loading this layout…</div>
+        <div id="tplSlots"></div>
+
+        <label for="dashName">Dashboard name</label>
+        <input id="dashName" type="text" placeholder="Home" autocomplete="off"
+               inputmode="text" autocapitalize="words" autocorrect="off"
+               spellcheck="false" enterkeyhint="next">
+        <label for="dashSlug">Web address</label>
+        <input id="dashSlug" type="text" class="mono" placeholder="home"
+               autocomplete="off" inputmode="text" autocapitalize="none"
+               autocorrect="off" spellcheck="false" enterkeyhint="done">
+        <div class="fieldnote" id="slugNote">Used in the link to this dashboard.</div>
+      </div>
+
+      <div class="err" id="errTpl"></div>
+
+      <div class="row">
+        <button class="btn" id="btnCreate" type="submit">Create dashboard</button>
+        <button class="ghost" id="btnSkip" type="button">Skip for now</button>
+        <button class="btn hide" id="btnTplContinue" type="button">Continue</button>
+        <span class="sp"></span>
+        <button class="link" id="btnBack1" type="button">← Back</button>
+      </div>
+    </form>
+
+    <!-- ============ STEP 4 ============ -->
+    <section class="card hide" id="s4">
+      <h2>🚀 You are all set</h2>
+      <p class="lead">Here is what we just did:</p>
+      <ul class="recap" id="recap"></ul>
+
+      <div class="err" id="errFinish"></div>
+
+      <div class="actions" id="doneActions">
+        <a class="btn off" id="linkDash" href="#">Open my new dashboard</a>
+        <a class="btn off" id="linkHub" href="/admin">Open Advance Tools</a>
+        <a class="ghost off" id="linkManual" href="/tools/manual/">📖 New here? The built-in
+          Manual explains every tool, step by step.</a>
+        <button class="ghost hide" id="btnFinishRetry" type="button">Try again</button>
+      </div>
+
+      <p class="support">Advance Tools is free and always will be. If it saved
+        you an afternoon, you can
+        <a href="https://github.com/sponsors/FreeHaTools" target="_blank"
+           rel="noopener">buy me a coffee</a> ♥</p>
+    </section>
+
+    <div class="foot">
+      Advance Tools · built by Mike Fattahi ·
+      <a href="https://www.fattahi.us" target="_blank" rel="noopener">fattahi.us</a>
+    </div>
+  </div>
+
+</main>
+
+<div id="toasts"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ------------------------------------------------------------ helpers */
+  var $ = function (id) { return document.getElementById(id); };
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;",
+               '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function show(el, on) {
+    if (el) el.classList.toggle("hide", !on);
+  }
+
+  function toast(msg, bad) {
+    var t = document.createElement("div");
+    t.className = "toast" + (bad ? " bad" : "");
+    t.textContent = msg;
+    $("toasts").appendChild(t);
+    setTimeout(function () { t.remove(); }, 4200);
+  }
+
+  function showErr(el, msg) {
+    if (!el) return;
+    el.textContent = msg || "";
+    el.classList.toggle("show", !!msg);
+  }
+
+  function busy(btn, on, label) {
+    if (!btn) return;
+    if (on) {
+      btn.dataset.label = btn.dataset.label || btn.textContent;
+      btn.textContent = label || "Working…";
+      btn.disabled = true;
+    } else {
+      if (btn.dataset.label) btn.textContent = btn.dataset.label;
+      btn.disabled = false;
+    }
+  }
+
+  /* Small JSON helper. Never throws — always resolves to a result object. */
+  function api(method, url, body) {
+    var opt = { method: method, headers: { "Accept": "application/json" } };
+    if (body !== undefined) {
+      opt.headers["Content-Type"] = "application/json";
+      opt.body = JSON.stringify(body);
+    }
+    return fetch(url, opt).then(function (res) {
+      return res.text().then(function (txt) {
+        var data = null;
+        try { data = txt ? JSON.parse(txt) : null; } catch (e) { data = null; }
+        return { ok: res.ok, status: res.status, data: data };
+      });
+    }).catch(function () {
+      return { ok: false, status: 0, data: null };
+    });
+  }
+
+  function errorOf(res, fallback) {
+    if (res && res.data && res.data.error) return String(res.data.error);
+    if (res && res.status === 0) return "Could not reach the add-on. Check that it is running and try again.";
+    return fallback;
+  }
+
+  /* ------------------------------------------------------------ state */
+  var state = {
+    step: 1,
+    username: "admin",
+    skipWelcome: false,   /* existing install still on the default password */
+    passwordSet: false,
+    templates: [],
+    templatesOk: false,
+    selected: null,       /* template id */
+    preview: null,
+    dashUrl: "",
+    dashName: "",
+    finished: false,
+    system: null
+  };
+
+  /* ------------------------------------------------------------ steps */
+  var SECTIONS = { 1: "s1", 2: "s2", 3: "s3", 4: "s4" };
+
+  function paintProgress() {
+    for (var i = 1; i <= 4; i++) {
+      var li = $("dot" + i);
+      if (!li) continue;
+      li.classList.toggle("on", i === state.step);
+      li.classList.toggle("done", i < state.step);
+      var bul = li.querySelector(".bul");
+      if (bul) bul.textContent = i < state.step ? "✓" : String(i);
+    }
+  }
+
+  function focusFirst(step) {
+    var target = null;
+    if (step === 1) target = $("btnStart");
+    else if (step === 2) target = $("pw");
+    else if (step === 3) {
+      target = state.templatesOk ? $("tplGrid").querySelector(".tcard") : $("btnTplContinue");
+      if (!target) target = $("btnSkip");
+    } else if (step === 4) target = $("linkHub");
+    if (target && target.focus) {
+      try { target.focus({ preventScroll: false }); } catch (e) { target.focus(); }
+    }
+  }
+
+  function goto(step) {
+    /* Never walk back into the password step once it succeeded. */
+    if (step === 2 && state.passwordSet) step = 3;
+    state.step = step;
+    for (var k in SECTIONS) {
+      if (Object.prototype.hasOwnProperty.call(SECTIONS, k)) {
+        show($(SECTIONS[k]), Number(k) === step);
+      }
+    }
+    paintProgress();
+    if (step === 1) {
+      $("btnStart").textContent = state.passwordSet ? "Continue" : "Get started";
+    }
+    if (step === 3) loadTemplates();
+    if (step === 4) finish();
+    window.scrollTo(0, 0);
+    focusFirst(step);
+  }
+
+  /* ------------------------------------------------------------ step 1 */
+  function paintConn(cls, txt) {
+    var box = $("conn");
+    box.className = "status" + (cls ? " " + cls : "");
+    $("connTxt").innerHTML = txt;
+  }
+
+  function checkConnection() {
+    return api("GET", "/api/admin/system").then(function (res) {
+      if (res.status === 403 || res.status === 401) {
+        paintConn("", "Home Assistant status: <b>we will check this after you sign in</b>.");
+        return;
+      }
+      if (!res.ok || !res.data) {
+        paintConn("warn", "We could not read the add-on status right now — setup can continue.");
+        return;
+      }
+      state.system = res.data;
+      if (res.data.ha_connected) {
+        paintConn("ok", "Connected to Home Assistant <b>" +
+          esc(res.data.ha_version || "") + "</b> · <b>" +
+          esc(String(res.data.entities == null ? "?" : res.data.entities)) +
+          "</b> devices found · <b>" +
+          esc(String(res.data.tools == null ? "?" : res.data.tools)) + "</b> tools ready");
+      } else {
+        paintConn("warn", "Not connected to Home Assistant yet. Setup can continue — " +
+          "you can fix the connection afterwards in the admin settings.");
+      }
+    });
+  }
+
+  /* ------------------------------------------------------------ step 2 */
+  var MIN_LEN = 8;
+  /* Mirrors the server's weak-password list exactly. */
+  var WEAK = ["admin", "password", "12345678", "123456789", "1234567890",
+              "administrator", "changeme", "letmein", "qwertyui", "homeassistant"];
+
+  /* Returns the same message the server would return, or null when acceptable. */
+  function passwordProblem(pw) {
+    pw = pw || "";
+    if (pw.length < MIN_LEN) return "Password must be at least " + MIN_LEN + " characters";
+    if (WEAK.indexOf(pw.toLowerCase()) !== -1) return "That password is too common — please choose another one";
+    if (state.username && pw.toLowerCase() === String(state.username).toLowerCase()) {
+      return "Password must not be the same as the username";
+    }
+    return null;
+  }
+
+  var LEVELS = [
+    { pct: 8,   col: "var(--bad)",  txt: "Too weak" },
+    { pct: 34,  col: "var(--warn)", txt: "Fair" },
+    { pct: 56,  col: "var(--warn)", txt: "Good" },
+    { pct: 78,  col: "var(--good)", txt: "Strong" },
+    { pct: 100, col: "var(--good)", txt: "Very strong" }
+  ];
+
+  function paintMeter() {
+    var pw = $("pw").value;
+    var problem = passwordProblem(pw);
+
+    /* rule checklist */
+    $("ruleLen").classList.toggle("ok", pw.length >= MIN_LEN);
+    $("ruleLen").querySelector(".mk").textContent = pw.length >= MIN_LEN ? "✓" : "○";
+    var notCommon = pw.length > 0 && WEAK.indexOf(pw.toLowerCase()) === -1;
+    $("ruleCommon").classList.toggle("ok", notCommon);
+    $("ruleCommon").querySelector(".mk").textContent = notCommon ? "✓" : "○";
+    var notUser = pw.length > 0 &&
+      pw.toLowerCase() !== String(state.username || "").toLowerCase();
+    $("ruleUser").classList.toggle("ok", notUser);
+    $("ruleUser").querySelector(".mk").textContent = notUser ? "✓" : "○";
+
+    var idx = 0;
+    if (!pw.length) {
+      $("meterFill").style.width = "0";
+      $("meterTxt").textContent = "—";
+      return;
+    }
+    if (problem) {
+      idx = 0;   /* the server would reject it — never call it strong */
+    } else {
+      var score = 1;
+      if (pw.length >= 12) score++;
+      if (pw.length >= 16) score++;
+      var classes = 0;
+      if (/[a-z]/.test(pw)) classes++;
+      if (/[A-Z]/.test(pw)) classes++;
+      if (/[0-9]/.test(pw)) classes++;
+      if (/[^A-Za-z0-9]/.test(pw)) classes++;
+      if (classes >= 3) score++;
+      if (classes >= 4) score++;
+      idx = Math.min(4, score);
+    }
+    var lv = LEVELS[idx];
+    $("meterFill").style.width = lv.pct + "%";
+    $("meterFill").style.background = lv.col;
+    $("meterTxt").textContent = problem ? lv.txt + " — " + problem : lv.txt;
+  }
+
+  function paintMatch() {
+    var a = $("pw").value, b = $("pw2").value;
+    var note = $("matchNote");
+    note.classList.remove("bad", "ok");
+    if (!b.length) { note.textContent = "Both fields must match."; return; }
+    if (a === b) { note.textContent = "Both passwords match."; note.classList.add("ok"); }
+    else { note.textContent = "The two passwords are different."; note.classList.add("bad"); }
+  }
+
+  function submitPassword(ev) {
+    if (ev) ev.preventDefault();
+    showErr($("errPw"), "");
+    var pw = $("pw").value, pw2 = $("pw2").value;
+
+    var problem = passwordProblem(pw);
+    if (problem) { showErr($("errPw"), problem); $("pw").focus(); return; }
+    if (pw !== pw2) {
+      showErr($("errPw"), "The two passwords are different — please retype them.");
+      $("pw2").focus();
+      return;
+    }
+
+    busy($("btnPw"), true, "Saving…");
+    api("POST", "/api/setup/password", { password: pw }).then(function (res) {
+      busy($("btnPw"), false);
+      if (!res.ok || !res.data || !res.data.ok) {
+        /* The server is the source of truth — show its message verbatim. */
+        showErr($("errPw"), errorOf(res, "We could not save that password. Please try again."));
+        $("pw").focus();
+        return;
+      }
+      state.passwordSet = true;
+      $("pw").value = "";
+      $("pw2").value = "";
+      paintMeter();
+      paintMatch();
+      toast("Password saved — you are signed in as " + state.username);
+      if (!state.system) checkConnection();
+      goto(3);
+    });
+  }
+
+  /* ------------------------------------------------------------ step 3 */
+  function slugify(s) {
+    return String(s || "").toLowerCase().replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "").slice(0, 40);
+  }
+
+  function templatesUnavailable(msg) {
+    state.templatesOk = false;
+    show($("tplUnavailable"), true);
+    if (msg) $("tplUnavailable").textContent = msg;
+    show($("tplGrid"), false);
+    show($("tplDetail"), false);
+    show($("btnCreate"), false);
+    show($("btnSkip"), false);
+    show($("btnTplContinue"), true);
+  }
+
+  var templatesLoaded = false;
+
+  function loadTemplates() {
+    if (templatesLoaded) return;
+    templatesLoaded = true;
+    api("GET", "/api/tools/starter_templates/list").then(function (res) {
+      var list = res.data && res.data.templates;
+      if (!res.ok || !list || !list.length) {
+        templatesUnavailable(res.ok && list && !list.length
+          ? "There are no starter layouts to choose from yet — you can build a dashboard any time from the Dashboard Maker tool."
+          : null);
+        focusFirst(3);
+        return;
+      }
+      state.templates = list;
+      state.templatesOk = true;
+      show($("tplUnavailable"), false);
+      show($("tplGrid"), true);
+      show($("btnTplContinue"), false);
+      renderTemplates();
+      focusFirst(3);
+    });
+  }
+
+  function renderTemplates() {
+    var grid = $("tplGrid");
+    grid.innerHTML = "";
+    state.templates.forEach(function (t) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "tcard";
+      b.dataset.id = t.id;
+      var tags = (t.tags || []).slice(0, 4).map(function (x) {
+        return '<span class="tag">' + esc(x) + "</span>";
+      }).join("");
+      b.innerHTML =
+        '<div class="th"><span class="tic">' + esc(t.icon || "🏠") + "</span>" +
+        '<span class="tn">' + esc(t.name || t.id) + "</span></div>" +
+        '<div class="td">' + esc(t.description || "") + "</div>" +
+        (tags ? '<div class="tags">' + tags + "</div>" : "");
+      b.addEventListener("click", function () { selectTemplate(t); });
+      grid.appendChild(b);
+    });
+  }
+
+  function selectTemplate(t) {
+    state.selected = t.id;
+    var cards = $("tplGrid").querySelectorAll(".tcard");
+    for (var i = 0; i < cards.length; i++) {
+      cards[i].classList.toggle("on", cards[i].dataset.id === t.id);
+    }
+    showErr($("errTpl"), "");
+    show($("tplDetail"), true);
+    $("tplSummary").className = "note";
+    $("tplSummary").textContent = "Looking at what we can fill in for you…";
+    $("tplSlots").innerHTML = "";
+    if (!$("dashName").value.trim()) {
+      $("dashName").value = t.name || "Home";
+      $("dashSlug").value = slugify(t.name || t.id || "home");
+      validateSlug();
+    }
+
+    api("POST", "/api/tools/starter_templates/preview", { template_id: t.id })
+      .then(function (res) {
+        if (!res.ok || !res.data) {
+          state.preview = null;
+          $("tplSummary").className = "note warn";
+          $("tplSummary").textContent =
+            "We could not check this layout against your devices. " +
+            "You can still create it, or skip this step.";
+          return;
+        }
+        state.preview = res.data;
+        renderPreview(res.data);
+      });
+  }
+
+  function renderPreview(p) {
+    var slots = p.slots || [];
+    var matched = 0, missing = [];
+    slots.forEach(function (s) {
+      if (s.chosen) matched++;
+      else if (s.required) missing.push(s);
+    });
+
+    var box = $("tplSummary");
+    if (!missing.length) {
+      box.className = "note good";
+      box.textContent = "Great — we matched " + matched + " of " + slots.length +
+        " things automatically. Nothing else is needed.";
+    } else {
+      box.className = "note warn";
+      box.textContent = "We matched " + matched + " of " + slots.length +
+        " things automatically. " + missing.length +
+        (missing.length === 1 ? " item still needs" : " items still need") +
+        " your choice below.";
+    }
+
+    var wrap = $("tplSlots");
+    wrap.innerHTML = "";
+    missing.forEach(function (s) {
+      var d = document.createElement("div");
+      d.className = "slot";
+      var sel = document.createElement("select");
+      sel.dataset.slot = s.key;
+      var opts = '<option value="">Choose a device…</option>';
+      (s.matches || []).forEach(function (m) {
+        opts += '<option value="' + esc(m.entity_id) + '">' +
+          esc(m.name || m.entity_id) +
+          (m.area ? " · " + esc(m.area) : "") + "</option>";
+      });
+      sel.innerHTML = opts;
+      d.innerHTML = '<div class="sl">' + esc(s.label || s.key) + "</div>" +
+        '<div class="sh">' + esc(s.hint || "Pick the device this should control.") +
+        "</div>";
+      d.appendChild(sel);
+      if (!(s.matches || []).length) {
+        var n = document.createElement("div");
+        n.className = "fieldnote";
+        n.textContent = "No matching device was found — you can add this later " +
+          "in the Starter Templates tool.";
+        d.appendChild(n);
+      }
+      wrap.appendChild(d);
+    });
+  }
+
+  function validateSlug() {
+    var raw = $("dashSlug").value;
+    var clean = slugify(raw);
+    if (clean !== raw) $("dashSlug").value = clean;
+    var note = $("slugNote");
+    note.classList.remove("bad", "ok");
+    if (!clean) {
+      note.textContent = "A web address is required — letters, numbers and _ only.";
+      note.classList.add("bad");
+      return false;
+    }
+    note.textContent = "Your dashboard will live at /d/" + clean;
+    note.classList.add("ok");
+    return true;
+  }
+
+  function createDashboard(ev) {
+    if (ev) ev.preventDefault();
+    if (!state.templatesOk) { goto(4); return; }
+    showErr($("errTpl"), "");
+
+    if (!state.selected) {
+      showErr($("errTpl"), "Pick a layout first, or choose “Skip for now”.");
+      return;
+    }
+    var name = $("dashName").value.trim();
+    if (!name) {
+      showErr($("errTpl"), "Please give this dashboard a name.");
+      $("dashName").focus();
+      return;
+    }
+    if (!validateSlug()) { $("dashSlug").focus(); return; }
+
+    var mapping = {};
+    if (state.preview && state.preview.slots) {
+      state.preview.slots.forEach(function (s) {
+        if (s.chosen) mapping[s.key] = s.chosen;
+      });
+    }
+    var sels = $("tplSlots").querySelectorAll("select");
+    var stillMissing = 0;
+    for (var i = 0; i < sels.length; i++) {
+      if (sels[i].value) mapping[sels[i].dataset.slot] = sels[i].value;
+      else stillMissing++;
+    }
+    if (stillMissing) {
+      showErr($("errTpl"), "Please choose a device for every item above, " +
+        "or skip this step and finish the layout later.");
+      return;
+    }
+
+    busy($("btnCreate"), true, "Creating…");
+    api("POST", "/api/tools/starter_templates/apply", {
+      template_id: state.selected,
+      slug: $("dashSlug").value,
+      name: name,
+      mapping: mapping
+    }).then(function (res) {
+      busy($("btnCreate"), false);
+      if (!res.ok || !res.data || !res.data.ok) {
+        showErr($("errTpl"), errorOf(res,
+          "We could not create that dashboard. You can skip this step and build one later."));
+        return;
+      }
+      state.dashUrl = res.data.url || ("/d/" + (res.data.slug || ""));
+      state.dashName = name;
+      toast("Dashboard “" + name + "” created with " +
+        (res.data.widgets || 0) + " items");
+      goto(4);
+    });
+  }
+
+  /* ------------------------------------------------------------ step 4 */
+  function renderRecap() {
+    var items = [];
+    items.push("<b>Your password is set</b> — the temporary one no longer works.");
+    if (state.dashUrl) {
+      items.push("<b>" + esc(state.dashName) + "</b> was created and is ready to open.");
+    } else {
+      items.push("No starter dashboard yet — build one any time with <b>Dashboard Maker</b>.");
+    }
+    if (state.system && state.system.tools) {
+      items.push("<b>" + esc(String(state.system.tools)) +
+        " tools</b> are installed and waiting in your toolbox.");
+    } else {
+      items.push("All of your tools are installed and waiting in the toolbox.");
+    }
+    $("recap").innerHTML = items.map(function (t) {
+      return '<li><span class="mk">✓</span><span>' + t + "</span></li>";
+    }).join("");
+
+    var dash = $("linkDash");
+    if (state.dashUrl) {
+      dash.href = state.dashUrl;
+      dash.textContent = "Open " + state.dashName;
+      show(dash, true);
+    } else {
+      show(dash, false);
+    }
+  }
+
+  function setDoneEnabled(on) {
+    var els = [$("linkDash"), $("linkHub"), $("linkManual")];
+    els.forEach(function (el) { if (el) el.classList.toggle("off", !on); });
+  }
+
+  var finishing = false;
+
+  function finish() {
+    renderRecap();
+    if (state.finished || finishing) return;
+    finishing = true;
+    setDoneEnabled(false);
+    showErr($("errFinish"), "");
+    show($("btnFinishRetry"), false);
+
+    api("POST", "/api/setup/finish").then(function (res) {
+      finishing = false;
+      if (!res.ok || !res.data || !res.data.ok) {
+        showErr($("errFinish"), errorOf(res,
+          "We could not finish the setup. Please try again."));
+        show($("btnFinishRetry"), true);
+        $("btnFinishRetry").focus();
+        return;
+      }
+      state.finished = true;
+      setDoneEnabled(true);
+      focusFirst(4);
+    });
+  }
+
+  /* ------------------------------------------------------------ wiring */
+  $("btnStart").addEventListener("click", function () {
+    goto(state.passwordSet ? 3 : 2);
+  });
+  $("s2").addEventListener("submit", submitPassword);
+  $("pw").addEventListener("input", function () { paintMeter(); paintMatch(); });
+  $("pw2").addEventListener("input", paintMatch);
+  $("btnEye").addEventListener("click", function () {
+    var on = $("pw").type === "password";
+    $("pw").type = on ? "text" : "password";
+    $("pw2").type = on ? "text" : "password";
+    this.textContent = on ? "🙈" : "👁";
+    this.setAttribute("aria-label", on ? "Hide password" : "Show password");
+    this.setAttribute("title", on ? "Hide password" : "Show password");
+  });
+
+  $("s3").addEventListener("submit", createDashboard);
+  $("btnSkip").addEventListener("click", function () { goto(4); });
+  $("btnTplContinue").addEventListener("click", function () { goto(4); });
+  $("btnBack1").addEventListener("click", function () { goto(1); });
+  $("dashName").addEventListener("input", function () {
+    if (!$("dashSlug").dataset.touched) {
+      $("dashSlug").value = slugify(this.value);
+      validateSlug();
+    }
+  });
+  $("dashSlug").addEventListener("input", function () {
+    this.dataset.touched = "1";
+    validateSlug();
+  });
+  $("btnFinishRetry").addEventListener("click", finish);
+
+  /* Enter advances the informational steps (2 and 3 are real forms). */
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter" || e.defaultPrevented) return;
+    var tag = (e.target && e.target.tagName) || "";
+    if (tag === "BUTTON" || tag === "A" || tag === "SELECT" || tag === "TEXTAREA") return;
+    if (state.step === 1) { e.preventDefault(); $("btnStart").click(); }
+    else if (state.step === 4 && state.finished) {
+      e.preventDefault();
+      var go = state.dashUrl ? $("linkDash") : $("linkHub");
+      if (go) location.href = go.getAttribute("href");
+    }
+  });
+
+  /* ------------------------------------------------------------ boot */
+  function boot() {
+    api("GET", "/api/setup/state").then(function (res) {
+      var d = res.data || {};
+      if (!res.ok) {
+        show($("boot"), false);
+        show($("wizard"), true);
+        toast("We could not read the setup status — starting from the beginning.", true);
+        goto(1);
+        return;
+      }
+      state.username = d.username || "admin";
+      $("pwUserNote").textContent = "You are setting the password for “" +
+        state.username + "”.";
+
+      if (d.setup_done && !d.needs_password) {
+        show($("boot"), false);
+        show($("already"), true);
+        $("alreadyGo").focus();
+        return;
+      }
+
+      show($("boot"), false);
+      show($("wizard"), true);
+
+      if (d.setup_done && d.needs_password) {
+        /* Existing install still on the default password — go straight to it. */
+        state.skipWelcome = true;
+        $("dot1").classList.add("done");
+        goto(2);
+      } else {
+        checkConnection();
+        goto(1);
+      }
+    });
+  }
+
+  boot();
+})();
+</script>
+<script src="/static/pwa.js" defer></script>
+</body>
+</html>

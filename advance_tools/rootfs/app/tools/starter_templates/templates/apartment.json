@@ -1,0 +1,132 @@
+{
+  "id": "apartment",
+  "name": "Apartment",
+  "icon": "🏢",
+  "description": "Compact and dense: a handful of lights, one climate control, media, the front door and an energy summary — sized for a small home.",
+  "tags": ["compact", "energy", "media", "landscape"],
+  "summary": [
+    "Three light sliders and a smart plug",
+    "One climate dial with temperature and humidity",
+    "Media player controls",
+    "Today's energy use and top consumers",
+    "Front door and window contacts"
+  ],
+  "canvas": { "w": 1280, "h": 800, "fit": "fit" },
+  "theme": {
+    "accent": "#5aa9ff", "bg": "#0c1018", "card": "#161d2b",
+    "text": "#e6ecf8", "cols": 4, "radius": 14
+  },
+
+  "slots": [
+    { "key": "living_light", "label": "Living area light",
+      "hint": "The main light of the open living space.",
+      "domain": "light", "required": true, "area_hint": "living room",
+      "keywords": ["living", "lounge", "salon", "main", "sitting"] },
+
+    { "key": "kitchen_light", "label": "Kitchen light",
+      "hint": "Kitchen or kitchenette.",
+      "domain": "light", "required": true, "area_hint": "kitchen",
+      "keywords": ["kitchen", "counter", "cook"] },
+
+    { "key": "bedroom_light", "label": "Bedroom light",
+      "hint": "Optional.",
+      "domain": "light", "required": false, "area_hint": "bedroom",
+      "keywords": ["bedroom", "bed", "sleep", "master"] },
+
+    { "key": "plug", "label": "Smart plug or switch",
+      "hint": "Optional — anything you flip on and off often.",
+      "domain": "switch", "required": false,
+      "keywords": ["plug", "socket", "outlet", "lamp", "fan", "heater"] },
+
+    { "key": "media", "label": "Media player",
+      "hint": "Optional — speaker, TV or receiver.",
+      "domain": "media_player", "required": false,
+      "keywords": ["speaker", "tv", "living", "sonos", "cast", "echo",
+                   "receiver"] },
+
+    { "key": "thermostat", "label": "Climate control",
+      "hint": "The single climate device of the apartment.",
+      "domain": "climate", "required": true,
+      "keywords": ["thermostat", "ac", "split", "hvac", "heating", "living"] },
+
+    { "key": "indoor_temperature", "label": "Indoor temperature",
+      "hint": "Shown under the dial.",
+      "domain": "sensor", "device_class": "temperature", "required": true,
+      "keywords": ["indoor", "inside", "living", "room"],
+      "exclude": ["outdoor", "outside", "balcony", "cpu", "battery"] },
+
+    { "key": "indoor_humidity", "label": "Indoor humidity",
+      "hint": "Optional.",
+      "domain": "sensor", "device_class": "humidity", "required": false,
+      "keywords": ["indoor", "inside", "living", "room"],
+      "exclude": ["outdoor", "outside"] },
+
+    { "key": "outdoor_temperature", "label": "Outdoor temperature",
+      "hint": "Optional — weather or balcony sensor.",
+      "domain": "sensor", "device_class": "temperature", "required": false,
+      "keywords": ["outdoor", "outside", "balcony", "weather", "terrace"] },
+
+    { "key": "front_door", "label": "Front door",
+      "hint": "Open/closed contact on the apartment door.",
+      "domain": "binary_sensor", "device_class": "door", "required": true,
+      "keywords": ["front", "entry", "entrance", "main", "door", "apartment"] },
+
+    { "key": "window", "label": "Window / balcony door",
+      "hint": "Optional second contact.",
+      "domain": "binary_sensor", "required": false,
+      "keywords": ["window", "balcony", "terrace", "patio"],
+      "exclude": ["front"] }
+  ],
+
+  "widgets": [
+    { "type": "box", "text": "LIGHTS", "x": 40, "y": 100, "w": 380, "h": 400 },
+    { "type": "box", "text": "MEDIA & PLUGS", "x": 40, "y": 524, "w": 380,
+      "h": 246 },
+    { "type": "box", "text": "CLIMATE", "x": 444, "y": 100, "w": 380, "h": 500 },
+    { "type": "box", "text": "DOORS", "x": 444, "y": 616, "w": 380, "h": 154 },
+    { "type": "box", "text": "ENERGY", "x": 848, "y": 160, "w": 392, "h": 280 },
+    { "type": "box", "text": "AT A GLANCE", "x": 848, "y": 464, "w": 392,
+      "h": 306 },
+
+    { "type": "label", "text": "Home", "x": 40, "y": 20, "w": 460, "h": 40,
+      "size": 30, "bold": true },
+    { "type": "label", "text": "Small place, everything within reach",
+      "x": 40, "y": 62, "w": 460, "h": 26, "size": 14, "color": "#8b98b8" },
+
+    { "type": "clock", "skin": "clock-card", "x": 990, "y": 20, "w": 250,
+      "h": 120 },
+
+    { "type": "light", "skin": "light-slider", "x": 60, "y": 140, "w": 260,
+      "h": 110, "label": "Living", "entity": "{{slot:living_light}}" },
+    { "type": "light", "skin": "light-slider", "x": 60, "y": 262, "w": 260,
+      "h": 110, "label": "Kitchen", "entity": "{{slot:kitchen_light}}" },
+    { "type": "light", "skin": "light-slider", "x": 60, "y": 384, "w": 260,
+      "h": 110, "label": "Bedroom", "entity": "{{slot:bedroom_light}}" },
+
+    { "type": "media", "skin": "media-mini", "x": 60, "y": 564, "w": 280,
+      "h": 130, "entity": "{{slot:media}}" },
+    { "type": "toggle", "skin": "ios", "x": 60, "y": 700, "w": 230, "h": 64,
+      "label": "Plug", "entity": "{{slot:plug}}" },
+
+    { "type": "climate", "skin": "dial", "x": 504, "y": 140, "w": 260,
+      "h": 300, "entity": "{{slot:thermostat}}" },
+    { "type": "sensor", "skin": "sensor-chip", "x": 509, "y": 460, "w": 190,
+      "h": 46, "label": "Inside", "entity": "{{slot:indoor_temperature}}" },
+    { "type": "sensor", "skin": "sensor-chip", "x": 509, "y": 516, "w": 190,
+      "h": 46, "label": "Humidity", "entity": "{{slot:indoor_humidity}}" },
+
+    { "type": "sensor", "skin": "led", "x": 474, "y": 650, "w": 190, "h": 52,
+      "label": "Front door", "entity": "{{slot:front_door}}" },
+    { "type": "sensor", "skin": "led", "x": 474, "y": 710, "w": 190, "h": 52,
+      "label": "Window", "entity": "{{slot:window}}" },
+
+    { "type": "energysum", "skin": "en-hero", "x": 884, "y": 190, "w": 320,
+      "h": 240, "label": "Energy", "range": "today" },
+
+    { "type": "sensor", "skin": "sensor-big", "x": 924, "y": 504, "w": 240,
+      "h": 150, "label": "Outside", "entity": "{{slot:outdoor_temperature}}" },
+    { "type": "sensor", "skin": "sensor-chip", "x": 949, "y": 680, "w": 190,
+      "h": 46, "label": "Indoor temp",
+      "entity": "{{slot:indoor_temperature}}" }
+  ]
+}

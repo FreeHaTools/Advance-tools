@@ -1,0 +1,9 @@
+{
+  "id": "manual",
+  "name": "Manual",
+  "icon": "📖",
+  "color": "#8b98b8",
+  "description": "The complete guide to every Advance Tools feature — what each tool does, how to use it step by step, real examples and pro tips.",
+  "page": "/tools/manual/",
+  "version": "1.0.0"
+}

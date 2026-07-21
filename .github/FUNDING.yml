@@ -1,0 +1,14 @@
+# GitHub sponsor button configuration for Advance Tools.
+# Docs: https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+# The GitHub Sponsors button only shows up once Sponsors has actually been
+# enabled for this account at https://github.com/sponsors — until then GitHub
+# silently ignores this line.
+github: [FreeHaTools]
+
+# TODO: create the Ko-fi account at https://ko-fi.com and replace
+# PLACEHOLDER_KOFI_USERNAME below with the real Ko-fi username. Until that is
+# done the Ko-fi entry points nowhere and should be treated as inactive.
+ko_fi: PLACEHOLDER_KOFI_USERNAME
+
+custom: ["https://www.fattahi.us"]

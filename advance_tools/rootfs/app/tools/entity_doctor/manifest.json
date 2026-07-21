@@ -1,0 +1,9 @@
+{
+  "id": "entity_doctor",
+  "name": "Entity Doctor",
+  "icon": "🩺",
+  "color": "#ff8fa3",
+  "description": "Full health check-up for entities AND devices — find dead devices, unavailable, low-battery, orphaned, stale and duplicate-named entities, then clean up with a drag & drop triage board. Every deletion is logged.",
+  "page": "/tools/entity_doctor/",
+  "version": "1.0.0"
+}

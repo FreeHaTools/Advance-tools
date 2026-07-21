@@ -1,0 +1,9 @@
+{
+  "id": "announce_center",
+  "name": "Announce & Intercom",
+  "icon": "📢",
+  "color": "#22b8cf",
+  "description": "Send text-to-speech announcements to your speakers, control volume, use quick messages and ping phones — a whole-house intercom.",
+  "page": "/tools/announce_center/",
+  "version": "1.0.0"
+}

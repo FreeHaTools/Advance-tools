@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080b13">
+<meta name="color-scheme" content="dark">
+<title>Advance Tools</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/static/icons/icon-192.svg">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<meta name="application-name" content="Advance Tools">
+<meta name="apple-mobile-web-app-title" content="Advance Tools">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root {
+    --bg:#080b13; --bg2:#0d1220; --card:#121a2c; --line:#243052;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#4f8cff; --acc2:#7b5cff;
+    --ok:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0b1120;
+    --hover:rgba(79,140,255,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+    --sidebar:236px;
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif;
+      -webkit-tap-highlight-color:transparent; }
+  html { -webkit-text-size-adjust:100%; }
+  html, body { height:100%; }
+  body { background:var(--bg); color:var(--txt); overflow:hidden;
+         touch-action:manipulation; -webkit-font-smoothing:antialiased; }
+  body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(60% 50% at 12% 0%, rgba(79,140,255,.10), transparent 60%),
+      radial-gradient(50% 40% at 95% 100%, rgba(123,92,255,.08), transparent 60%); }
+
+  #layout { display:flex; height:100vh; position:relative; z-index:1; }
+
+  /* ---------------- sidebar ---------------- */
+  aside { width:var(--sidebar); flex:0 0 auto; background:rgba(13,18,32,.85);
+          backdrop-filter:blur(10px); border-right:1px solid var(--line);
+          display:flex; flex-direction:column; overflow-y:auto;
+          padding:calc(18px + env(safe-area-inset-top)) 14px
+                  calc(18px + env(safe-area-inset-bottom))
+                  calc(14px + env(safe-area-inset-left)); }
+  .brand { display:flex; align-items:center; gap:11px; padding:4px 8px 18px;
+           border-bottom:1px solid var(--line); margin-bottom:14px; }
+  .brand .logo { width:40px; height:40px; border-radius:12px; display:flex;
+           align-items:center; justify-content:center; font-size:20px; flex:0 0 auto;
+           background:linear-gradient(135deg,var(--acc),var(--acc2));
+           box-shadow:0 4px 14px rgba(79,140,255,.35); }
+  .brand b { font-size:15px; display:block; }
+  .brand span { font-size:10px; color:var(--mut); letter-spacing:.08em;
+                text-transform:uppercase; }
+  .navsec { font-size:10px; color:var(--mut); text-transform:uppercase;
+            letter-spacing:.1em; padding:12px 10px 6px; }
+  .nitem { display:flex; align-items:center; gap:11px; padding:11px 12px;
+           min-height:44px; border-radius:11px; cursor:pointer; color:var(--mut);
+           font-size:14px; border:1px solid transparent; margin-bottom:2px;
+           user-select:none; touch-action:manipulation; transition:.15s; }
+  .nitem:hover { color:var(--txt); background:var(--hover); }
+  .nitem.active { color:#fff; border-color:var(--line);
+           background:linear-gradient(135deg, rgba(79,140,255,.22), rgba(123,92,255,.18)); }
+  .nitem .ic { width:22px; text-align:center; font-size:16px; }
+  aside .spacer { flex:1; }
+  .hastat { display:flex; align-items:center; gap:8px; font-size:12px;
+            color:var(--mut); padding:10px 12px; border:1px solid var(--line);
+            border-radius:11px; margin-bottom:8px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--bad);
+         flex:0 0 auto; }
+  .dot.on { background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  .logoutb { width:100%; background:none; border:1px solid var(--line);
+             color:var(--mut); padding:10px; min-height:44px; border-radius:11px;
+             cursor:pointer; font-size:13px; touch-action:manipulation; }
+  #install { margin-bottom:8px; }
+  .logoutb:hover { color:var(--bad); border-color:rgba(255,107,129,.4); }
+
+  /* ---------------- content ---------------- */
+  #content { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .view { display:none; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+          padding:calc(26px + env(safe-area-inset-top))
+                  calc(30px + env(safe-area-inset-right))
+                  calc(60px + env(safe-area-inset-bottom)) 30px; }
+  .view.active { display:block; }
+  #view-tool { display:none; flex:1; padding:0; }
+  #view-tool.active { display:flex; }
+  #toolframe { flex:1; width:100%; border:0; background:var(--bg); }
+
+  h1.pg { font-size:21px; margin-bottom:4px; }
+  .pgsub { color:var(--mut); font-size:13px; margin-bottom:22px; }
+
+  /* stat cards */
+  .stats { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px,1fr));
+           gap:14px; margin-bottom:26px; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:16px;
+          padding:16px 18px; box-shadow:var(--shadow); position:relative;
+          overflow:hidden; }
+  .stat::after { content:''; position:absolute; top:0; left:0; right:0; height:2px;
+          background:linear-gradient(90deg,var(--acc),var(--acc2)); opacity:.7; }
+  .stat .k { font-size:11px; color:var(--mut); text-transform:uppercase;
+             letter-spacing:.07em; }
+  .stat .v { font-size:24px; font-weight:700; margin-top:6px;
+             font-variant-numeric:tabular-nums; }
+  .stat .s { font-size:11px; color:var(--mut); margin-top:3px; }
+  .stat.ok .v { color:var(--ok); } .stat.bad .v { color:var(--bad); }
+
+  /* tool cards */
+  .tools { display:grid; grid-template-columns:repeat(auto-fill, minmax(270px,1fr));
+           gap:16px; }
+  .tool { background:var(--card); border:1px solid var(--line); border-radius:18px;
+          padding:22px; cursor:pointer; box-shadow:var(--shadow); transition:.18s;
+          position:relative; overflow:hidden; }
+  .tool:hover { transform:translateY(-3px); border-color:var(--acc); }
+  .tool .ti { width:52px; height:52px; border-radius:15px; display:flex;
+          align-items:center; justify-content:center; font-size:26px;
+          margin-bottom:14px; background:var(--hover); }
+  .tool b { font-size:16px; display:block; margin-bottom:6px; }
+  .tool p { font-size:12.5px; color:var(--mut); line-height:1.7; }
+  .tool .go { position:absolute; top:20px; right:20px; color:var(--mut);
+          font-size:18px; transition:.18s; }
+  .tool:hover .go { color:var(--acc); transform:translateX(3px); }
+  .tool .ver { position:absolute; bottom:14px; right:18px; font-size:10px;
+          color:var(--mut); opacity:.6; }
+
+  /* generic card / table / form */
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px;
+          padding:20px; margin-bottom:16px; box-shadow:var(--shadow); }
+  .card h2 { font-size:15px; margin-bottom:14px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:12px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--mut); font-size:11px; font-weight:600; text-transform:uppercase;
+       letter-spacing:.06em; }
+  tr:last-child td { border-bottom:0; }
+  .chip { display:inline-block; background:var(--hover); border:1px solid var(--line);
+          border-radius:7px; padding:2px 9px; font-size:11px; margin:1px;
+          color:var(--mut); }
+  .chip.adm { color:var(--warn); border-color:rgba(255,184,107,.35); }
+  label { font-size:12px; color:var(--mut); display:block; margin:10px 0 4px; }
+  /* 16px stops iOS Safari zooming the page when a field takes focus. */
+  input[type=text], input[type=password], select {
+    width:100%; padding:10px 12px; min-height:46px; border-radius:10px;
+    border:1px solid var(--line); background:var(--input); color:var(--txt);
+    font-size:16px; }
+  input:focus, select:focus { outline:none; border-color:var(--acc); }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff;
+         border:0; padding:11px 22px; min-height:46px; border-radius:10px;
+         cursor:pointer; font-size:14px; font-weight:600;
+         touch-action:manipulation; }
+  .btn:active { transform:scale(.98); }
+  .ghost { background:var(--hover); border:1px solid var(--line); color:var(--mut);
+           padding:8px 13px; min-height:44px; min-width:44px; border-radius:9px;
+           cursor:pointer; font-size:13px; touch-action:manipulation; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .ghost.danger:hover { color:var(--bad); border-color:rgba(255,107,129,.4); }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .checks { display:flex; flex-wrap:wrap; gap:10px; }
+  .checks label { display:flex; align-items:center; gap:7px; margin:0;
+                  min-height:44px; padding:0 4px; font-size:13px; color:var(--txt);
+                  cursor:pointer; touch-action:manipulation; }
+  .checks input[type=checkbox] { width:20px; height:20px; accent-color:var(--acc); }
+  .actions { display:flex; gap:6px; justify-content:flex-end; }
+
+  /* tool top bar (when a tool is open) */
+  #toolbar { display:none; align-items:center; gap:10px;
+             padding:calc(10px + env(safe-area-inset-top))
+                     calc(16px + env(safe-area-inset-right)) 10px 16px;
+             background:var(--bg2); border-bottom:1px solid var(--line); }
+  #toolbar.show { display:flex; }
+  #toolbar b { font-size:14px; }
+  #toolbar .ghost { margin-left:auto; }
+
+  #toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+           background:var(--ok); color:#08291a; padding:11px 26px; border-radius:10px;
+           font-size:14px; display:none; z-index:200; font-weight:600;
+           box-shadow:var(--shadow); }
+  #toast.bad { background:var(--bad); color:#2d0a12; }
+
+  .about-logo { width:74px; height:74px; border-radius:20px; display:flex;
+    align-items:center; justify-content:center; font-size:36px; margin-bottom:16px;
+    background:linear-gradient(135deg,var(--acc),var(--acc2));
+    box-shadow:0 10px 30px rgba(79,140,255,.4); }
+  .kv { display:flex; gap:10px; padding:9px 0; border-bottom:1px dashed var(--line);
+        font-size:13px; }
+  .kv b { width:150px; color:var(--mut); font-weight:400; }
+  #view-about a { color:var(--acc); text-decoration:none; }
+  .about-desc { color:var(--mut); font-size:13px; line-height:1.9;
+        margin:16px 0 0; }
+  .about-sup { margin-top:16px; padding-top:14px;
+        border-top:1px dashed var(--line); }
+  .about-sup b { display:block; font-size:13px; margin-bottom:5px; }
+  .about-sup p { color:var(--mut); font-size:12.5px; line-height:1.9; margin:0; }
+
+  @media (max-width: 860px) {
+    /* icon-only rail; the left safe-area inset is added to the rail width so a
+       landscape notch cannot eat the icons */
+    :root { --sidebar:calc(64px + env(safe-area-inset-left)); }
+    .brand b, .brand span, .nitem span.tx, .navsec, .hastat span { display:none; }
+    aside { padding:calc(14px + env(safe-area-inset-top)) 8px
+                    calc(14px + env(safe-area-inset-bottom))
+                    calc(8px + env(safe-area-inset-left)); }
+    .brand { justify-content:center; padding-bottom:14px; }
+    .nitem { justify-content:center; padding:12px 0; }
+    .hastat { justify-content:center; }
+    .logoutb { font-size:11px; padding:10px 2px; }
+    #install .at-pwa-btn { font-size:0; padding:10px 2px; }
+    #install .at-pwa-btn::before { content:'⬇'; font-size:16px; }
+    #install .at-pwa-note { display:none; }
+    .view { padding:calc(16px + env(safe-area-inset-top))
+                    calc(14px + env(safe-area-inset-right))
+                    calc(50px + env(safe-area-inset-bottom)) 14px; }
+  }
+
+  /* --- phones (390px and below is the design target) --- */
+  @media (max-width: 640px) {
+    h1.pg { font-size:19px; }
+    .stats { grid-template-columns:1fr 1fr; gap:10px; }
+    .stat { padding:13px 14px; border-radius:14px; }
+    .stat .v { font-size:20px; }
+    .tools { grid-template-columns:1fr; gap:12px; }
+    .tool { padding:18px; }
+    .tool .ti { width:44px; height:44px; font-size:22px; margin-bottom:10px; }
+    .card { padding:16px 14px; }
+    .row > div { min-width:0 !important; flex:1 1 100% !important; }
+    .actions { justify-content:flex-start; }
+
+    /* The user table cannot stay a table at this width: turn every row into a
+       stacked card and label each cell from its data-label. */
+    #usertable, #usertable tbody, #usertable tr, #usertable td { display:block;
+      width:100%; }
+    #usertable thead { display:none; }
+    #usertable tr { border:1px solid var(--line); border-radius:14px;
+      padding:10px 12px; margin-bottom:10px; background:rgba(255,255,255,.02); }
+    #usertable td { border-bottom:0; padding:5px 0; }
+    #usertable td::before { content:attr(data-label); display:block; font-size:10px;
+      color:var(--mut); text-transform:uppercase; letter-spacing:.06em;
+      margin-bottom:3px; }
+    #usertable td:empty { display:none; }
+    #usertable td.actions { display:flex; gap:8px; margin-top:6px; }
+    #usertable td.actions::before { content:none; }
+    #usertable td.actions .ghost { flex:1; }
+  }
+    .kv { flex-direction:column; gap:2px; }
+    .kv b { width:auto; }
+  }
+  @media (max-width: 380px) {
+    .stats { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside>
+    <div class="brand">
+      <div class="logo">🧰</div>
+      <div><b>Advance Tools</b><span>Control Hub</span></div>
+    </div>
+    <div class="nitem active" data-view="home" onclick="go('home')">
+      <span class="ic">🏠</span><span class="tx">Overview</span></div>
+    <div class="navsec">Tools</div>
+    <div id="toolnav"></div>
+    <div class="navsec">System</div>
+    <div class="nitem" data-view="users" onclick="go('users')">
+      <span class="ic">👥</span><span class="tx">Users</span></div>
+    <div class="nitem" data-view="about" onclick="go('about')">
+      <span class="ic">ℹ️</span><span class="tx">About</span></div>
+    <div class="spacer"></div>
+    <!-- filled in by pwa.js: install button, iOS hint, or nothing at all -->
+    <div id="install" data-pwa-install hidden></div>
+    <div class="hastat"><div class="dot" id="hadot"></div>
+      <span id="hatext">Home Assistant</span></div>
+    <button class="logoutb" onclick="logout()">Logout</button>
+  </aside>
+
+  <div id="content">
+    <div id="toolbar">
+      <span id="tb-icon"></span><b id="tb-name"></b>
+      <button class="ghost" onclick="go('home')">✕ Close tool</button>
+    </div>
+
+    <!-- ============ overview ============ -->
+    <div class="view active" id="view-home">
+      <h1 class="pg">Overview</h1>
+      <div class="pgsub" id="hellosub">Welcome back.</div>
+      <div class="stats" id="stats"></div>
+      <h1 class="pg" style="font-size:17px; margin-bottom:14px">Your tools</h1>
+      <div class="tools" id="toolgrid"></div>
+    </div>
+
+    <!-- ============ users ============ -->
+    <div class="view" id="view-users">
+      <h1 class="pg">Users</h1>
+      <div class="pgsub">Accounts that can sign in to dashboards and this hub.</div>
+      <div class="card">
+        <h2>New / edit user</h2>
+        <div class="row">
+          <div style="flex:1; min-width:180px"><label for="u-name">Username</label>
+            <input type="text" id="u-name" autocomplete="off" inputmode="text"
+                   autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+          <div style="flex:1; min-width:180px"><label for="u-pass">Password (empty = keep current)</label>
+            <input type="password" id="u-pass" autocomplete="new-password"
+                   autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+        </div>
+        <label>Dashboard access</label>
+        <div class="checks" id="u-dashes"></div>
+        <label style="margin-top:12px">
+          <span class="checks"><label><input type="checkbox" id="u-admin">
+            Admin (full access + this hub)</label></span>
+        </label>
+        <div style="margin-top:14px"><button class="btn" onclick="saveUser()">Save user</button></div>
+      </div>
+      <div class="card">
+        <h2>All users</h2>
+        <table id="usertable"><thead>
+          <tr><th>Username</th><th>Role</th><th>Dashboards</th><th></th></tr>
+        </thead><tbody></tbody></table>
+      </div>
+    </div>
+
+    <!-- ============ about ============ -->
+    <div class="view" id="view-about">
+      <h1 class="pg">About</h1>
+      <div class="pgsub">Advance Tools — plugin-based smart home toolbox.</div>
+      <div class="card" style="max-width:560px">
+        <div class="about-logo">🧰</div>
+        <div class="kv"><b>Application</b><span>Advance Tools</span></div>
+        <div class="kv"><b>Version</b><span id="ab-ver">…</span></div>
+        <div class="kv"><b>Home Assistant</b><span id="ab-ha">…</span></div>
+        <div class="kv"><b>Installed tools</b><span id="ab-tools">…</span></div>
+        <div class="kv"><b>Uptime</b><span id="ab-up">…</span></div>
+        <div class="kv"><b>Built by</b><span>Mike Fattahi</span></div>
+        <div class="kv"><b>Website</b>
+          <span><a href="https://www.fattahi.us" target="_blank"
+            rel="noopener">fattahi.us</a></span></div>
+        <div class="kv"><b>GitHub</b>
+          <span><a href="https://github.com/FreeHaTools" target="_blank"
+            rel="noopener">github.com/FreeHaTools</a></span></div>
+        <div class="kv" style="border:0"><b>Source code</b>
+          <span><a href="https://github.com/FreeHaTools/Advance-tools" target="_blank"
+            rel="noopener">github.com/FreeHaTools/Advance-tools</a></span></div>
+
+        <p class="about-desc">A plugin-based smart home toolbox for Home
+          Assistant: dashboards, automations, scenes, alerts, backups and more,
+          all behind one admin hub.</p>
+
+        <div class="about-sup">
+          <b>Support this project</b>
+          <p>Advance Tools is free and always will be. If it saved you an
+            afternoon, you can <a href="https://github.com/sponsors/FreeHaTools"
+            target="_blank" rel="noopener">buy me a coffee</a> ♥</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ tool iframe ============ -->
+    <div class="view" id="view-tool"><iframe id="toolframe"></iframe></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+let SYS = null, TOOLS = [], CFG = null, ME = null;
+
+function toast(msg, bad) {
+  const t = $('#toast');
+  t.textContent = msg; t.className = bad ? 'bad' : ''; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2600);
+}
+const esc = s => String(s ?? '').replace(/[&<>"]/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------------- navigation ---------------- */
+function go(view, tool) {
+  document.querySelectorAll('.nitem').forEach(n =>
+    n.classList.toggle('active', n.dataset.view === (tool ? 'tool-' + tool.id : view)));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  $('#toolbar').classList.remove('show');
+  if (view === 'tool' && tool) {
+    $('#view-tool').classList.add('active');
+    $('#toolbar').classList.add('show');
+    $('#tb-icon').textContent = tool.icon || '🧩';
+    $('#tb-name').textContent = tool.name;
+    if ($('#toolframe').dataset.src !== tool.page) {
+      $('#toolframe').src = tool.page;
+      $('#toolframe').dataset.src = tool.page;
+    }
+  } else {
+    $('#view-' + view).classList.add('active');
+    if (view === 'users') loadUsers();
+  }
+}
+async function logout() {
+  await fetch('/api/logout', { method: 'POST' });
+  location.href = '/';
+}
+
+/* ---------------- overview ---------------- */
+const fmtUp = s => s >= 86400 ? Math.floor(s / 86400) + 'd ' + Math.floor(s % 86400 / 3600) + 'h'
+  : s >= 3600 ? Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm'
+  : Math.floor(s / 60) + 'm';
+
+function renderStats() {
+  if (!SYS) return;
+  $('#hadot').classList.toggle('on', SYS.ha_connected);
+  $('#hatext').textContent = SYS.ha_connected
+    ? 'HA ' + (SYS.ha_version || 'connected') : 'HA disconnected';
+  $('#stats').innerHTML = `
+    <div class="stat ${SYS.ha_connected ? 'ok' : 'bad'}">
+      <div class="k">Home Assistant</div>
+      <div class="v">${SYS.ha_connected ? 'Online' : 'Offline'}</div>
+      <div class="s">${esc(SYS.ha_version || '—')}</div></div>
+    <div class="stat"><div class="k">Entities</div>
+      <div class="v">${SYS.entities}</div>
+      <div class="s">${SYS.domains} domains</div></div>
+    <div class="stat"><div class="k">Automations</div>
+      <div class="v">${SYS.automations}</div>
+      <div class="s">in Home Assistant</div></div>
+    <div class="stat"><div class="k">Dashboards</div>
+      <div class="v">${SYS.dashboards}</div>
+      <div class="s">${SYS.users} users · ${SYS.admins} admins</div></div>
+    <div class="stat"><div class="k">Advance Tools</div>
+      <div class="v">v${esc(SYS.version)}</div>
+      <div class="s">up ${fmtUp(SYS.uptime)} · ${SYS.tools} tools</div></div>`;
+  $('#ab-ver').textContent = 'v' + SYS.version;
+  $('#ab-ha').textContent = (SYS.ha_connected ? 'connected · ' : 'disconnected · ')
+    + (SYS.ha_version || '—');
+  $('#ab-tools').textContent = SYS.tools;
+  $('#ab-up').textContent = fmtUp(SYS.uptime);
+}
+
+function renderTools() {
+  $('#toolnav').innerHTML = TOOLS.map(t => `
+    <div class="nitem" data-view="tool-${esc(t.id)}">
+      <span class="ic">${t.icon || '🧩'}</span><span class="tx">${esc(t.name)}</span>
+    </div>`).join('');
+  [...$('#toolnav').children].forEach((el, i) =>
+    el.onclick = () => go('tool', TOOLS[i]));
+  $('#toolgrid').innerHTML = TOOLS.map(t => `
+    <div class="tool" data-id="${esc(t.id)}">
+      <span class="go">→</span>
+      <div class="ti" style="background:color-mix(in srgb, ${esc(t.color || '#4f8cff')} 18%, transparent)">${t.icon || '🧩'}</div>
+      <b>${esc(t.name)}</b>
+      <p>${esc(t.description || '')}</p>
+      <span class="ver">v${esc(t.version || '?')}</span>
+    </div>`).join('');
+  [...$('#toolgrid').children].forEach((el, i) =>
+    el.onclick = () => go('tool', TOOLS[i]));
+}
+
+/* ---------------- users ---------------- */
+async function loadUsers() {
+  CFG = await (await fetch('/api/admin/config')).json();
+  const dashes = Object.entries(CFG.dashboards || {});
+  $('#u-dashes').innerHTML = (dashes.length ? dashes.map(([slug, d]) =>
+    `<label><input type="checkbox" class="udash" value="${esc(slug)}">
+      ${esc(d.name || slug)}</label>`).join('')
+    : '<span style="font-size:12px;color:var(--mut)">No dashboards yet — create some in Dashboard Maker.</span>')
+    + `<label><input type="checkbox" class="udash" value="*"> All (★)</label>`;
+  const tb = $('#usertable tbody');
+  // data-label feeds the stacked-card layout used below 640px (see the CSS).
+  tb.innerHTML = Object.entries(CFG.users || {}).map(([n, u]) => `
+    <tr><td data-label="Username"><b>${esc(n)}</b></td>
+      <td data-label="Role">${u.is_admin ? '<span class="chip adm">Admin</span>'
+                       : '<span class="chip">User</span>'}</td>
+      <td data-label="Dashboards">${(u.dashboards || []).map(d =>
+            `<span class="chip">${esc(d === '*' ? 'All ★' : d)}</span>`).join(' ') || '—'}</td>
+      <td class="actions">
+        <button class="ghost" aria-label="Edit user"
+          onclick='editUser(${JSON.stringify(n)})'>✏️</button>
+        <button class="ghost danger" aria-label="Delete user"
+          onclick='delUser(${JSON.stringify(n)})'>🗑</button>
+      </td></tr>`).join('');
+}
+function editUser(name) {
+  const u = CFG.users[name];
+  $('#u-name').value = name;
+  $('#u-pass').value = '';
+  $('#u-admin').checked = !!u.is_admin;
+  document.querySelectorAll('.udash').forEach(c =>
+    c.checked = (u.dashboards || []).includes(c.value));
+  // The page itself never scrolls (body is overflow:hidden) — the active view
+  // is the scroll container, which matters on phones where the form is offscreen.
+  $('#view-users').scrollTo({ top: 0, behavior: 'smooth' });
+  $('#u-name').focus();
+}
+async function saveUser() {
+  const username = $('#u-name').value.trim();
+  if (!username) { toast('Username required', true); return; }
+  const dashboards = [...document.querySelectorAll('.udash:checked')].map(c => c.value);
+  const r = await fetch('/api/admin/users', { method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ username, password: $('#u-pass').value,
+      is_admin: $('#u-admin').checked, dashboards }) });
+  const d = await r.json();
+  if (!r.ok) { toast(d.error || 'save failed', true); return; }
+  toast('User saved ✓');
+  $('#u-name').value = ''; $('#u-pass').value = ''; $('#u-admin').checked = false;
+  loadUsers();
+}
+async function delUser(name) {
+  if (!confirm(`Delete user "${name}"?`)) return;
+  const r = await fetch('/api/admin/users/' + encodeURIComponent(name),
+                        { method: 'DELETE' });
+  const d = await r.json();
+  if (!r.ok) { toast(d.error || 'delete failed', true); return; }
+  toast('User deleted'); loadUsers();
+}
+
+/* ---------------- boot ---------------- */
+async function refresh() {
+  try {
+    SYS = await (await fetch('/api/admin/system')).json();
+    renderStats();
+  } catch (e) {}
+}
+async function boot() {
+  try {
+    ME = await (await fetch('/api/me')).json();
+    $('#hellosub').textContent =
+      `Welcome back, ${ME.username} — here's what's running.`;
+  } catch (e) {}
+  try {
+    TOOLS = (await (await fetch('/api/tools')).json()).tools || [];
+    renderTools();
+  } catch (e) {}
+  await refresh();
+  setInterval(refresh, 15000);
+}
+boot();
+</script>
+<script src="/static/pwa.js" defer></script>
+</body>
+</html>

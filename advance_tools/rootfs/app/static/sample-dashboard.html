@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>__NAME__</title>
+<style>
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:#0f1420; color:#e8edf7; min-height:100vh; padding:20px; }
+  header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  h1 { font-size:22px; }
+  .logout { background:#243049; color:#8b98b8; border:0; padding:8px 16px;
+            border-radius:8px; cursor:pointer; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:14px; }
+  .card { background:#1a2233; border:1px solid #2a3550; border-radius:14px; padding:18px;
+          cursor:pointer; transition:.15s; user-select:none; }
+  .card.on { background:#2a3550; border-color:#4f8cff; }
+  .card .icon { font-size:30px; }
+  .card .name { font-size:13px; color:#8b98b8; margin-top:10px; }
+  .card .state { font-size:16px; margin-top:4px; }
+  .empty { color:#8b98b8; text-align:center; margin-top:60px; line-height:2; }
+</style>
+</head>
+<body>
+<header>
+  <h1>__NAME__</h1>
+  <button class="logout" onclick="HAPanel.logout()">Logout</button>
+</header>
+<div class="grid" id="grid"></div>
+<div class="empty" id="empty" style="display:none">
+  No entities are assigned to this dashboard yet.<br>
+  Add allowed entities for it in the admin panel,<br>
+  or replace this HTML with your own design.
+</div>
+<script>
+/* Sample dashboard: renders a toggle card for every allowed entity.
+   Replace this whole file with your own design — HAPanel API docs are in DOCS. */
+function render() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  const ids = Object.keys(HAPanel.states()).sort();
+  document.getElementById('empty').style.display = ids.length ? 'none' : 'block';
+  for (const id of ids) {
+    const st = HAPanel.state(id);
+    const card = document.createElement('div');
+    card.className = 'card' + (st.state === 'on' ? ' on' : '');
+    const icon = id.startsWith('light.') ? '💡' : id.startsWith('switch.') ? '🔌'
+               : id.startsWith('climate.') ? '🌡️' : id.startsWith('sensor.') ? '📊' : '⚙️';
+    const name = (st.attributes && st.attributes.friendly_name) || id;
+    card.innerHTML = `<div class="icon">${icon}</div><div class="name">${name}</div>
+                      <div class="state">${st.state}</div>`;
+    const domain = id.split('.')[0];
+    if (['light','switch','fan','input_boolean'].includes(domain)) {
+      card.onclick = () => HAPanel.call(domain, 'toggle', { entity_id: id });
+    }
+    grid.appendChild(card);
+  }
+}
+HAPanel.ready(() => { render(); HAPanel.on('*', render); });
+</script>
+</body>
+</html>

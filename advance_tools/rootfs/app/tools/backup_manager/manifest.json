@@ -1,0 +1,9 @@
+{
+  "id": "backup_manager",
+  "name": "Backup Manager",
+  "icon": "💾",
+  "color": "#5aa9ff",
+  "description": "See, create, schedule and download Supervisor backups. Full or partial backups on a weekly schedule with automatic cleanup of old ones — so a bad update never costs you your smart home.",
+  "page": "/tools/backup_manager/",
+  "version": "1.0.0"
+}

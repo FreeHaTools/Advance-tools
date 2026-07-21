@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Announce &amp; Intercom — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#b17aff; --acc2:#22b8cf;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --hover:rgba(34,184,207,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--acc2),var(--acc)); }
+  header h1 { font-size:16px; flex:1; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc2); }
+  .btn { background:linear-gradient(135deg,var(--acc2),var(--acc)); color:#06121f;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+  .btn.sm { padding:8px 15px; font-size:12.5px; }
+  .btn[disabled] { opacity:.5; cursor:default; }
+
+  main { padding:20px 22px 60px; max-width:980px; margin:0 auto; }
+
+  .topbar { display:flex; align-items:center; margin-bottom:14px; }
+  .stat { font-size:12px; color:var(--mut); margin-left:auto; }
+  .stat .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+            background:var(--bad); margin-right:5px; }
+  .stat .dot.ok { background:var(--good); }
+
+  /* ---- cards ---- */
+  .card { background:var(--card); border:1px solid var(--line);
+          border-radius:14px; padding:16px 18px; box-shadow:var(--shadow);
+          margin-bottom:16px; }
+  .cardhead { display:flex; align-items:center; gap:10px; margin-bottom:12px;
+          flex-wrap:wrap; }
+  .cardhead h2 { font-size:14px; flex:1; display:flex; align-items:center; }
+  .cardhead .kbd-note { font-size:11px; color:var(--mut); }
+  .kbd { border:1px solid var(--line); border-bottom-width:2px; border-radius:5px;
+         padding:0 5px; font-size:10.5px; font-family:Consolas, monospace;
+         color:var(--mut); }
+
+  /* ---- composer ---- */
+  #msg { width:100%; min-height:96px; padding:13px 15px; border-radius:12px;
+         border:1px solid var(--line); background:var(--input); color:var(--txt);
+         font-size:16px; line-height:1.6; resize:vertical; }
+  #msg:focus { outline:none; border-color:var(--acc2); }
+  .quick { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .qchip { display:inline-flex; align-items:center; gap:6px; font-size:12.5px;
+         color:var(--txt); background:var(--input); border:1px solid var(--line);
+         border-radius:20px; padding:7px 14px; cursor:pointer; user-select:none;
+         max-width:100%; }
+  .qchip span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .qchip:hover { border-color:var(--acc2); background:var(--hover); }
+  .qchip.pop { animation:pop .3s ease; }
+  @keyframes pop { 40% { transform:scale(1.12); } }
+
+  /* ---- speaker tiles ---- */
+  #speakerGrid { display:grid;
+         grid-template-columns:repeat(auto-fill, minmax(215px,1fr)); gap:10px; }
+  .tile { background:var(--input); border:2px solid var(--line);
+         border-radius:13px; padding:12px 13px; cursor:pointer;
+         position:relative; user-select:none; }
+  .tile:hover { border-color:var(--acc2); }
+  .tile.sel { border-color:var(--acc2); background:rgba(34,184,207,.07); }
+  .vchips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .vchip { font-size:12px; padding:6px 13px; border-radius:16px;
+           border:1px solid var(--line); background:var(--input);
+           color:var(--mut); cursor:pointer; }
+  .vchip:hover { color:var(--txt); border-color:var(--acc2); }
+  .vchip.on { color:#03212a; background:var(--acc2);
+              border-color:var(--acc2); font-weight:700; }
+  .tile.offst { opacity:.72; }
+  .tile.dead { opacity:.45; cursor:not-allowed; }
+  .tile.dead:hover { border-color:var(--line); }
+  .tilenote { font-size:10.5px; color:var(--warn); line-height:1.6;
+              margin-top:6px; }
+  .tile.dead .tilenote { color:var(--mut); }
+  .tile .check { position:absolute; top:9px; right:9px; width:20px; height:20px;
+         border-radius:50%; background:var(--acc2); color:#06121f; display:none;
+         align-items:center; justify-content:center; font-size:12px;
+         font-weight:700; }
+  .tile.sel .check { display:flex; }
+  .tile .trow { display:flex; align-items:center; gap:9px; }
+  .tile .ticon { font-size:20px; }
+  .tile .tname { font-size:13px; font-weight:600; flex:1; min-width:0;
+         overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+         padding-right:16px; }
+  .badge { font-size:9.5px; padding:2px 8px; border-radius:20px;
+         border:1px solid var(--line); color:var(--mut); margin-top:6px;
+         display:inline-block; text-transform:uppercase; letter-spacing:.06em; }
+  .badge.playing { color:var(--good); border-color:rgba(62,207,142,.5); }
+  .badge.on { color:var(--acc2); border-color:rgba(34,184,207,.5); }
+  .badge.off { color:var(--mut); }
+  .badge.unavailable { color:var(--warn); border-color:rgba(255,184,107,.5); }
+  .tile .volrow { display:flex; align-items:center; gap:7px; margin-top:9px; }
+  .tile .volrow .vi { font-size:12px; color:var(--mut); flex:0 0 auto; }
+  input[type=range] { accent-color:var(--acc2); }
+  .tile input[type=range] { flex:1; min-width:0; }
+  .mvol { display:flex; align-items:center; gap:10px; margin-bottom:14px;
+         background:var(--input); border:1px solid var(--line);
+         border-radius:11px; padding:9px 14px; }
+  .mvol .lbl { font-size:12px; color:var(--mut); display:flex;
+         align-items:center; flex:0 0 auto; }
+  .mvol input[type=range] { flex:1; }
+  .mvol b { font-size:12px; min-width:38px; text-align:right; }
+
+  /* ---- options row ---- */
+  .optrow { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:700px){ .optrow { grid-template-columns:1fr; } }
+  label { font-size:12px; color:var(--mut); display:flex; align-items:center;
+          margin:0 0 6px; }
+  select { width:100%; padding:9px 12px; border-radius:10px;
+          border:1px solid var(--line); background:var(--input);
+          color:var(--txt); font-size:13.5px; }
+  select:focus { outline:none; border-color:var(--acc2); }
+  input[type=text] { width:100%; padding:9px 12px; border-radius:10px;
+          border:1px solid var(--line); background:var(--input);
+          color:var(--txt); font-size:13.5px; }
+  input[type=text]:focus { outline:none; border-color:var(--acc2); }
+  .nchip { display:inline-flex; align-items:center; gap:6px; font-size:12px;
+          color:var(--mut); background:var(--input); border:1px solid var(--line);
+          border-radius:20px; padding:6px 13px; cursor:pointer; user-select:none; }
+  .nchip:hover { color:var(--txt); border-color:var(--acc2); }
+  .nchip.on { color:#06121f; background:var(--acc2); border-color:var(--acc2);
+          font-weight:700; }
+
+  /* ---- send button ---- */
+  #sendBtn { display:block; width:100%; margin:4px 0 18px; padding:17px;
+          font-size:17px; font-weight:800; letter-spacing:.03em; border:0;
+          border-radius:14px; cursor:pointer; color:#06121f;
+          background:linear-gradient(135deg,var(--acc2),var(--acc));
+          position:relative; overflow:hidden; box-shadow:var(--shadow); }
+  #sendBtn:active { transform:scale(.99); }
+  #sendBtn[disabled] { opacity:.55; cursor:default; }
+  #sendBtn.boom { animation:boom .5s ease; }
+  @keyframes boom {
+    30% { transform:scale(1.015); box-shadow:0 0 0 14px rgba(62,207,142,.14); }
+    100% { box-shadow:0 0 0 0 rgba(62,207,142,0); } }
+  #sendBtn .ripple { position:absolute; border-radius:50%; transform:scale(0);
+          background:rgba(255,255,255,.45); animation:rip .55s ease-out;
+          pointer-events:none; }
+  @keyframes rip { to { transform:scale(4); opacity:0; } }
+
+  /* ---- history ---- */
+  .hitem { display:flex; align-items:center; gap:10px; background:var(--input);
+          border:1px solid var(--line); border-radius:11px; padding:10px 13px;
+          margin-bottom:7px; }
+  .hitem .hmark { font-size:13px; flex:0 0 auto; }
+  .hitem .hmsg { flex:1; min-width:0; font-size:13px; overflow:hidden;
+          text-overflow:ellipsis; white-space:nowrap; }
+  .hitem .hmeta { font-size:10.5px; color:var(--mut); flex:0 0 auto;
+          text-align:right; line-height:1.5; }
+  .iconbtn { background:none; border:0; color:var(--mut); cursor:pointer;
+          font-size:14px; padding:3px 7px; border-radius:7px; flex:0 0 auto; }
+  .iconbtn:hover { color:var(--txt); background:var(--hover); }
+
+  .empty { text-align:center; color:var(--mut); padding:28px 12px;
+          font-size:13px; line-height:2; grid-column:1/-1; }
+  .notewarn { color:var(--warn); font-size:12.5px;
+          background:rgba(255,184,107,.08);
+          border:1px solid rgba(255,184,107,.35); border-radius:10px;
+          padding:11px 14px; margin-top:10px; line-height:1.8; }
+
+  /* ---- hint (tooltip) system ---- */
+  .hint { display:inline-flex; align-items:center; justify-content:center;
+          width:16px; height:16px; border-radius:50%; border:1px solid var(--line);
+          background:var(--input); color:var(--mut); font-size:10px;
+          font-weight:700; cursor:help; margin-left:6px; vertical-align:1px;
+          user-select:none; flex:0 0 auto; }
+  .hint:hover { color:var(--acc2); border-color:var(--acc2); }
+  #tipbox { position:fixed; z-index:400; width:min(92vw, 360px);
+            background:#0d1424; border:1px solid var(--acc2); border-radius:14px;
+            padding:14px 16px; box-shadow:0 14px 40px rgba(0,0,0,.6);
+            display:none; font-size:12.5px; line-height:1.75; }
+  #tipbox b.t { display:block; color:var(--acc2); font-size:13px;
+                margin-bottom:4px; }
+  #tipbox .ex { margin-top:8px; background:var(--input); border:1px solid
+                var(--line); border-left:3px solid var(--acc); border-radius:8px;
+                padding:8px 11px; font-family:Consolas, monospace; font-size:11.5px;
+                white-space:pre-wrap; color:#e2d4f7; }
+  #tipbox .ex::before { content:'EXAMPLE'; display:block; font-family:"Segoe UI";
+                font-size:9px; letter-spacing:.12em; color:var(--mut);
+                margin-bottom:3px; }
+
+  /* ---- modals ---- */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.72); display:none;
+           z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+           padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(97vw, 680px); margin:0 auto;
+          padding:24px; box-shadow:var(--shadow); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead .micon { width:34px; height:34px; border-radius:10px; display:flex;
+          align-items:center; justify-content:center; font-size:17px;
+          background:var(--input); border:1px solid var(--line); }
+  .mhead h2 { font-size:17px; flex:1; }
+  .msub { color:var(--mut); font-size:12px; margin-bottom:16px; line-height:1.7; }
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:20px;
+           align-items:center; flex-wrap:wrap; }
+  .mfoot .sp { flex:1; }
+  .msect { font-size:10.5px; color:var(--mut); text-transform:uppercase;
+           letter-spacing:.12em; margin:18px 0 8px; }
+
+  /* quick-message editor */
+  .qrow { display:flex; gap:7px; margin-bottom:7px; align-items:center; }
+  .qrow input { flex:1; }
+  .addline { display:inline-flex; align-items:center; gap:6px; font-size:12px;
+        color:var(--mut); background:var(--input); border:1px dashed var(--line);
+        border-radius:20px; padding:6px 13px; cursor:pointer; user-select:none;
+        margin-top:2px; }
+  .addline:hover { color:var(--txt); border-color:var(--acc2);
+        border-style:solid; }
+  .defline { display:flex; align-items:center; gap:10px; background:var(--input);
+        border:1px solid var(--line); border-radius:10px; padding:10px 13px;
+        font-size:12.5px; flex-wrap:wrap; }
+  .defline .dtxt { flex:1; color:var(--mut); line-height:1.7; min-width:180px; }
+  .defline .dtxt b { color:var(--txt); }
+
+  /* ---- learn panel ---- */
+  .learn h3 { font-size:12px; color:var(--acc2); text-transform:uppercase;
+        letter-spacing:.1em; margin:18px 0 7px; }
+  .learn p { font-size:13.5px; line-height:1.9; color:var(--txt); }
+  .learn ul { margin:4px 0 0 20px; }
+  .learn li { font-size:13px; line-height:1.9; color:var(--txt); }
+  .learn pre { background:#0a0f1c; border:1px solid var(--line);
+        border-left:3px solid var(--acc); border-radius:10px; padding:12px 15px;
+        font-family:Consolas, monospace; font-size:11.5px; line-height:1.7;
+        white-space:pre-wrap; color:#e2d4f7; overflow-x:auto; margin-top:6px; }
+
+  /* ---- toasts ---- */
+  #toasts { position:fixed; right:18px; bottom:18px; z-index:500; display:flex;
+        flex-direction:column; gap:8px; }
+  .toast { background:var(--bg2); border:1px solid var(--good); color:var(--txt);
+        border-radius:12px; padding:11px 16px; font-size:13px;
+        box-shadow:0 10px 30px rgba(0,0,0,.5); animation:tin .2s ease;
+        max-width:340px; line-height:1.6; }
+  .toast.bad { border-color:var(--bad); }
+  @keyframes tin { from { opacity:0; transform:translateY(8px); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📢</div>
+  <h1>Announce &amp; Intercom<small>speak to every room — TTS announcements, volume control and phone pings</small></h1>
+  <a class="ghost" href="/admin" target="_top">← Hub</a>
+  <button class="ghost" id="learnBtn">📖 Learn</button>
+  <button class="ghost" id="settingsBtn" title="Quick messages &amp; defaults">⚙</button>
+</header>
+
+<main>
+  <div class="topbar">
+    <span class="stat" id="connStat"><span class="dot"></span>connecting…</span>
+  </div>
+
+  <!-- composer -->
+  <section class="card">
+    <div class="cardhead">
+      <h2>📝 Message<span id="msgHint"></span></h2>
+      <span class="kbd-note"><span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> to send</span>
+    </div>
+    <textarea id="msg" placeholder="Type your announcement…" maxlength="1000"></textarea>
+    <div class="quick" id="quickChips"></div>
+  </section>
+
+  <!-- speakers -->
+  <section class="card">
+    <div class="cardhead">
+      <h2>🔊 Speakers<span id="spkHint"></span></h2>
+      <button class="ghost" id="selAll">Select all</button>
+      <button class="ghost" id="selNone">None</button>
+    </div>
+    <div class="mvol" id="mvolRow">
+      <span class="lbl">🔉 Master volume<span id="mvolHint"></span></span>
+      <input type="range" id="masterVol" min="0" max="1" step="0.01" value="0.5">
+      <b id="masterVolVal">50%</b>
+    </div>
+    <div id="speakerGrid"><div class="empty">Loading speakers…</div></div>
+  </section>
+
+  <!-- engine + phones -->
+  <section class="card optrow">
+    <div>
+      <label>🗣 TTS engine<span id="engHint"></span></label>
+      <select id="engine"></select>
+      <div class="notewarn" id="engineEmpty" style="display:none">
+        No TTS engine found. Announcements need a text-to-speech integration —
+        open the <b>📖 Learn</b> guide to add one in two minutes (Google
+        Translate TTS is free). Phone notifications below still work.
+      </div>
+      <div class="vchips" id="voiceRow" style="display:none"></div>
+    </div>
+    <div>
+      <label>📱 Also send to phones<span id="phHint"></span></label>
+      <div class="quick" id="notifyChips" style="margin-top:2px"></div>
+    </div>
+  </section>
+
+  <button id="sendBtn">📢 SEND ANNOUNCEMENT</button>
+
+  <!-- history -->
+  <section class="card">
+    <div class="cardhead"><h2>🕘 History<span id="histHint"></span></h2></div>
+    <div id="history"><div class="empty">No announcements yet.</div></div>
+  </section>
+</main>
+
+<!-- hover tooltip -->
+<div id="tipbox"></div>
+
+<!-- settings -->
+<div class="modal" id="settingsModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">⚙</div>
+      <h2>Settings</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub">Quick messages appear as one-tap chips under the composer.
+      Defaults are applied every time the page opens.</div>
+
+    <div class="msect">✏️ Quick messages</div>
+    <div id="qmList"></div>
+    <div class="addline" id="qmAdd">＋ Add quick message</div>
+
+    <div class="msect">📌 Defaults</div>
+    <div class="defline">
+      <div class="dtxt" id="defSummary">No defaults saved.</div>
+      <button class="ghost" id="defCapture">Use current selection</button>
+      <button class="ghost" id="defClear">Clear</button>
+    </div>
+
+    <div class="msect">📟 Dashboard intercom<span id="dashHint"></span></div>
+    <div class="defline">
+      <div class="dtxt">
+        <b>Allow dashboards to announce</b> — logged-in dashboard users
+        (wall tablets) get one-tap quick messages and a hold-to-talk
+        voice intercom on their dashboards.<br>
+        Speakers fetch voice clips from:
+        <b id="dashBase">—</b>
+      </div>
+      <button class="ghost" id="dashToggle">…</button>
+    </div>
+
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="settingsSave">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- learn -->
+<div class="modal" id="learnModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">📖</div>
+      <h2>How announcements work</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="learn">
+      <h3>What is TTS?</h3>
+      <p>Text-to-speech (TTS) turns the text you type into spoken audio and
+        plays it on your media players — Google/Nest speakers, Sonos, Alexa
+        (via integrations), TVs, and more. That's what makes this page a
+        whole-house intercom.</p>
+
+      <h3>Adding a TTS engine (2 minutes)</h3>
+      <ul>
+        <li>In Home Assistant open <b>Settings → Devices &amp; Services →
+          Add integration</b>.</li>
+        <li>Search for <b>Google Translate text-to-speech</b> — it's free and
+          needs no account.</li>
+        <li>Other options: <b>Home Assistant Cloud</b> (Nabu Casa, very natural
+          voices), <b>Piper</b> (local, private), <b>ElevenLabs</b>.</li>
+        <li>Come back here and hit refresh — the engine appears in the
+          dropdown automatically.</li>
+      </ul>
+
+      <h3>Speakers that are off or unavailable</h3>
+      <p>A speaker must be reachable to play audio. Tiles show a live state
+        badge — <b>unavailable</b> speakers will fail (you'll get a clear
+        error toast for exactly that speaker, the rest still play). Many smart
+        speakers wake up from <b>idle/off</b> automatically when TTS arrives.</p>
+
+      <h3>Intercom ideas</h3>
+      <ul>
+        <li>Announce on all speakers when dinner is ready — one tap with a
+          quick message.</li>
+        <li>Bedtime countdown: "10 minutes to lights out" to the kids' rooms.</li>
+        <li>"Car is leaving in 5 minutes" to the whole house before school.</li>
+        <li>Pair with <b>Also send to phones</b> so family members away from
+          home get it as a push notification too.</li>
+      </ul>
+
+      <h3>Dashboard Intercom widget</h3>
+      <p>Dashboards made with Dashboard Maker can talk too: any logged-in
+        dashboard user gets intercom endpoints, so a wall tablet becomes a
+        one-tap intercom station. No admin login needed on the tablet.</p>
+      <ul>
+        <li><b>Quick messages</b> — the same chips you save here appear on
+          the tablet for one-tap TTS announcements.</li>
+        <li><b>Rooms</b> — speakers are grouped by Home Assistant areas, so
+          the tablet shows "Kitchen", "Bedroom"… instead of entity ids.</li>
+        <li><b>Voice clips</b> — hold to record, release to play the real
+          recording on the chosen speakers. Browsers only allow microphone
+          access over <b>HTTPS</b>, so tablets should open the dashboard via
+          your https domain. Plain-HTTP tablets still get text and
+          quick-message TTS.</li>
+        <li>Everything a dashboard sends shows up in the <b>History</b>
+          below with the user's name.</li>
+        <li>You can turn all of this off with one switch in ⚙ Settings
+          ("Allow dashboards to announce").</li>
+      </ul>
+
+      <h3>Tips</h3>
+      <ul>
+        <li>Save the announcements you repeat as <b>quick messages</b>
+          (⚙ Settings) — one tap fills the composer.</li>
+        <li>Save your usual speakers + engine as <b>defaults</b> so the page
+          is ready to send the moment it opens.</li>
+        <li>Use the <b>master volume</b> slider before a loud announcement,
+          or per-tile sliders for a single room.</li>
+        <li>History has a ↻ button to re-send any past announcement.</li>
+      </ul>
+    </div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="btn" data-close>Got it</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<script src="/tools/announce_center/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "id": "scene_maker",
+  "name": "Scene Maker",
+  "icon": "🎬",
+  "color": "#c084fc",
+  "description": "Create Home Assistant scenes from a snapshot of your rooms — capture how everything is right now (lights, climate, covers…), fine-tune it, test it live, then save.",
+  "page": "/tools/scene_maker/",
+  "version": "1.0.0"
+}

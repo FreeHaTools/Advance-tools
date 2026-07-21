@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notify Hub — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#4fc3f7; --acc2:#7ee8fa;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --hover:rgba(79,195,247,.09); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; flex-wrap:wrap; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; min-width:170px; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#04212e;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+  .btn.sm { padding:8px 15px; font-size:12.5px; }
+  .btn.danger { background:linear-gradient(135deg,#ff6b81,#ff9d5c); color:#2a0a10; }
+  .btn[disabled] { opacity:.5; cursor:default; }
+
+  main { padding:18px 22px 60px; max-width:1180px; margin:0 auto; }
+
+  /* ---- tabs ---- */
+  .tabs { display:flex; gap:6px; border-bottom:1px solid var(--line);
+          margin-bottom:18px; flex-wrap:wrap; }
+  .tab { background:none; border:0; border-bottom:2px solid transparent;
+         color:var(--mut); padding:11px 15px; cursor:pointer; font-size:13.5px; }
+  .tab:hover { color:var(--txt); }
+  .tab.on { color:var(--acc); border-bottom-color:var(--acc); font-weight:600; }
+  .page { display:none; }
+  .page.on { display:block; }
+
+  /* ---- stat boxes ---- */
+  .stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .statbox { background:var(--card); border:1px solid var(--line);
+             border-radius:12px; padding:10px 14px; min-width:104px; }
+  .statbox b { display:block; font-size:19px; }
+  .statbox span { font-size:10px; color:var(--mut); text-transform:uppercase;
+             letter-spacing:.06em; white-space:nowrap; }
+  .statbox b.ok { color:var(--good); } .statbox b.warn { color:var(--warn); }
+  .statbox b.bad { color:var(--bad); }
+
+  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px;
+             flex-wrap:wrap; }
+  .toolbar .sp { flex:1; }
+  .search { width:240px; padding:9px 12px; border-radius:10px;
+            border:1px solid var(--line); background:var(--input);
+            color:var(--txt); font-size:13px; }
+  .search:focus { outline:none; border-color:var(--acc); }
+  .stat { font-size:12px; color:var(--mut); }
+  .stat .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+            background:var(--bad); margin-right:5px; }
+  .stat .dot.ok { background:var(--good); }
+
+  /* ---- cards ---- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+          gap:12px; }
+  .rcard { background:var(--card); border:1px solid var(--line); border-radius:14px;
+           padding:13px 15px 11px; box-shadow:var(--shadow);
+           display:flex; flex-direction:column; gap:9px; }
+  .rcard.off { opacity:.58; }
+  .rcard .top { display:flex; align-items:flex-start; gap:11px; }
+  .rcard .ticon { width:36px; height:36px; border-radius:10px; display:flex;
+           align-items:center; justify-content:center; font-size:17px;
+           background:var(--input); border:1px solid var(--line); flex:0 0 auto; }
+  .rcard .nm { flex:1; min-width:0; }
+  .rcard .nm b { display:block; font-size:14px; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .rcard .nm small { font-size:10.5px; color:var(--mut); }
+  .rcard .detail { font-size:12px; line-height:1.6; border-radius:9px;
+           padding:7px 11px; background:var(--input);
+           border:1px solid var(--line); color:var(--mut); }
+  .rcard .detail b { color:var(--txt); font-weight:600; }
+  .badges { display:flex; gap:6px; flex-wrap:wrap; }
+  .tbadge { font-size:9.5px; padding:3px 8px; border-radius:20px;
+           border:1px solid var(--line); color:var(--mut); white-space:nowrap;
+           max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+  .tbadge.warnb { color:var(--warn); border-color:var(--warn); }
+  .tbadge.okb { color:var(--good); border-color:var(--good); }
+  .tbadge.badb { color:var(--bad); border-color:var(--bad); }
+  .rcard .foot { display:flex; align-items:center; gap:4px;
+           border-top:1px solid var(--line); padding-top:8px; }
+  .rcard .foot .sp { flex:1; }
+  .iconbtn { background:none; border:0; color:var(--mut); cursor:pointer;
+           font-size:13.5px; padding:4px 8px; border-radius:7px; }
+  .iconbtn:hover { color:var(--txt); background:var(--hover); }
+  .iconbtn.danger:hover { color:var(--bad); }
+  .empty { text-align:center; color:var(--mut); padding:52px 0; font-size:14px;
+           grid-column:1/-1; line-height:2; }
+  .empty .big { font-size:44px; }
+
+  .tgl { position:relative; width:38px; height:21px; flex:0 0 auto;
+         border-radius:20px; background:var(--line); cursor:pointer;
+         transition:background .15s; border:0; padding:0; }
+  .tgl::after { content:""; position:absolute; top:2.5px; left:3px; width:16px;
+         height:16px; border-radius:50%; background:#fff; transition:left .15s; }
+  .tgl.on { background:var(--good); }
+  .tgl.on::after { left:19px; }
+
+  /* ---- panels (settings / bot) ---- */
+  .panel { background:var(--card); border:1px solid var(--line);
+           border-radius:14px; padding:18px 20px; margin-bottom:14px;
+           box-shadow:var(--shadow); }
+  .panel h3 { font-size:14.5px; margin-bottom:4px; }
+  .panel .psub { font-size:12px; color:var(--mut); line-height:1.7;
+           margin-bottom:6px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .row > div { flex:1; min-width:150px; }
+
+  /* ---- modals ---- */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.72); display:none;
+           z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+           padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(97vw, 660px); margin:0 auto;
+          padding:24px; box-shadow:var(--shadow); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead .micon { width:34px; height:34px; border-radius:10px; display:flex;
+          align-items:center; justify-content:center; font-size:17px;
+          background:var(--input); border:1px solid var(--line); }
+  .mhead h2 { font-size:17px; flex:1; }
+  .msub { color:var(--mut); font-size:12px; margin-bottom:14px; line-height:1.7; }
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:20px;
+           align-items:center; flex-wrap:wrap; }
+  .mfoot .sp { flex:1; }
+  .err { background:#3a1a22; border:1px solid #7a2a3a; color:#ff9aae;
+         border-radius:10px; padding:10px 13px; margin-top:12px; font-size:13px;
+         display:none; line-height:1.7; }
+  label { font-size:12px; color:var(--mut); display:flex; align-items:center;
+          gap:6px; margin:14px 0 5px; }
+  input[type=text], input[type=number], input[type=password], input[type=time],
+  select, textarea {
+    width:100%; padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--input); color:var(--txt); font-size:13.5px; }
+  textarea { min-height:64px; resize:vertical; line-height:1.6; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--acc); }
+  .fieldnote { font-size:11px; color:var(--mut); margin-top:4px; line-height:1.6; }
+  .qmark { width:16px; height:16px; border-radius:50%; border:1px solid var(--line);
+          color:var(--mut); font-size:10px; display:inline-flex; align-items:center;
+          justify-content:center; cursor:pointer; flex:0 0 auto; background:none; }
+  .qmark:hover { color:var(--acc2); border-color:var(--acc2); }
+
+  .types { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+           gap:9px; margin-top:6px; }
+  .ttile { background:var(--input); border:1px solid var(--line); border-radius:12px;
+           padding:11px 12px; cursor:pointer; user-select:none; }
+  .ttile:hover { border-color:var(--acc); }
+  .ttile.on { border-color:var(--acc); background:var(--hover); }
+  .ttile .ti { font-size:19px; }
+  .ttile b { display:block; font-size:12.5px; margin-top:5px; }
+  .ttile small { font-size:10.5px; color:var(--mut); line-height:1.5; display:block;
+           margin-top:2px; }
+
+  .pickwrap { border:1px solid var(--line); border-radius:11px;
+           background:var(--input); margin-top:4px; }
+  .pickbar { display:flex; align-items:center; gap:8px; padding:8px 10px;
+           border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .pickbar input[type=text] { flex:1; min-width:130px; padding:7px 10px;
+           font-size:12.5px; background:var(--bg); }
+  .pickbar .cnt { font-size:11px; color:var(--acc2); white-space:nowrap; }
+  .pickbar label.inline { margin:0; font-size:11px; gap:5px; cursor:pointer; }
+  .picklist { max-height:200px; overflow-y:auto; padding:5px; }
+  .pickitem { display:flex; align-items:center; gap:9px; padding:6px 9px;
+           border-radius:8px; cursor:pointer; }
+  .pickitem:hover { background:var(--hover); }
+  .pickitem input { accent-color:var(--acc); width:15px; height:15px;
+           flex:0 0 auto; cursor:pointer; }
+  .pickitem .pn { flex:1; min-width:0; font-size:12.5px; }
+  .pickitem .pn small { display:block; font-size:10px; color:var(--mut);
+           font-family:Consolas, monospace; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .pickitem .st { font-size:10.5px; color:var(--mut); white-space:nowrap; }
+  .picknone { padding:16px; text-align:center; color:var(--mut); font-size:12px;
+           line-height:1.7; }
+
+  .paramrow { display:flex; gap:10px; flex-wrap:wrap; }
+  .paramrow > div { flex:1; min-width:140px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .chip { background:var(--input); border:1px solid var(--line); border-radius:20px;
+          padding:6px 12px; font-size:12px; cursor:pointer; user-select:none;
+          color:var(--mut); }
+  .chip.on { border-color:var(--acc); color:var(--txt); background:var(--hover); }
+
+  details.adv { margin-top:14px; border:1px solid var(--line); border-radius:11px;
+           background:var(--input); padding:0; }
+  details.adv summary { padding:10px 13px; font-size:12.5px; color:var(--mut);
+           cursor:pointer; user-select:none; }
+  details.adv[open] summary { border-bottom:1px solid var(--line); color:var(--txt); }
+  details.adv .advbody { padding:2px 13px 13px; }
+
+  .preview { margin-top:14px; border:1px solid rgba(62,207,142,.3);
+           background:rgba(62,207,142,.06); border-radius:11px; padding:11px 13px;
+           font-size:12.5px; line-height:1.7; }
+  .preview b { color:var(--good); }
+  .yamlbtn { font-size:11px; color:var(--mut); cursor:pointer; background:none;
+           border:0; text-decoration:underline; padding:0; margin-top:6px; }
+  .yamlbtn:hover { color:var(--acc2); }
+  pre.yaml { display:none; margin-top:8px; background:var(--bg); border:1px solid
+           var(--line); border-radius:9px; padding:10px 12px; font-size:11px;
+           font-family:Consolas, monospace; overflow-x:auto; line-height:1.6;
+           color:var(--mut); max-height:220px; overflow-y:auto; }
+  pre.yaml.open { display:block; }
+
+  /* ---- history ---- */
+  .logrow { display:flex; gap:11px; align-items:flex-start; padding:10px 13px;
+           border:1px solid var(--line); border-radius:11px; background:var(--card);
+           margin-bottom:8px; }
+  .logrow .lic { font-size:16px; flex:0 0 auto; }
+  .logrow .lb { flex:1; min-width:0; }
+  .logrow .lb b { font-size:13px; }
+  .logrow .lb p { font-size:12px; color:var(--mut); line-height:1.6;
+           margin-top:3px; white-space:pre-wrap; word-break:break-word; }
+  .logrow .lt { font-size:10.5px; color:var(--mut); white-space:nowrap; }
+
+  /* ---- steps (telegram guide) ---- */
+  ol.steps { margin:8px 0 0 18px; font-size:12.5px; color:var(--mut);
+           line-height:1.9; }
+  ol.steps b { color:var(--txt); }
+  code { background:var(--input); border:1px solid var(--line); border-radius:6px;
+           padding:1px 6px; font-family:Consolas, monospace; font-size:11.5px;
+           color:var(--acc2); }
+
+  #toasts { position:fixed; right:18px; bottom:18px; z-index:500; display:flex;
+        flex-direction:column; gap:8px; }
+  .toast { background:var(--bg2); border:1px solid var(--good); color:var(--txt);
+        border-radius:12px; padding:11px 16px; font-size:13px;
+        box-shadow:0 10px 30px rgba(0,0,0,.5); animation:tin .2s ease;
+        max-width:360px; line-height:1.6; }
+  .toast.bad { border-color:var(--bad); }
+  @keyframes tin { from { opacity:0; transform:translateY(8px); } }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .spinning { display:inline-block; animation:spin 1s linear infinite; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🔔</div>
+  <h1>Notify Hub<small>rules, channels and your own Telegram bot — one place for every notification</small></h1>
+  <a class="ghost" href="/admin" target="_top">← Hub</a>
+  <button class="ghost" id="muteBtn">🔕 Mute</button>
+  <button class="btn" id="newBtn">➕ New rule</button>
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="tab on" data-page="rules">🔔 Rules</button>
+    <button class="tab" data-page="channels">📡 Channels</button>
+    <button class="tab" data-page="bot">🤖 Telegram bot</button>
+    <button class="tab" data-page="history">🕘 History</button>
+  </div>
+
+  <!-- ---------------------------------------------------------- rules -->
+  <section class="page on" id="page-rules">
+    <div class="stats" id="stats"></div>
+    <div class="toolbar">
+      <input class="search" id="ruleSearch" type="text" placeholder="Search rules…">
+      <div class="sp"></div>
+      <span class="stat" id="connStat"><span class="dot"></span>connecting…</span>
+    </div>
+    <div class="cards" id="ruleList"><div class="empty">Loading rules…</div></div>
+
+    <div class="panel" style="margin-top:18px">
+      <h3>🌙 Quiet hours</h3>
+      <div class="psub">Between these times only rules marked <b>urgent</b> are
+        delivered — everything else is skipped and noted in the history.
+        Leave both empty to switch quiet hours off.</div>
+      <div class="row">
+        <div><label>From</label><input type="time" id="quietStart"></div>
+        <div><label>Until</label><input type="time" id="quietEnd"></div>
+        <div style="flex:0 0 auto"><label>&nbsp;</label>
+          <button class="btn sm" id="saveQuiet">Save</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------- channels -->
+  <section class="page" id="page-channels">
+    <div class="toolbar">
+      <span class="stat">Channels are the places a notification can go. Add one
+        for every phone, chat or service you want to reach.</span>
+      <div class="sp"></div>
+      <button class="btn sm" id="newChanBtn">➕ New channel</button>
+    </div>
+    <div class="cards" id="chanList"><div class="empty">Loading channels…</div></div>
+  </section>
+
+  <!-- ------------------------------------------------------------ bot -->
+  <section class="page" id="page-bot">
+    <div class="panel">
+      <h3>🤖 Your Telegram bot</h3>
+      <div class="psub">A bot is a free Telegram account that belongs to you.
+        Notify Hub uses it to send messages — and, if you let it, to answer
+        commands from your phone.</div>
+      <ol class="steps">
+        <li>In Telegram, open a chat with <b>@BotFather</b>.</li>
+        <li>Send <code>/newbot</code> and follow the two questions (a name and a
+          username ending in <code>bot</code>).</li>
+        <li>BotFather replies with a token like
+          <code>123456789:AAE…</code> — paste it below and press Save.</li>
+        <li>Open a chat with your new bot and send it <code>/start</code>.
+          Then press <b>Find my chats</b> to pick up your chat ID.</li>
+      </ol>
+      <label>Bot token
+        <button class="qmark" data-tip="token">?</button></label>
+      <input type="password" id="botToken" placeholder="leave empty to keep the saved token"
+             autocomplete="new-password">
+      <div class="fieldnote" id="tokenState">No token saved yet.</div>
+      <div class="row" style="margin-top:12px">
+        <div style="flex:0 0 auto"><button class="btn sm" id="saveToken">Save token</button></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="testBot">Check bot</button></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="clearToken">Remove token</button></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>💬 Who may command the bot</h3>
+      <div class="psub">Only these chat IDs can use commands. Anyone else gets a
+        polite refusal — and is told their own chat ID, so you can add them here
+        on purpose. Group chats work too: add the bot to the group, send
+        <code>/start</code> there, then press Find my chats.</div>
+      <div class="row">
+        <div><label>Chat IDs (one per line)</label>
+          <textarea id="allowChats" placeholder="123456789"></textarea></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div style="flex:0 0 auto"><button class="ghost" id="findChats">🔍 Find my chats</button></div>
+        <div style="flex:0 0 auto"><button class="btn sm" id="saveAllow">Save</button></div>
+      </div>
+      <div id="chatFound" class="fieldnote"></div>
+    </div>
+
+    <div class="panel">
+      <h3>🎛️ Quick controls</h3>
+      <div class="psub">Devices picked here appear as buttons when you send
+        <code>/control</code> to the bot. Tapping one toggles it — nothing else
+        can be controlled from Telegram, so pick only what you trust.</div>
+      <div class="pickwrap">
+        <div class="pickbar">
+          <input type="text" id="ctlSearch" placeholder="Search lights, switches, locks…">
+          <span class="cnt" id="ctlCount">0 selected</span>
+        </div>
+        <div class="picklist" id="ctlList"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div style="flex:0 0 auto"><button class="btn sm" id="saveControls">Save controls</button></div>
+        <div style="flex:1"><span class="stat" id="botStat"></span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>📖 What the bot understands</h3>
+      <div class="psub">
+        <code>/status</code> — how the house is right now<br>
+        <code>/rules</code> — your rules, tap one to switch it on or off<br>
+        <code>/control</code> — buttons for the devices above<br>
+        <code>/find kitchen</code> — look up any entity and its state<br>
+        <code>/mute 2h</code> and <code>/unmute</code> — pause non-urgent alerts<br>
+        <code>/log</code> — the last few notifications that went out<br>
+        <code>/help</code> — the same list, inside Telegram
+      </div>
+    </div>
+  </section>
+
+  <!-- -------------------------------------------------------- history -->
+  <section class="page" id="page-history">
+    <div class="toolbar">
+      <span class="stat">Everything Notify Hub sent — or deliberately skipped.</span>
+      <div class="sp"></div>
+      <button class="ghost" id="clearLog">Clear history</button>
+    </div>
+    <div id="logList"><div class="empty">Loading…</div></div>
+  </section>
+</main>
+
+<!-- ------------------------------------------------------- rule modal -->
+<div class="modal" id="ruleModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon" id="ruleIcon">🔔</div>
+      <h2 id="ruleTitle">New rule</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub">Choose what should trigger a message, then who gets it.</div>
+
+    <label>Rule type</label>
+    <div class="types" id="typeTiles"></div>
+
+    <div id="ruleForm" style="display:none">
+      <label>Name</label>
+      <input type="text" id="ruleName" placeholder="e.g. Front door opened at night">
+
+      <div id="paramBox"></div>
+
+      <label>Send it to
+        <button class="qmark" data-tip="channels">?</button></label>
+      <div class="pickwrap">
+        <div class="picklist" id="chanPick" style="max-height:170px"></div>
+      </div>
+
+      <details class="adv" id="textBox">
+        <summary>✏️ Customise the wording (optional)</summary>
+        <div class="advbody">
+          <label>Title</label>
+          <input type="text" id="cusTitle" placeholder="leave empty for the automatic title">
+          <label>Message</label>
+          <textarea id="cusMsg" placeholder="leave empty for the automatic message"></textarea>
+          <div class="fieldnote" id="tplNote">Home Assistant templates work here —
+            <b>{{ trigger.to_state.attributes.friendly_name }}</b> becomes the
+            entity's name and <b>{{ trigger.to_state.state }}</b> its state.</div>
+        </div>
+      </details>
+
+      <details class="adv">
+        <summary>⚙️ Delivery options</summary>
+        <div class="advbody">
+          <div class="paramrow">
+            <div><label>Don't repeat within (minutes)</label>
+              <input type="number" id="cooldown" min="0" value="0"></div>
+            <div><label>&nbsp;</label>
+              <label class="inline" style="margin:0"><input type="checkbox" id="urgent">
+                urgent — ignore mute and quiet hours</label></div>
+          </div>
+          <div class="fieldnote">A cooldown of 0 means every trigger sends a
+            message. Set 15 and a chatty sensor can only reach you four times
+            an hour.</div>
+        </div>
+      </details>
+
+      <div class="preview" id="previewBox" style="display:none">
+        <div id="previewText"></div>
+        <button class="yamlbtn" id="yamlToggle">show the automation this creates ▾</button>
+        <pre class="yaml" id="yamlPre"></pre>
+      </div>
+    </div>
+
+    <div class="err" id="ruleErr"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="saveRule">Save rule</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------------------------------------------------- channel modal -->
+<div class="modal" id="chanModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon" id="chanIcon">📡</div>
+      <h2 id="chanTitle">New channel</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub">Where should notifications arrive?</div>
+
+    <label>Channel type</label>
+    <div class="types" id="chanTiles"></div>
+
+    <div id="chanForm" style="display:none">
+      <label>Name</label>
+      <input type="text" id="chanName" placeholder="e.g. My phone">
+      <div id="chanFields"></div>
+    </div>
+
+    <div class="err" id="chanErr"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="saveChan">Save channel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<script src="/tools/notify_hub/static/app.js"></script>
+</body>
+</html>

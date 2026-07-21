@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entity Doctor — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#ff8fa3; --acc2:#22b8cf;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --hover:rgba(255,143,163,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .ghost.on { color:var(--acc); border-color:var(--acc);
+           background:rgba(255,143,163,.1); }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#1f040a;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+  .btn.sm { padding:8px 15px; font-size:12.5px; }
+  .btn.danger { background:linear-gradient(135deg,#ff6b81,#ff9d5c); }
+  .btn[disabled] { opacity:.5; cursor:default; }
+
+  main { padding:20px 22px 110px; max-width:1180px; margin:0 auto; }
+
+  /* ---- health banner ---- */
+  .banner { display:flex; align-items:center; gap:22px; background:var(--card);
+            border:1px solid var(--line); border-radius:16px; padding:18px 22px;
+            margin-bottom:16px; box-shadow:var(--shadow); flex-wrap:wrap; }
+  .ring { width:92px; height:92px; border-radius:50%; display:flex; flex:0 0 auto;
+          align-items:center; justify-content:center; position:relative; }
+  .ring b { font-size:23px; } .ring small { font-size:9px; color:var(--mut); }
+  .ring .inner { width:72px; height:72px; border-radius:50%; background:var(--card);
+          display:flex; flex-direction:column; align-items:center;
+          justify-content:center; }
+  .bannertxt { flex:1; min-width:220px; }
+  .bannertxt h2 { font-size:17px; margin-bottom:4px; }
+  .bannertxt p { font-size:12.5px; color:var(--mut); line-height:1.8; }
+  .bannertxt p b { color:var(--txt); }
+
+  /* ---- category stat boxes ---- */
+  .stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .statbox { background:var(--card); border:1px solid var(--line);
+             border-radius:12px; padding:10px 14px; min-width:104px;
+             cursor:pointer; user-select:none; }
+  .statbox:hover { border-color:var(--acc); }
+  .statbox.on { border-color:var(--acc); background:var(--hover); }
+  .statbox b { display:block; font-size:19px; }
+  .statbox span { font-size:10px; color:var(--mut); text-transform:uppercase;
+             letter-spacing:.06em; white-space:nowrap; }
+  .statbox.zero { opacity:.45; }
+  .statbox b.bad { color:var(--bad); } .statbox b.warn { color:var(--warn); }
+  .statbox b.info { color:var(--mut); } .statbox b.ok { color:var(--good); }
+
+  /* ---- toolbar ---- */
+  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px;
+             flex-wrap:wrap; }
+  #search { width:250px; padding:9px 12px; border-radius:10px;
+            border:1px solid var(--line); background:var(--input);
+            color:var(--txt); font-size:13px; }
+  #search:focus { outline:none; border-color:var(--acc); }
+  .toolbar select { padding:9px 10px; border-radius:10px; font-size:12.5px;
+            border:1px solid var(--line); background:var(--input); color:var(--txt); }
+  .toolbar .sp { flex:1; }
+  .stat { font-size:12px; color:var(--mut); }
+  .stat .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+            background:var(--bad); margin-right:5px; }
+  .stat .dot.ok { background:var(--good); }
+
+  /* ---- sections & cards ---- */
+  .sect { font-size:11px; color:var(--mut); text-transform:uppercase;
+          letter-spacing:.12em; margin:20px 0 10px; display:flex;
+          align-items:center; gap:8px; }
+  .sect .n { background:var(--card); border:1px solid var(--line);
+          border-radius:14px; padding:2px 9px; font-size:10px; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+          gap:12px; }
+  .ecard { background:var(--card); border:1px solid var(--line); border-radius:14px;
+           padding:13px 15px 11px; box-shadow:var(--shadow); position:relative;
+           display:flex; flex-direction:column; gap:9px; }
+  .ecard .top { display:flex; align-items:flex-start; gap:11px; }
+  .ecard .ticon { width:36px; height:36px; border-radius:10px; display:flex;
+           align-items:center; justify-content:center; font-size:17px;
+           background:var(--input); border:1px solid var(--line); flex:0 0 auto; }
+  .ecard .nm { flex:1; min-width:0; }
+  .ecard .nm b { display:block; font-size:14px; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .ecard .eid { font-size:10.5px; color:var(--mut);
+           font-family:Consolas, monospace; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+  .ecard .eid:hover { color:var(--acc2); }
+  .ecard .detail { font-size:12px; line-height:1.6; border-radius:9px;
+           padding:7px 11px; background:var(--input);
+           border:1px solid var(--line); color:var(--mut); }
+  .ecard .detail.bad { color:var(--bad); border-color:rgba(255,107,129,.4);
+           background:rgba(255,107,129,.07); }
+  .ecard .detail.warn { color:var(--warn); border-color:rgba(255,184,107,.4);
+           background:rgba(255,184,107,.07); }
+  .badges { display:flex; gap:6px; flex-wrap:wrap; }
+  .tbadge { font-size:9.5px; padding:3px 8px; border-radius:20px;
+           border:1px solid var(--line); color:var(--mut); white-space:nowrap; }
+  .ecard .foot { display:flex; align-items:center; gap:4px;
+           border-top:1px solid var(--line); padding-top:8px; }
+  .ecard .foot .sp { flex:1; }
+  .iconbtn { background:none; border:0; color:var(--mut); cursor:pointer;
+           font-size:13.5px; padding:4px 8px; border-radius:7px; }
+  .iconbtn:hover { color:var(--txt); background:var(--hover); }
+  .iconbtn.danger:hover { color:var(--bad); }
+  .iconbtn[disabled] { opacity:.35; cursor:default; }
+  .iconbtn[disabled]:hover { color:var(--mut); background:none; }
+  .ecard .selbox { position:absolute; top:10px; right:10px; width:20px;
+           height:20px; border-radius:6px; border:2px solid var(--line);
+           background:var(--input); cursor:pointer; display:none;
+           align-items:center; justify-content:center; font-size:12px;
+           color:#1f040a; }
+  body.bulk .ecard .selbox { display:flex; }
+  .ecard.selected { border-color:var(--acc); }
+  .ecard.selected .selbox { background:var(--acc); border-color:var(--acc); }
+  .empty { text-align:center; color:var(--mut); padding:60px 0; font-size:14px;
+           grid-column:1/-1; line-height:2; }
+  .allgood { text-align:center; padding:50px 0; grid-column:1/-1; }
+  .allgood .big { font-size:44px; }
+  .allgood p { color:var(--mut); font-size:13.5px; margin-top:8px; line-height:1.8; }
+
+  /* ---- modals ---- */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.72); display:none;
+           z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+           padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(97vw, 560px); margin:0 auto;
+          padding:24px; box-shadow:var(--shadow); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead .micon { width:34px; height:34px; border-radius:10px; display:flex;
+          align-items:center; justify-content:center; font-size:17px;
+          background:var(--input); border:1px solid var(--line); }
+  .mhead h2 { font-size:17px; flex:1; }
+  .msub { color:var(--mut); font-size:12px; margin-bottom:14px; line-height:1.7;
+          word-break:break-all; }
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:20px;
+           align-items:center; flex-wrap:wrap; }
+  .mfoot .sp { flex:1; }
+  .err { background:#3a1a22; border:1px solid #7a2a3a; color:#ff9aae;
+         border-radius:10px; padding:10px 13px; margin-top:12px; font-size:13px;
+         display:none; line-height:1.7; }
+  label { font-size:12px; color:var(--mut); display:flex; align-items:center;
+          margin:12px 0 4px; }
+  input[type=text], input[type=number] {
+    width:100%; padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--input); color:var(--txt); font-size:13.5px; }
+  input:focus { outline:none; border-color:var(--acc); }
+  input.mono { font-family:Consolas, monospace; font-size:12.5px; }
+  .fieldnote { font-size:11px; color:var(--mut); margin-top:4px; line-height:1.6; }
+
+  /* ---- repair plan ---- */
+  .sect .repbtn { margin-left:auto; font-size:11.5px; padding:5px 12px;
+        letter-spacing:normal; text-transform:none; }
+  .replist { max-height:52vh; overflow-y:auto; margin-top:6px; }
+  .repitem { display:flex; align-items:flex-start; gap:10px;
+        background:var(--input); border:1px solid var(--line);
+        border-radius:11px; padding:10px 12px; margin-bottom:7px; }
+  .repitem.off { opacity:.5; }
+  .repitem input[type=checkbox] { width:16px; height:16px; margin-top:2px;
+        accent-color:var(--acc); flex:0 0 auto; cursor:pointer; }
+  .repitem .ropic { font-size:15px; flex:0 0 auto; margin-top:-1px; }
+  .repitem .rmain { flex:1; min-width:0; }
+  .repitem .rtitle { font-size:12.5px; font-weight:600; overflow:hidden;
+        text-overflow:ellipsis; white-space:nowrap; }
+  .repitem .rtitle .arrow { color:var(--acc2); }
+  .repitem .rid { font-size:10px; color:var(--mut);
+        font-family:Consolas, monospace; overflow:hidden;
+        text-overflow:ellipsis; white-space:nowrap; }
+  .repitem .rwhy { font-size:11px; color:var(--mut); line-height:1.6;
+        margin-top:3px; }
+  .ropbadge { font-size:9px; padding:2px 8px; border-radius:12px;
+        border:1px solid var(--line); color:var(--mut); flex:0 0 auto;
+        text-transform:uppercase; letter-spacing:.08em; margin-top:2px; }
+  .ropbadge.rename { color:var(--acc2); border-color:var(--acc2); }
+  .ropbadge.hide { color:var(--warn); border-color:var(--warn); }
+  .ropbadge.remove { color:var(--bad); border-color:var(--bad); }
+  .ropbadge.reload { color:var(--acc2); border-color:var(--acc2); }
+  .ropbadge.keep { color:var(--good); border-color:var(--good); }
+  .repnote { font-size:11.5px; color:var(--mut); line-height:1.7;
+        background:rgba(62,207,142,.06); border:1px solid rgba(62,207,142,.25);
+        border-radius:10px; padding:9px 12px; margin-top:10px; }
+
+  /* ---- usage / related ---- */
+  .relgroup { margin-top:14px; }
+  .relgroup .rh { font-size:11px; color:var(--mut); text-transform:uppercase;
+        letter-spacing:.1em; margin-bottom:6px; }
+  .relitem { display:flex; align-items:center; gap:9px; background:var(--input);
+        border:1px solid var(--line); border-radius:10px; padding:9px 12px;
+        margin-bottom:6px; font-size:13px; }
+  .relitem .rid { color:var(--mut); font-size:10.5px;
+        font-family:Consolas, monospace; margin-left:auto; }
+  .relnone { color:var(--good); font-size:13px; background:rgba(62,207,142,.08);
+        border:1px solid rgba(62,207,142,.3); border-radius:10px;
+        padding:11px 14px; margin-top:10px; line-height:1.7; }
+  .relwarn { color:var(--warn); font-size:12.5px;
+        background:rgba(255,184,107,.08); border:1px solid rgba(255,184,107,.35);
+        border-radius:10px; padding:11px 14px; margin-top:10px; line-height:1.7; }
+
+  /* ---- bulk bar ---- */
+  #bulkbar { position:fixed; left:50%; transform:translateX(-50%); bottom:18px;
+        background:var(--bg2); border:1px solid var(--acc); border-radius:16px;
+        padding:12px 18px; display:none; align-items:center; gap:9px; z-index:90;
+        box-shadow:0 14px 44px rgba(0,0,0,.6); flex-wrap:wrap; max-width:94vw; }
+  body.bulk #bulkbar { display:flex; }
+  #bulkbar b { font-size:13px; }
+
+  /* ---- toasts ---- */
+  #toasts { position:fixed; right:18px; bottom:18px; z-index:500; display:flex;
+        flex-direction:column; gap:8px; }
+  .toast { background:var(--bg2); border:1px solid var(--good); color:var(--txt);
+        border-radius:12px; padding:11px 16px; font-size:13px;
+        box-shadow:0 10px 30px rgba(0,0,0,.5); animation:tin .2s ease;
+        max-width:340px; line-height:1.6; }
+  .toast.bad { border-color:var(--bad); }
+  @keyframes tin { from { opacity:0; transform:translateY(8px); } }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .spinning { display:inline-block; animation:spin 1s linear infinite; }
+
+  /* ---- dead device cards ---- */
+  .dcard { background:var(--card); border:1px solid rgba(255,107,129,.35);
+           border-radius:14px; padding:13px 15px 11px; box-shadow:var(--shadow);
+           display:flex; flex-direction:column; gap:9px; }
+  .dcard .top { display:flex; align-items:flex-start; gap:11px; }
+  .dcard .ticon { width:36px; height:36px; border-radius:10px; display:flex;
+           align-items:center; justify-content:center; font-size:17px;
+           background:rgba(255,107,129,.1); border:1px solid
+           rgba(255,107,129,.35); flex:0 0 auto; }
+  .dcard .nm { flex:1; min-width:0; }
+  .dcard .nm b { display:block; font-size:14px; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .dcard .sub { font-size:10.5px; color:var(--mut); overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .dcard .foot { display:flex; align-items:center; gap:4px;
+           border-top:1px solid var(--line); padding-top:8px; }
+  .dcard .foot .sp { flex:1; }
+  .echips { display:flex; gap:5px; flex-wrap:wrap; }
+  .echip { font-size:9.5px; padding:3px 8px; border-radius:20px;
+           border:1px solid var(--line); color:var(--mut);
+           font-family:Consolas, monospace; max-width:100%; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+
+  /* ---- how-it-works / help ---- */
+  .helpstep { display:flex; gap:12px; margin-top:14px; }
+  .helpstep .hnum { width:26px; height:26px; border-radius:50%; flex:0 0 auto;
+        background:linear-gradient(135deg,var(--acc),var(--acc2));
+        color:#1f040a; font-weight:700; font-size:13px; display:flex;
+        align-items:center; justify-content:center; }
+  .helpstep .htxt { font-size:12.5px; line-height:1.7; color:var(--mut); }
+  .helpstep .htxt b { color:var(--txt); }
+  .helpcat { display:flex; gap:9px; align-items:flex-start; font-size:12px;
+        color:var(--mut); line-height:1.65; margin-top:8px; }
+  .helpcat .hcic { flex:0 0 auto; }
+  .helpcat b { color:var(--txt); }
+
+  /* ---- triage board ---- */
+  #triage { position:fixed; inset:0; background:var(--bg); z-index:200;
+        display:none; flex-direction:column; }
+  #triage.open { display:flex; }
+  #triage header { position:static; }
+  .tboard { flex:1; display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;
+        padding:14px 16px; overflow:hidden; min-height:0; }
+  @media (max-width: 860px) { .tboard { grid-template-columns:1fr;
+        overflow-y:auto; } .tcol { max-height:44vh; } }
+  .tcol { background:var(--bg2); border:1px solid var(--line);
+        border-radius:16px; display:flex; flex-direction:column; min-height:0; }
+  .tcol.dragover { border-color:var(--acc); background:var(--hover); }
+  .tcol .thead { padding:12px 14px; border-bottom:1px solid var(--line);
+        font-size:13px; font-weight:700; display:flex; align-items:center;
+        gap:8px; }
+  .tcol .thead .n { background:var(--card); border:1px solid var(--line);
+        border-radius:14px; padding:2px 9px; font-size:10.5px;
+        color:var(--mut); }
+  .tcol .thead small { font-weight:400; color:var(--mut); font-size:10.5px; }
+  .tcol .tbody { flex:1; overflow-y:auto; padding:10px; min-height:60px; }
+  .tcol.keepcol .thead { color:var(--good); }
+  .tcol.killcol .thead { color:var(--bad); }
+  .tcard { background:var(--card); border:1px solid var(--line);
+        border-radius:12px; padding:9px 11px; margin-bottom:8px;
+        cursor:grab; display:flex; align-items:center; gap:9px;
+        user-select:none; }
+  .tcard:active { cursor:grabbing; }
+  .tcard.dragging { opacity:.4; }
+  .tcard .tic { font-size:16px; flex:0 0 auto; }
+  .tcard .tmain { flex:1; min-width:0; }
+  .tcard .tname { font-size:12.5px; font-weight:600; overflow:hidden;
+        text-overflow:ellipsis; white-space:nowrap; }
+  .tcard .tsub { font-size:10px; color:var(--mut); overflow:hidden;
+        text-overflow:ellipsis; white-space:nowrap;
+        font-family:Consolas, monospace; }
+  .tcard .twhy { font-size:10.5px; color:var(--warn); overflow:hidden;
+        text-overflow:ellipsis; white-space:nowrap; }
+  .tcard .tbtns { display:flex; gap:3px; flex:0 0 auto; }
+  .tcard .tbtns button { background:none; border:1px solid var(--line);
+        color:var(--mut); border-radius:7px; cursor:pointer; font-size:12px;
+        padding:4px 7px; }
+  .tcard .tbtns button:hover { color:var(--txt); border-color:var(--acc); }
+  .tempty { text-align:center; color:var(--mut); font-size:12px;
+        padding:26px 10px; line-height:1.8; border:1px dashed var(--line);
+        border-radius:12px; margin:6px; }
+  .tfoot { display:flex; align-items:center; gap:10px; padding:12px 16px;
+        border-top:1px solid var(--line); background:var(--bg2);
+        flex-wrap:wrap; }
+  .tfoot .sp { flex:1; }
+  .tfoot .hint { font-size:11.5px; color:var(--mut); line-height:1.6; }
+
+  /* ---- deletion log ---- */
+  .trashitem { display:flex; align-items:flex-start; gap:10px;
+        background:var(--input); border:1px solid var(--line);
+        border-radius:11px; padding:9px 12px; margin-bottom:7px;
+        font-size:12.5px; }
+  .trashitem .tic { flex:0 0 auto; }
+  .trashitem .tmain { flex:1; min-width:0; }
+  .trashitem .tid { font-size:10px; color:var(--mut);
+        font-family:Consolas, monospace; word-break:break-all; }
+  .trashitem .twhen { font-size:10px; color:var(--mut); flex:0 0 auto;
+        margin-top:2px; }
+  .trashitem.failed { border-color:rgba(255,107,129,.4); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🩺</div>
+  <h1>Entity Doctor<small>full health check-up for every Home Assistant entity</small></h1>
+  <a class="ghost" href="/admin" target="_top">← Hub</a>
+  <button class="ghost" id="helpBtn" title="How does this tool work?">❓ How it works</button>
+  <button class="ghost" id="trashBtn" title="Everything that was deleted, with timestamps">📜 Log</button>
+  <button class="ghost" id="settingsBtn" title="Scan thresholds">⚙ Thresholds</button>
+  <button class="ghost" id="bulkToggle" title="Select multiple entities">☑ Select</button>
+  <button class="ghost" id="triageBtn" title="Drag &amp; drop cleanup board">🗂 Triage</button>
+  <button class="btn" id="scanBtn">🔄 Re-scan</button>
+</header>
+
+<main>
+  <div class="banner" id="banner" style="display:none">
+    <div class="ring" id="ring"><div class="inner"><b id="scoreVal">—</b>
+      <small>HEALTH</small></div></div>
+    <div class="bannertxt">
+      <h2 id="bannerTitle">Scanning…</h2>
+      <p id="bannerSub"></p>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <input id="search" type="text" placeholder="Search entities…  ( / )">
+    <select id="domainSel"><option value="">All domains</option></select>
+    <select id="sort">
+      <option value="sev">Sort: severity</option>
+      <option value="name">Sort: name</option>
+      <option value="domain">Sort: domain</option>
+    </select>
+    <div class="sp"></div>
+    <span class="stat" id="connStat"><span class="dot"></span>connecting…</span>
+  </div>
+
+  <div id="list"><div class="empty">Running the first check-up…</div></div>
+</main>
+
+<!-- bulk action bar -->
+<div id="bulkbar">
+  <b id="bulkCount">0 selected</b>
+  <button class="ghost" id="bulkAll">Select all</button>
+  <button class="ghost" id="bulkNone">Clear</button>
+  <button class="ghost" data-bulk="hide">🙈 Hide</button>
+  <button class="ghost" data-bulk="unhide">👁 Unhide</button>
+  <button class="ghost" data-bulk="disable">⏻ Disable</button>
+  <button class="ghost" data-bulk="enable">✅ Enable</button>
+  <button class="btn sm danger" data-bulk="remove">🗑 Remove orphans</button>
+</div>
+
+<!-- rename -->
+<div class="modal" id="renameModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">✏️</div>
+      <h2>Rename entity</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="renameSub"></div>
+    <label>Friendly name</label>
+    <input type="text" id="renameName" placeholder="Leave empty to restore the original name">
+    <label>Entity ID</label>
+    <input type="text" id="renameEid" class="mono">
+    <div class="fieldnote">Changing the entity ID breaks automations, scripts and
+      dashboards that reference the old ID — check <b>🔎 Usage</b> first.
+      The domain part (before the dot) cannot change.</div>
+    <div class="err" id="renameErr"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="renameSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- safe repair -->
+<div class="modal" id="repairModal">
+  <div class="mbox" style="width:min(97vw,680px)">
+    <div class="mhead"><div class="micon">🔧</div>
+      <h2 id="repairTitle">Repair</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="repairSub"></div>
+    <div class="replist" id="repairList"><div class="empty">Building a safe
+      plan…</div></div>
+    <div class="repnote">✅ Nothing runs until you press Apply. Every action is
+      reversible except <b style="color:var(--bad)">remove</b> — and remove is
+      only ever offered for dead, orphaned entries that no integration
+      provides anymore.</div>
+    <div class="err" id="repairErr"></div>
+    <div class="mfoot">
+      <button class="ghost" id="repairAll">Check all</button>
+      <button class="ghost" id="repairNone">Uncheck all</button>
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="repairApply">Apply 0 actions</button>
+    </div>
+  </div>
+</div>
+
+<!-- usage finder -->
+<div class="modal" id="usageModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">🔎</div>
+      <h2 id="usageTitle">Where is this used?</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="usageSub"></div>
+    <div id="usageBody"><div class="empty">Searching…</div></div>
+  </div>
+</div>
+
+<!-- confirm -->
+<div class="modal" id="confirmModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">⚠️</div>
+      <h2 id="confirmTitle">Are you sure?</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="confirmSub"></div>
+    <div class="err" id="confirmErr"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn danger" id="confirmYes">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- thresholds -->
+<div class="modal" id="settingsModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">⚙</div>
+      <h2>Scan thresholds</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub">Tune what counts as a problem, then re-scan.</div>
+    <label>Low battery at or below (%)</label>
+    <input type="number" id="setBattery" min="1" max="99" step="1">
+    <label>Stale after (days without a state change)</label>
+    <input type="number" id="setStale" min="1" max="365" step="1">
+    <div class="fieldnote">Domains where silence is normal (automations, scenes,
+      buttons, zones…) are never flagged as stale.</div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="settingsSave">Save &amp; re-scan</button>
+    </div>
+  </div>
+</div>
+
+<!-- triage board (drag & drop cleanup) -->
+<div id="triage">
+  <header>
+    <div class="logo">🗂</div>
+    <h1>Cleanup Triage<small>drag cards into Keep or Clean up — nothing happens
+      until you press Apply</small></h1>
+    <input id="triageSearch" type="text" placeholder="Filter…"
+      style="width:180px;padding:8px 11px;border-radius:9px;font-size:12.5px;
+      border:1px solid var(--line);background:var(--input);color:var(--txt)">
+    <button class="ghost" id="triageClose">✕ Close</button>
+  </header>
+  <div class="tboard">
+    <div class="tcol" data-col="inbox">
+      <div class="thead">📥 To review <span class="n" id="nInbox">0</span>
+        <small>dead devices &amp; problem entities</small></div>
+      <div class="tbody" id="colInbox"></div>
+    </div>
+    <div class="tcol keepcol" data-col="keep">
+      <div class="thead">✅ Keep <span class="n" id="nKeep">0</span>
+        <small>remembered — won't nag you again</small></div>
+      <div class="tbody" id="colKeep"></div>
+    </div>
+    <div class="tcol killcol" data-col="kill">
+      <div class="thead">🗑 Clean up <span class="n" id="nKill">0</span>
+        <small>removed / disabled on Apply</small></div>
+      <div class="tbody" id="colKill"></div>
+    </div>
+  </div>
+  <div class="tfoot">
+    <span class="hint">💡 Drag cards between columns, or use the ✅ / 🗑
+      buttons on each card. Dead devices are removed completely; orphaned
+      entities are deleted; anything still alive is only <b>disabled</b>
+      (reversible).</span>
+    <div class="sp"></div>
+    <button class="ghost" id="triageReset">↩ Reset board</button>
+    <button class="btn danger" id="triageApply" disabled>Apply cleanup (0)</button>
+  </div>
+</div>
+
+<!-- triage review/confirm -->
+<div class="modal" id="reviewModal">
+  <div class="mbox" style="width:min(97vw,640px)">
+    <div class="mhead"><div class="micon">🧾</div>
+      <h2>Review cleanup</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub">This is exactly what will happen — last chance to check.
+      Everything is written to the <b>📜 Log</b>.</div>
+    <div class="replist" id="reviewList"></div>
+    <div class="err" id="reviewErr"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Back</button>
+      <button class="btn danger" id="reviewGo">Yes, clean up</button>
+    </div>
+  </div>
+</div>
+
+<!-- device details -->
+<div class="modal" id="deviceModal">
+  <div class="mbox" style="width:min(97vw,640px)">
+    <div class="mhead"><div class="micon">💀</div>
+      <h2 id="deviceTitle">Device</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="deviceSub"></div>
+    <div class="replist" id="deviceBody"></div>
+    <div class="err" id="deviceErr"></div>
+    <div class="mfoot">
+      <button class="ghost" id="deviceRefs">🔎 Check references</button>
+      <div class="sp"></div>
+      <button class="ghost" data-close>Close</button>
+      <button class="btn danger" id="deviceRemove">🗑 Remove device</button>
+    </div>
+  </div>
+</div>
+
+<!-- how it works -->
+<div class="modal" id="helpModal">
+  <div class="mbox" style="width:min(97vw,640px)">
+    <div class="mhead"><div class="micon">❓</div>
+      <h2>How Entity Doctor works</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="helpstep"><div class="hnum">1</div><div class="htxt">
+      <b>Scan.</b> Every entity and device is checked against the registry and
+      live states. Nothing is changed by a scan — it only looks.</div></div>
+    <div class="helpstep"><div class="hnum">2</div><div class="htxt">
+      <b>Understand the categories.</b> Click a box to see its entities:
+      <div class="helpcat"><span class="hcic">💀</span><span><b>Dead devices</b>
+        — every entity of the device is unavailable. The device probably lost
+        power, broke, or was removed from your home.</span></div>
+      <div class="helpcat"><span class="hcic">👻</span><span><b>Orphaned</b> —
+        registry leftovers no integration provides anymore. Always safe to
+        delete.</span></div>
+      <div class="helpcat"><span class="hcic">🔌</span><span><b>Unavailable /
+        ❓ Unknown</b> — currently not reporting. Often fixed by reloading the
+        integration (the 🔧 Repair button does this for you).</span></div>
+      <div class="helpcat"><span class="hcic">🪫</span><span><b>Low battery /
+        🕸️ Stale</b> — early warnings that hardware needs attention.</span></div>
+    </div></div>
+    <div class="helpstep"><div class="hnum">3</div><div class="htxt">
+      <b>Check usage before deleting.</b> The 🔎 button shows every automation,
+      script and scene that references an entity, so you never break one by
+      accident.</div></div>
+    <div class="helpstep"><div class="hnum">4</div><div class="htxt">
+      <b>Clean up with Triage.</b> Open 🗂 Triage and drag cards: <b>Keep</b>
+      remembers your choice, <b>Clean up</b> queues a deletion. Nothing runs
+      until you press Apply and confirm the review list.</div></div>
+    <div class="helpstep"><div class="hnum">5</div><div class="htxt">
+      <b>Everything is logged.</b> 📜 Log shows every deletion this tool ever
+      made, with timestamps. Live entities are never deleted — at most
+      disabled, which is reversible.</div></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="btn" data-close>Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- deletion log -->
+<div class="modal" id="trashModal">
+  <div class="mbox" style="width:min(97vw,640px)">
+    <div class="mhead"><div class="micon">📜</div>
+      <h2>Deletion log</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub">Every entity and device this tool removed, newest first.
+      Deletions cannot be undone, but this log always tells you what happened.</div>
+    <div class="replist" id="trashBody"><div class="empty">Loading…</div></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="static/app.js"></script>
+</body>
+</html>

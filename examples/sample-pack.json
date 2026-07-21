@@ -1,0 +1,26 @@
+{
+  "pack": "advance-tools-pack",
+  "format": 1,
+  "name": "Sample Pack",
+  "author": "Advance Tools",
+  "version": "1.0.0",
+  "items": [
+    {
+      "kind": "style",
+      "id": "sample-lava",
+      "name": "Lava",
+      "category": "Sample pack",
+      "css": ".CARD { background:linear-gradient(135deg,#ff2d00,#ff9500); border:0; color:#fff; } .CARD .at-name { color:rgba(255,255,255,.8); } .CARD.on { box-shadow:0 0 28px #ff9500; }"
+    },
+    {
+      "kind": "skin",
+      "id": "sample-round",
+      "name": "Round button",
+      "category": "Sample pack",
+      "for": "toggle",
+      "size": [150, 160],
+      "html": "<div class='b'>{{icon}}</div><div class='at-name'>{{name}}</div>",
+      "css": ".SKIN { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; } .SKIN .b { width:70%; aspect-ratio:1; max-height:70%; border-radius:50%; background:#222a3a; display:flex; align-items:center; justify-content:center; font-size:30px; transition:.25s; } .SKIN:active .b { transform:scale(.93); } .SKIN.on .b { background:var(--accent); box-shadow:0 0 20px var(--accent); } .SKIN .at-name { font-size:12px; color:#8b98b8; }"
+    }
+  ]
+}

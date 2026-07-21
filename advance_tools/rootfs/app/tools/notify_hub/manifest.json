@@ -1,0 +1,9 @@
+{
+  "id": "notify_hub",
+  "name": "Notify Hub",
+  "icon": "🔔",
+  "color": "#4fc3f7",
+  "description": "One place for every notification. Build your own Telegram bot, add mobile, email, Discord or webhook channels, then create rules — 'when this sensor does that, message me'. Watches devices, system errors and dead batteries, sends a daily digest, and the Telegram bot answers back: check status, toggle rules and control devices from your phone.",
+  "page": "/tools/notify_hub/",
+  "version": "1.0.0"
+}

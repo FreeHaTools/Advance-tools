@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#8b98b8; --acc2:#22b8cf;
+    --good:#3ecf8e; --warn:#ffb86b; --input:#0e1422;
+    --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); -webkit-font-smoothing:antialiased; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,#4f8cff,#22b8cf); }
+  header h1 { font-size:16px; flex:1; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc2); }
+  #search { width:240px; padding:9px 12px; border-radius:10px;
+            border:1px solid var(--line); background:var(--input);
+            color:var(--txt); font-size:13px; }
+  #search:focus { outline:none; border-color:var(--acc2); }
+
+  .wrap { display:flex; max-width:1280px; margin:0 auto; align-items:flex-start; }
+  nav { width:250px; flex:0 0 auto; position:sticky; top:67px;
+        max-height:calc(100vh - 67px); overflow-y:auto; padding:18px 10px 40px; }
+  nav a { display:flex; align-items:center; gap:9px; padding:8px 12px;
+        border-radius:9px; color:var(--mut); text-decoration:none;
+        font-size:13px; margin-bottom:2px; }
+  nav a:hover { color:var(--txt); background:rgba(255,255,255,.04); }
+  nav a.on { color:var(--txt); background:rgba(34,184,207,.1); }
+  nav .nh { font-size:10px; color:var(--mut); text-transform:uppercase;
+        letter-spacing:.12em; margin:16px 12px 6px; opacity:.7; }
+
+  main { flex:1; min-width:0; padding:26px 30px 120px; }
+  .sec { background:var(--card); border:1px solid var(--line); border-radius:16px;
+        padding:24px 28px; margin-bottom:22px; box-shadow:var(--shadow);
+        scroll-margin-top:80px; }
+  .sec h2 { font-size:19px; display:flex; align-items:center; gap:11px;
+        padding-bottom:12px; border-bottom:1px solid var(--line);
+        margin-bottom:14px; }
+  .sec h2 .ic { width:36px; height:36px; border-radius:10px; display:flex;
+        align-items:center; justify-content:center; font-size:18px;
+        background:var(--input); border:1px solid var(--line); flex:0 0 auto; }
+  .sec h3 { font-size:13px; color:var(--acc2); text-transform:uppercase;
+        letter-spacing:.09em; margin:20px 0 8px; }
+  .sec p { font-size:13.5px; line-height:1.95; color:var(--txt); margin:6px 0; }
+  .sec ul, .sec ol { margin:6px 0 6px 22px; }
+  .sec li { font-size:13.5px; line-height:1.95; }
+  .sec b { color:#fff; }
+  .mut { color:var(--mut); }
+  code, kbd { background:var(--input); border:1px solid var(--line);
+        border-radius:6px; padding:1px 7px; font-family:Consolas, monospace;
+        font-size:12px; color:#bfe9d9; }
+  .tip { background:rgba(62,207,142,.07); border:1px solid rgba(62,207,142,.3);
+        border-left:3px solid var(--good); border-radius:10px; padding:11px 15px;
+        margin:12px 0; font-size:13px; line-height:1.9; }
+  .tip::before { content:'💡 TIP  '; font-size:10px; letter-spacing:.1em;
+        color:var(--good); font-weight:700; }
+  .warn { background:rgba(255,184,107,.07); border:1px solid rgba(255,184,107,.35);
+        border-left:3px solid var(--warn); border-radius:10px; padding:11px 15px;
+        margin:12px 0; font-size:13px; line-height:1.9; }
+  .warn::before { content:'⚠ NOTE  '; font-size:10px; letter-spacing:.1em;
+        color:var(--warn); font-weight:700; }
+  .ex { background:#0a0f1c; border:1px solid var(--line);
+        border-left:3px solid var(--acc2); border-radius:10px; padding:12px 16px;
+        margin:12px 0; font-size:13px; line-height:1.9; }
+  .ex::before { content:'EXAMPLE'; display:block; font-size:9.5px;
+        letter-spacing:.14em; color:var(--acc2); margin-bottom:4px;
+        font-weight:700; }
+  .hide { display:none; }
+  .badge { font-size:9.5px; padding:2px 8px; border-radius:20px;
+        border:1px solid var(--line); color:var(--mut); vertical-align:2px;
+        margin-left:8px; }
+  @media (max-width:860px) { nav { display:none; } main { padding:18px 14px 80px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📖</div>
+  <h1>Manual<small>the complete Advance Tools guide</small></h1>
+  <input id="search" type="text" placeholder="Search the manual…">
+  <a class="ghost" href="/admin" target="_top">← Hub</a>
+</header>
+
+<div class="wrap">
+<nav id="toc"></nav>
+<main id="content">
+
+<!-- ==================== GETTING STARTED ==================== -->
+<div class="sec" id="start" data-nav="🚀 Getting started" data-group="Basics">
+  <h2><span class="ic">🚀</span>Getting started</h2>
+  <p><b>Advance Tools</b> is a toolbox that runs next to Home Assistant as an
+  add-on. It has its own login system (independent from Home Assistant users)
+  and a growing set of tools, each designed to make one part of your smart
+  home easy and visual.</p>
+  <h3>First run — the setup wizard</h3>
+  <ol>
+    <li>Open <code>http://YOUR_HA_IP:8234/</code> (or your custom domain), or
+      click <b>Advance Tools</b> in the Home Assistant sidebar.</li>
+    <li>A brand-new install opens the <b>setup wizard</b>: choose your admin
+      password, optionally pick a <b>starter layout</b> that builds your first
+      dashboard automatically, and you are done.</li>
+    <li>After that you sign in normally with the password you chose.</li>
+  </ol>
+  <div class="warn">There is no default password any more. If you are
+  upgrading from an older version and still use <code>admin / admin</code>,
+  you will be asked to change it the next time you sign in — this panel can
+  unlock doors and disarm your alarm, so treat that password like a house
+  key.</div>
+  <h3>Sign-in protection</h3>
+  <ul>
+    <li>Passwords must be at least 8 characters and not an obvious one.</li>
+    <li>After 5 failed attempts for the same account, sign-in locks for a
+      short time that grows with each further failure (30 seconds up to 15
+      minutes). It never locks permanently.</li>
+    <li>Hub → <b>Security log</b> shows recent sign-ins, failures, lockouts
+      and password changes since the add-on last started.</li>
+    <li>Anyone can change their own password without needing an admin.</li>
+  </ul>
+  <h3>The Hub</h3>
+  <p>After login you land on the <b>Hub</b> — the overview page with system
+  stats (entities, automations, uptime) and a card for every installed tool.
+  Tools open inside the hub; the <b>✕ Close tool</b> button (top-right) or
+  the tool's own <b>← Hub</b> button brings you back.</p>
+  <h3>Users &amp; access</h3>
+  <p>Hub → <b>Users</b>: create accounts for family members or wall tablets.
+  Only <b>admin</b> users can open the hub and tools; normal users can only
+  open the dashboards you grant them (see Dashboard Maker). Tablet sessions
+  last 365 days so kiosks stay logged in.</p>
+  <h3>Every tool speaks beginner</h3>
+  <ul>
+    <li><b>? bubbles</b> — hover any small <code>?</code> circle for a plain
+      explanation with a concrete example.</li>
+    <li><b>📖 Learn buttons</b> — most editors have a Learn panel describing
+      what the thing is and when to use it.</li>
+    <li><b>Empty states</b> — a fresh tool always tells you what your first
+      step should be.</li>
+  </ul>
+</div>
+
+<!-- ==================== HISTORY EXPLORER ==================== -->
+<div class="sec" id="history_explorer" data-nav="📈 History Explorer" data-group="Tools">
+  <h2><span class="ic">📈</span>History Explorer</h2>
+  <p>See what actually happened in your home. Pick up to six entities, choose
+  a time range, and read it off a chart instead of guessing.</p>
+  <h3>What you get</h3>
+  <ul>
+    <li><b>Line chart</b> for anything numeric — temperature, power, humidity —
+      with a hover crosshair showing every series at that instant.</li>
+    <li><b>State timeline</b> for on/off things — doors, lights, locks,
+      motion. A coloured band per entity: this is how you read "when was the
+      front door open".</li>
+    <li><b>Statistics table</b>: minimum, maximum, average, change over the
+      period, and for on/off entities the total on-time and how many times it
+      switched.</li>
+    <li><b>CSV download</b> of exactly what you are looking at.</li>
+  </ul>
+  <h3>Ranges and resolution</h3>
+  <p>Quick buttons (last hour, today, 24 hours, 7 / 30 days, this month) or a
+  custom from/to. Short ranges use your recorder's raw history; longer ones
+  use hourly or daily statistics so a month of data doesn't choke the tablet.
+  The tool always tells you which one it used.</p>
+  <div class="tip">Averages are <b>time-weighted</b>: a value that held for
+  six hours counts six times more than one that lasted a minute. A plain
+  average of samples would quietly mislead you.</div>
+  <div class="warn">Gaps in a line are real — the entity had no data then
+  (offline, restarted, or excluded from your recorder). They are never drawn
+  as zero. How far back you can look is set by your Home Assistant recorder
+  retention, not by this tool.</div>
+</div>
+
+<!-- ==================== SYSTEM CENTER ==================== -->
+<div class="sec" id="system_center" data-nav="🧰 System Center" data-group="Tools">
+  <h2><span class="ic">🧰</span>System Center</h2>
+  <p>Housekeeping: get help when something is wrong, and take your setup with
+  you.</p>
+  <h3>Support bundle</h3>
+  <p>One button collects everything someone would need to help you — add-on
+  and Home Assistant versions, uptime, the add-on log, which tools are
+  loaded, and every tool's configuration — into a single zip.</p>
+  <ul>
+    <li><b>Secrets are stripped automatically</b>: passwords, PINs, tokens,
+      API keys, hashes, webhook URLs, e-mail addresses and chat IDs are
+      replaced with <code>&lt;redacted&gt;</code>.</li>
+    <li>Before you download, the tool shows you the file list and how many
+      values were removed — so you can share it without worrying.</li>
+    <li><code>report.md</code> inside the zip also lists problems it spotted
+      by itself, like Home Assistant not being connected.</li>
+  </ul>
+  <h3>Export &amp; import</h3>
+  <ol>
+    <li><b>Export</b> your dashboards and every tool's settings into one file.
+      Use it to move to a new Home Assistant machine, snapshot before a big
+      change, or share a setup with a friend. Account passwords are left out
+      unless you deliberately tick the box.</li>
+    <li><b>Import</b> shows you what the file contains and what it would
+      overwrite, and only changes what you tick.</li>
+    <li>Every import writes a <b>rollback point</b> first. The last five are
+      kept on the Rollback tab, one click to undo.</li>
+  </ol>
+  <div class="tip">The export is <b>your own data, not redacted</b> — treat it
+  like a backup of your passwords drawer. The support bundle is the one that
+  is safe to hand to a stranger.</div>
+  <div class="warn">An import can never delete or demote the admin account you
+  are signed in with — that check cannot be turned off.</div>
+</div>
+
+<!-- ==================== STARTER TEMPLATES ==================== -->
+<div class="sec" id="starter_templates" data-nav="📦 Starter Templates" data-group="Tools">
+  <h2><span class="ic">📦</span>Starter Templates</h2>
+  <p>The fastest way to a finished dashboard. Pick a ready-made layout and it
+  is matched against the devices you actually own — you review the choices,
+  press Apply, and the dashboard exists.</p>
+  <h3>The templates</h3>
+  <ul>
+    <li><b>🏠 Family Home</b> — lights for the main rooms, thermostat, door and
+      motion status, a family list and a clock. The everyday wall tablet.</li>
+    <li><b>🏢 Apartment</b> — a denser layout for a smaller home, with one
+      climate control and an energy summary.</li>
+    <li><b>🔐 Security Tablet</b> — portrait layout built around the security
+      keypad, with door/window/motion tiles and a camera. Mount it by the
+      front door.</li>
+    <li><b>🏝️ Vacation Rental</b> — guest-safe controls only, plus Wi-Fi and
+      check-out information panels.</li>
+  </ul>
+  <h3>How the matching works</h3>
+  <ol>
+    <li>Each template describes <b>slots</b> ("the living-room light", "the
+      front door sensor") rather than fixed entities.</li>
+    <li>Every slot is scored against your entities by domain, device class,
+      area and name. Unavailable or dead entities are never chosen.</li>
+    <li>The review screen shows what was matched and lets you change any of
+      it with a searchable picker. Required slots must be filled before
+      Apply becomes available.</li>
+    <li>Apply creates a <b>new</b> dashboard — nothing existing is ever
+      overwritten, and the dashboard's entity allowlist is set to exactly the
+      entities you mapped.</li>
+  </ol>
+  <p>Afterwards it is an ordinary dashboard: open it in <b>Dashboard Maker</b>
+  and move, restyle or extend anything.</p>
+  <div class="tip">Adding your own template is just a JSON file dropped into
+  the tool's <code>templates/</code> folder — no code needed.</div>
+</div>
+
+<!-- ==================== DASHBOARD MAKER ==================== -->
+<div class="sec" id="dashboard_maker" data-nav="📊 Dashboard Maker" data-group="Tools">
+  <h2><span class="ic">📊</span>Dashboard Maker</h2>
+  <p>Design beautiful control dashboards for <b>wall tablets</b> — no coding
+  needed. Each dashboard is pixel-perfect at your tablet's exact resolution,
+  protected by its own user access list, and locked into kiosk mode.</p>
+  <h3>How to build one</h3>
+  <ol>
+    <li>Open Dashboard Maker → <b>＋ New dashboard</b>, give it a name
+      (e.g. <i>bedroom</i>).</li>
+    <li>Open the <b>Designer</b>. Pick your tablet preset in Page setup
+      (Fire HD, iPad, Galaxy Tab…) so the canvas matches the screen.</li>
+    <li><b>Add elements</b> from the gallery: switches, buttons, sensors,
+      climate dials, lights, cameras, charts, vacuum cards, media, navigation
+      buttons and more — 90+ skins in themed packs.</li>
+    <li>Drag, resize and snap elements anywhere (freeform canvas), bind each
+      one to an entity with the searchable picker.</li>
+    <li>Save, then grant users access and open
+      <code>/d/&lt;name&gt;/</code> on the tablet.</li>
+  </ol>
+  <h3>Good to know</h3>
+  <ul>
+    <li><b>Entity allowlist</b> — every dashboard can only see and control the
+      entities you list for it. Guests can't poke around.</li>
+    <li><b>Skins &amp; packs</b> — import extra skin packs (JSON) or build your
+      own; the admin page has full pack-building docs.</li>
+    <li><b>Kiosk behavior</b> — no exit without logout; enable the hidden
+      logout gesture in Page setup (tap a corner N times).</li>
+    <li><b>Scaling modes</b> — Fit (letterbox), Fill (crop), Stretch.</li>
+    <li><b>Home Life widgets</b> — Family Notes, Shopping List, Energy
+      Summary and Intercom bring the other tools onto your dashboards
+      (see each tool's section).</li>
+  </ul>
+  <div class="tip">Design at the tablet's exact preset resolution and keep
+  scaling on <b>Fit</b> — everything will land pixel-perfect.</div>
+</div>
+
+<!-- ==================== AUTOMATION MAKER ==================== -->
+<div class="sec" id="automation_maker" data-nav="⚙️ Automation Maker" data-group="Tools">
+  <h2><span class="ic">⚙️</span>Automation Maker</h2>
+  <p>Browse, run and build Home Assistant automations with a visual
+  <b>WHEN / AND IF / THEN</b> builder. Everything you create is a real HA
+  automation — it also shows up in Home Assistant's own editor.</p>
+  <h3>The list</h3>
+  <ul>
+    <li>Every automation with its state, last trigger time and a toggle to
+      enable/disable it. <b>▶ Run</b> triggers it manually. <b>⧉</b>
+      duplicates it as a starting point.</li>
+    <li><span class="badge">YAML · read-only</span> automations live in your
+      YAML files. You can still run/toggle them — and the <b>🔁 Convert</b>
+      button clones one into an editable copy and disables the YAML original
+      (your files are never modified).</li>
+  </ul>
+  <h3>The builder</h3>
+  <ol>
+    <li><b>WHEN</b> (orange) — pick a trigger chip: state change, numeric
+      threshold, time, sun, repeating interval, template.</li>
+    <li><b>AND IF</b> (blue) — optional conditions: state, time window with a
+      weekday picker, template.</li>
+    <li><b>THEN</b> (green) — actions: call any service with the searchable
+      service + entity pickers, delays, wait-until, stop.</li>
+  </ol>
+  <p>Each block shows a live plain-English summary, and the side panel shows
+  the exact YAML that will be saved as you type.</p>
+  <div class="ex">Motion light: WHEN <i>binary_sensor.hallway_motion</i> turns
+  <code>on</code> → AND IF time is after 21:00 → THEN turn on
+  <i>light.hallway</i> at 30% and start a timer to switch it off.</div>
+</div>
+
+<!-- ==================== HELPER MAKER ==================== -->
+<div class="sec" id="helper_maker" data-nav="🧩 Helper Maker" data-group="Tools">
+  <h2><span class="ic">🧩</span>Helper Maker</h2>
+  <p>Create, edit and <b>live-control</b> every Home Assistant helper in one
+  place — 21 types, each with a Learn panel and an example automation.</p>
+  <h3>Basic helpers <span class="mut">(instant, fully editable)</span></h3>
+  <p>Toggle, Button, Number, Text, Dropdown, Date/Time, Counter, Timer, and
+  Schedule (with a visual weekly block editor). Every card has inline quick
+  controls: flip the toggle, drag the slider, start/pause the timer with a
+  live countdown, bump the counter — without leaving the page.</p>
+  <h3>Advanced helpers <span class="mut">(combine &amp; transform)</span></h3>
+  <p>Group, Template, Threshold, Times of the Day, Trend, Min/Max, Statistics,
+  Derivative, Integral, Utility Meter, Random, Switch-as-X — created through
+  Home Assistant's own config flows rendered inside the tool.</p>
+  <h3>Superpowers</h3>
+  <ul>
+    <li><b>🔎 Usage finder</b> — see every automation, script and scene that
+      references a helper; the delete dialog warns you if it's still used.</li>
+    <li><b>☑ Bulk mode</b> — multi-select for bulk delete, plus JSON
+      export/import of basic helpers (backups, copying between installs).</li>
+    <li><b>⧉ Duplicate</b>, copy entity id, type filter chips, search
+      (<kbd>/</kbd>), sort by name/type/last-changed.</li>
+  </ul>
+  <div class="ex">Guest mode: create a <b>Toggle</b> called “Guest mode”, then
+  in Automation Maker add an AND IF condition “guest mode is off” to your
+  noisy automations.</div>
+</div>
+
+<!-- ==================== ENTITY DOCTOR ==================== -->
+<div class="sec" id="entity_doctor" data-nav="🩺 Entity Doctor" data-group="Tools">
+  <h2><span class="ic">🩺</span>Entity Doctor</h2>
+  <p>A full health check-up for every entity in your system, with safe
+  one-click fixes. Run it monthly — smart homes collect clutter.</p>
+  <h3>What the scan finds</h3>
+  <ul>
+    <li><b>Unavailable</b> / <b>unknown</b> entities (dead devices, broken
+      integrations) — with a 🔄 reload button per integration.</li>
+    <li><b>Low batteries</b> (threshold adjustable) and <b>stale</b> entities
+      that haven't changed in N days.</li>
+    <li><b>Orphaned</b> registry leftovers and <b>duplicate names</b>, plus
+      info lists for disabled/hidden/no-area entities.</li>
+    <li>A 0–100 <b>health score</b> — category boxes double as filters.</li>
+  </ul>
+  <h3>Fixing things</h3>
+  <ul>
+    <li>Per entity: rename (name and/or entity id), hide, disable, remove
+      (server-guarded — only true orphans can be deleted).</li>
+    <li><b>🔧 Repair</b> per category builds a <b>preview plan</b>: a checklist
+      of proposed actions with reasons. Nothing runs until you press Apply;
+      risky items start unchecked.</li>
+    <li><b>Usage finder</b> before you touch anything — see what references
+      the entity.</li>
+  </ul>
+  <div class="tip">Duplicate names are usually harmless clones from one
+  device (e.g. a switch + its firmware-update entity). The repair plan
+  renames them by area/device so voice assistants stop mixing them up.</div>
+</div>
+
+<!-- ==================== SCENE MAKER ==================== -->
+<div class="sec" id="scene_maker" data-nav="🎬 Scene Maker" data-group="Tools">
+  <h2><span class="ic">🎬</span>Scene Maker</h2>
+  <p>Build scenes by <b>snapshotting reality</b>: set the room exactly how you
+  like it, capture it, done.</p>
+  <h3>Workflow</h3>
+  <ol>
+    <li>Set up the room physically — dim the lights, set the thermostat.</li>
+    <li><b>📸 Snapshot</b> → pick the area → untick anything you don't want
+      captured → capture. Lights keep brightness &amp; color, climate keeps
+      target temps, covers keep positions, helpers keep values.</li>
+    <li><b>🧪 Test now</b> applies the scene live <i>without saving</i> —
+      walk around, adjust, test again. Optional transition seconds for smooth
+      light fades.</li>
+    <li>Save. The scene appears in HA too, and any dashboard button or
+      automation can activate it.</li>
+  </ol>
+  <p>Every captured entity is an editable card, and a live YAML preview shows
+  exactly what will be stored. YAML-defined scenes are listed activate-only,
+  like in Automation Maker.</p>
+  <div class="ex">“Movie night”: lights at 15% warm white, TV on, blinds
+  down. Snapshot the living room once — activate forever.</div>
+</div>
+
+<!-- ==================== ALERT MAKER ==================== -->
+<div class="sec" id="alert_maker" data-nav="🚨 Alert Maker" data-group="Tools">
+  <h2><span class="ic">🚨</span>Alert Maker</h2>
+  <p>Watchdog rules that ping your phone when something needs attention. Each
+  rule becomes a real HA automation, generated and kept up to date for you.</p>
+  <h3>The 5 alert types</h3>
+  <ul>
+    <li><b>Left open / on</b> — a door, window, lock, valve or switch stays
+      open longer than X minutes.</li>
+    <li><b>Low battery</b> — battery level drops below your threshold.</li>
+    <li><b>Went offline</b> — a device becomes unavailable for a while.</li>
+    <li><b>Value too high / low</b> — any numeric sensor crosses a limit
+      (temperature, humidity, soil moisture…).</li>
+    <li><b>Enters a state</b> — free-form: any entity, any state, optional
+      duration.</li>
+  </ul>
+  <h3>Details that matter</h3>
+  <ul>
+    <li>One rule can watch <b>many entities</b>; the notification names the
+      exact one that caused it.</li>
+    <li>Targets: any <code>notify.*</code> service (phones with the companion
+      app) and/or a persistent notification in HA's 🔔 drawer.</li>
+    <li><b>🧪 Test</b> sends a real test notification so you know delivery
+      works. Pause/resume toggles the automation.</li>
+  </ul>
+  <div class="ex">“Freezer door left open &gt; 5 min → notify everyone” and
+  “any battery &lt; 15% → persistent notification” cover 90% of households.</div>
+</div>
+
+<!-- ==================== NOTIFY HUB ==================== -->
+<div class="sec" id="notify_hub" data-nav="🔔 Notify Hub" data-group="Tools">
+  <h2><span class="ic">🔔</span>Notify Hub</h2>
+  <p>One place for every notification: where messages go (<b>channels</b>),
+  what causes them (<b>rules</b>), and a Telegram bot that talks back.</p>
+
+  <h3>1 — Channels</h3>
+  <ul>
+    <li><b>Telegram</b> — a chat or group your own bot messages.</li>
+    <li><b>Home Assistant notify</b> — the companion app on a phone, email,
+      or any other <code>notify.*</code> service HA already has.</li>
+    <li><b>Home Assistant panel</b> — a persistent notification in the sidebar.</li>
+    <li><b>Webhook</b> — POST to any URL, with ready-made Discord and Slack
+      body formats.</li>
+  </ul>
+  <p>Every channel has a <b>🧪 Send a test</b> button, so you find out it works
+  before you rely on it.</p>
+
+  <h3>2 — Rules</h3>
+  <ul>
+    <li><b>A device does something</b> — a sensor reaches a state, a number
+      crosses a limit, or anything changes. Optional "and stays that way for X
+      minutes" and a time window. This type becomes a real HA automation, so
+      you can inspect it under Settings → Automations (but edit it here).</li>
+    <li><b>Home Assistant problems</b> — errors and warnings from the log, and
+      restarts. An ignore list silences integrations you can't fix.</li>
+    <li><b>Dead or flat devices</b> — anything unavailable longer than X
+      minutes, plus low batteries. Each device is reported once; if it
+      recovers and dies again, you hear about it again.</li>
+    <li><b>Scheduled digest</b> — a summary at a time you pick: lights on,
+      doors open, unlocked locks, climate, weak batteries, unavailable
+      entities.</li>
+  </ul>
+  <p>Each rule picks its own channels, can be marked <b>urgent</b> (ignores
+  mute and quiet hours), and can have a <b>cooldown</b> so a chatty sensor
+  can't spam you.</p>
+
+  <h3>3 — Quiet hours and mute</h3>
+  <p>Quiet hours hold non-urgent notifications between two times. The
+  <b>🔕 Mute</b> button in the header pauses everything for an hour. Both are
+  recorded in the history, so nothing silently disappears.</p>
+
+  <h3>4 — The Telegram bot</h3>
+  <ol>
+    <li>Message <b>@BotFather</b> in Telegram, send <code>/newbot</code>,
+      answer two questions.</li>
+    <li>Paste the token it gives you into Notify Hub → Telegram bot → Save.</li>
+    <li>Open a chat with your new bot, send <code>/start</code>, then press
+      <b>Find my chats</b> to pick up your chat ID.</li>
+    <li>Put that ID in <b>Who may command the bot</b>, and create a Telegram
+      channel with the same ID to receive notifications there.</li>
+  </ol>
+  <p>Commands: <code>/status</code> (how the house is right now),
+  <code>/rules</code> (tap a rule to switch it on or off),
+  <code>/control</code> (buttons for the devices you allowed),
+  <code>/find kitchen</code>, <code>/mute 2h</code>, <code>/unmute</code>,
+  <code>/log</code>, <code>/help</code>.</p>
+  <div class="tip">Only chat IDs on your allow-list can command the bot, and
+  only the entities you tick under <b>Quick controls</b> can be switched from
+  Telegram. Anyone else who messages the bot is told their own chat ID and
+  nothing else.</div>
+  <div class="ex">“Front door becomes <b>on</b> between 23:00 and 06:00 →
+  Telegram + phone, urgent” plus a 07:30 daily digest covers most homes. Add a
+  dead-device rule with a 60-minute threshold and you'll know about a flat
+  sensor battery before it matters.</div>
+</div>
+
+<!-- ==================== BACKUP MANAGER ==================== -->
+<div class="sec" id="backup_manager" data-nav="💾 Backup Manager" data-group="Tools">
+  <h2><span class="ic">💾</span>Backup Manager</h2>
+  <p>See, create, schedule and download Home Assistant backups without
+  leaving the toolbox.</p>
+  <ul>
+    <li><b>List</b> — type (full/partial), size, age, password protection,
+      what's inside; 🔎 details shows every included add-on + version.</li>
+    <li><b>Create</b> — full, or partial with a searchable add-on/folder
+      picker; optional password; optional “exclude history database” for much
+      smaller files. Runs in the background with a progress banner.</li>
+    <li><b>Schedule</b> — pick a time and weekdays; automatic cleanup keeps
+      only the last N scheduled backups (manual backups are never touched).</li>
+    <li><b>⬇ Download</b> any backup as a <code>.tar</code> (works for
+      multi-GB files), 🗑 delete with confirmation.</li>
+  </ul>
+  <div class="tip">Schedule a weekly full backup at 03:00 and set cleanup to
+  keep 4 — a month of safety for a few GB.</div>
+</div>
+
+<!-- ==================== CLIMATE SCHEDULER ==================== -->
+<div class="sec" id="climate_scheduler" data-nav="🌡️ Climate Scheduler" data-group="Tools">
+  <h2><span class="ic">🌡️</span>Climate Scheduler</h2>
+  <p>Weekly temperature schedules for your thermostats — drawn, not typed.
+  The add-on applies them every minute; no automations to maintain.</p>
+  <h3>How to use it</h3>
+  <ol>
+    <li><b>＋ New Schedule</b> → pick a climate entity.</li>
+    <li><b>Paint</b> the week: pick a temperature chip (colored cold-blue →
+      warm-red), then click-drag across the 7-day grid to draw heating
+      blocks. Click a block to fine-tune exact times and temperature.</li>
+    <li>Choose what happens <b>outside blocks</b>: turn off, hold a fallback
+      temperature (night setback), or do nothing.</li>
+    <li>“Copy Monday to weekdays/weekend/all” fills the week fast. A live
+      sentence under the grid describes the schedule in plain English.</li>
+    <li>Enable it. The card shows what's happening right now and an activity
+      log shows every change the scheduler made.</li>
+  </ol>
+  <div class="warn">The add-on must be running for schedules to apply (it is,
+  as long as HA is up). Manual thermostat changes inside a block are
+  re-applied within a minute — pause the schedule for manual control.</div>
+  <div class="ex">Workdays: 06:30–08:30 → 21°, 17:00–22:30 → 21.5°, otherwise
+  hold 17°. Weekend: one long 08:00–23:00 → 21° block.</div>
+</div>
+
+<!-- ==================== ENERGY CENTER ==================== -->
+<div class="sec" id="energy_center" data-nav="⚡ Energy Center" data-group="Tools">
+  <h2><span class="ic">⚡</span>Energy Center</h2>
+  <p>Where your electricity actually goes — consumption and cost per device,
+  built on Home Assistant's long-term statistics.</p>
+  <h3>Setup (once)</h3>
+  <ol>
+    <li>The first-run wizard lists every energy sensor (kWh) it can find —
+      tick the ones to track (smart plugs with energy monitoring, your mains
+      meter…).</li>
+    <li>Enter your electricity price per kWh and currency.</li>
+  </ol>
+  <h3>The dashboard</h3>
+  <ul>
+    <li>Ranges: Today / Yesterday / This week / This month.</li>
+    <li>Stat cards: total kWh, total cost, hungriest device, peak hour or
+      average per day.</li>
+    <li>Consumption bar chart over the range + <b>Top consumers</b> ranking;
+      click a device to drill into its own chart and share %.</li>
+  </ul>
+  <div class="tip">A smart plug without an energy sensor? Create an
+  <b>Integral (Riemann)</b> helper in Helper Maker to turn its power (W) into
+  energy (kWh), then track that here.</div>
+  <h3>📺 On your dashboards</h3>
+  <p>The <b>Energy Summary</b> widget (designer → Home Life) shows today's
+  kWh + cost, a mini chart and top consumers right on a wall tablet —
+  read-only, refreshed every minute. You can switch it off for dashboards
+  in Energy Center's settings.</p>
+</div>
+
+<!-- ==================== SECURITY CENTER ==================== -->
+<div class="sec" id="security_center" data-nav="🛡️ Security Center" data-group="Tools">
+  <h2><span class="ic">🛡️</span>Security Center</h2>
+  <p>Your whole home's security on one screen: every door, window, motion
+  sensor, lock, person and camera — plus a simple PIN-protected alarm.</p>
+  <h3>The board</h3>
+  <ul>
+    <li>Open doors/windows glow red, closed ones stay calm green; motion
+      pulses; locks have inline Lock/Unlock buttons; people show 🏠/away;
+      cameras show live snapshots (click = fullscreen). Updates every few
+      seconds.</li>
+    <li>An event timeline records everything: opened, closed, locked,
+      unlocked, arrived, left.</li>
+  </ul>
+  <h3>The alarm</h3>
+  <ol>
+    <li>Create a PIN on first arm (big touch-friendly pad — works great on
+      wall tablets).</li>
+    <li>Arm <b>Home</b>, <b>Away</b> or <b>Night</b>. Arming Away starts the
+      <b>exit delay</b> so you can walk out — sensors tripping during it are
+      logged but never sound the alarm.</li>
+    <li>When a monitored sensor trips while armed: a <i>Delayed</i> sensor
+      starts the <b>entry delay</b> (type your code to cancel), an
+      <i>Instant</i> sensor fires straight away.</li>
+    <li>On trigger the alarm runs your <b>Actions</b> and alerts every
+      channel you picked. Disarm any time with the PIN — that also stops
+      the siren.</li>
+  </ol>
+  <h3>Choosing what it watches (Sensors tab)</h3>
+  <ul>
+    <li>Every door, window, motion sensor, lock and other binary sensor is
+      listed — switch each one in or out of the system.</li>
+    <li>Per sensor: which modes watch it (Home / Away / Night) and
+      <b>Instant vs Delayed</b>. Rule of thumb: the door you walk in
+      through = Delayed, windows = Instant.</li>
+    <li>Entries marked <span class="badge">auto</span> are sensible
+      defaults until you change them.</li>
+  </ul>
+  <h3>Actions &amp; alerts</h3>
+  <ul>
+    <li><b>Actions tab</b>: sound sirens, turn on lights/switches, lock
+      doors, run scenes and scripts, take a camera snapshot, announce over
+      speakers. A plain-English summary shows exactly what will happen.</li>
+    <li><b>Alerts tab</b>: tick several notify services — phone push, HA
+      notification, email, SMS — and use <b>Send test alert</b> to prove
+      they work. Email needs an SMTP notify integration in Home Assistant;
+      SMS needs a provider such as Twilio. Anything you add to HA appears
+      in the list automatically.</li>
+    <li><b>Cameras tab</b>: the selected camera's snapshot is attached to
+      phone alerts, so you see the picture in the notification.</li>
+  </ul>
+  <h3>Keypad on a wall tablet</h3>
+  <p>In Dashboard Maker, add the 🔐 <b>Security keypad</b> element (Home
+  Life category — full keypad, compact shield or status bar). Mount the
+  tablet by the door and anyone can arm or disarm with the PIN, no admin
+  login needed. Turn it off any time with the "Allow the dashboard keypad"
+  switch on the Status tab.</p>
+  <div class="warn">This is a smart-home alarm, not a certified security
+  system: it works while HA and the add-on are running. Use it as a smart
+  layer, not your only protection.</div>
+</div>
+
+<!-- ==================== FAMILY BOARD ==================== -->
+<div class="sec" id="family_board" data-nav="📋 Family Board" data-group="Tools">
+  <h2><span class="ic">📋</span>Family Board</h2>
+  <p>The family organizer: shopping lists, chores with automatic rotation,
+  and sticky notes. Built for wall tablets and fingers of all sizes.</p>
+  <h3>🛒 Lists</h3>
+  <p>Backed by Home Assistant to-do lists — so they sync with the HA mobile
+  app and voice assistants. Add items with one tap, check them off with a
+  satisfying strikethrough, clear completed in one go. <b>＋ New list</b>
+  creates a real HA list (Shopping, Hardware store, Packing…).</p>
+  <h3>🧹 Chores</h3>
+  <p>Each chore has an emoji, assignees and due days. The board shows whose
+  turn it is today; <b>Mark done</b> advances the rotation and grows the
+  🔥 streak. The activity feed shows who did what, when.</p>
+  <div class="ex">“🗑 Trash out — Mon &amp; Thu — Dad → Kid rotation” and
+  “🍽 Dishes — every day — everyone in turn” ends the daily negotiation.</div>
+  <h3>📌 Notes</h3>
+  <p>Colored sticky notes for everything else — click to edit, autosaves.
+  Every note has an <b>audience</b>: 🌍 Everyone, or 👤 specific users — a
+  targeted note only appears on dashboards where that user is logged in.
+  Anyone who sees a note can <b>reply</b> to it; the thread shows up both on
+  the dashboards and here in the admin tool.</p>
+  <h3>📺 On your dashboards</h3>
+  <p>In the Dashboard Maker designer, the <b>Home Life</b> category has
+  <b>Family Notes</b> and <b>Shopping List</b> widgets: notes appear as a
+  sticky wall (tap one to read and reply), lists get big tap-to-check
+  circles and an add row. The list widget is bound to a <code>todo.*</code>
+  entity, which must be in that dashboard's entity allowlist.</p>
+  <div class="ex">Send “🦷 Dentist at 16:00, don't forget!” only to the
+  kids' tablet — they tap it and reply “ok 👍”, and you see the reply in
+  Family Board.</div>
+</div>
+
+<!-- ==================== ANNOUNCE & INTERCOM ==================== -->
+<div class="sec" id="announce_center" data-nav="📢 Announce & Intercom" data-group="Tools">
+  <h2><span class="ic">📢</span>Announce &amp; Intercom</h2>
+  <p>Type a message, pick speakers, hit SEND — your house says it out loud
+  (text-to-speech), optionally pinging phones too.</p>
+  <h3>Using it</h3>
+  <ol>
+    <li>Type the announcement (or tap a <b>quick message</b> chip — editable
+      in settings: “Dinner is ready! 🍽”, “Leaving in 10 minutes 🚗”…).</li>
+    <li>Tap speaker tiles to choose targets; each tile shows live state and
+      has its own volume slider. Set default speakers once in settings.</li>
+    <li>Optional: also send to phones as a notification.</li>
+    <li>SEND. The history timeline lets you re-send anything with ↻.</li>
+  </ol>
+  <div class="tip">No TTS engine? Add one free in Home Assistant: Settings →
+  Devices &amp; Services → Add integration → <i>Google Translate
+  text-to-speech</i>. It appears here automatically.</div>
+  <h3>📺 Intercom on your dashboards</h3>
+  <p>The <b>Intercom</b> widget (designer → Home Life) puts a big announce
+  button on any wall tablet. Tap it → pick an <b>area</b> (or Everywhere) →
+  tap a quick message, type one, or <b>hold the 🎤 to talk</b> — your voice
+  plays on the selected speakers like a real intercom.</p>
+  <div class="warn">Browsers only allow microphone recording on
+  <b>HTTPS</b> pages. Tablets that open the panel over plain
+  <code>http://IP:8234</code> still get text and quick-message
+  announcements — for voice, open the panel through your HTTPS domain.
+  You can disable dashboard announcing entirely in this tool's
+  settings.</div>
+</div>
+
+<!-- ==================== AWAY SIMULATOR ==================== -->
+<div class="sec" id="away_simulator" data-nav="🏠 Away Simulator" data-group="Tools">
+  <h2><span class="ic">🏠</span>Away Simulator</h2>
+  <p>On vacation, your lights follow your <b>real routine</b>: the simulator
+  replays what each light did a week ago, shifted by a few random minutes —
+  far more convincing than random flicker.</p>
+  <h3>Setup</h3>
+  <ol>
+    <li>Pick the lights/switches visible from outside. Use the ⚡ blink test
+      to confirm each one responds.</li>
+    <li>Settings: replay from 7 days back (same weekday — recommended),
+      randomness ±15 min, optional active window, and <b>pause when someone
+      is home</b> (it auto-pauses using person entities).</li>
+    <li>Enable before you leave. Done.</li>
+  </ol>
+  <p><b>Today's plan</b> shows a 24-hour timeline per light — glowing
+  segments for planned ON periods, ✓ marks for executed actions — and the
+  activity log records everything it actually did.</p>
+  <div class="warn">It replays recorded history, so the lights you pick need
+  a few days of history in Home Assistant (default retention is 10 days —
+  “14 days back” may be empty on some installs).</div>
+</div>
+
+<!-- ==================== FAQ ==================== -->
+<div class="sec" id="faq" data-nav="❓ FAQ & tips" data-group="Basics">
+  <h2><span class="ic">❓</span>FAQ &amp; tips</h2>
+  <h3>Where is my data stored?</h3>
+  <p>Everything lives in the add-on's <code>/data</code> folder (users,
+  dashboards, schedules, alerts…) and survives updates and restarts. Helpers,
+  automations and scenes are stored in Home Assistant itself.</p>
+  <h3>Do the “live” tools need the add-on running?</h3>
+  <p>Yes — Climate Scheduler, Security Center's alarm, Away Simulator and
+  scheduled backups run inside the add-on. It starts automatically with
+  Home Assistant (watchdog enabled).</p>
+  <h3>How do I update?</h3>
+  <p>Settings → Add-ons → Advance Tools → Update, like any add-on. Your data
+  is kept. Changelog: the About page in the hub, or GitHub.</p>
+  <h3>Something looks broken after an update</h3>
+  <p>Hard-refresh the browser (<kbd>Ctrl</kbd>+<kbd>F5</kbd>) — tablets and
+  browsers occasionally cache old files despite our no-cache headers.</p>
+  <h3>A tool says “not connected to Home Assistant”</h3>
+  <p>The add-on talks to HA over one shared WebSocket. Check that HA finished
+  starting, then the add-on log (Settings → Add-ons → Advance Tools → Log).</p>
+  <h3>Can normal (non-admin) users open tools?</h3>
+  <p>No — tools and the hub are admin-only. Normal users only see the
+  dashboards you granted them. That's what makes wall tablets safe.</p>
+  <h3>Feature ideas or bugs?</h3>
+  <p>Open an issue on
+  <a href="https://github.com/FreeHaTools/Advance-tools" target="_blank"
+     style="color:var(--acc2)">github.com/FreeHaTools/Advance-tools</a> —
+  built with ❤ by Mike Fattahi.</p>
+</div>
+
+<!-- ==================== ABOUT & SUPPORT ==================== -->
+<div class="sec" id="about_support" data-nav="ℹ️ About &amp; support"
+     data-group="Basics">
+  <h2><span class="ic">ℹ️</span>About &amp; support</h2>
+  <p>Advance Tools is built by <b>Mike Fattahi</b> — a plugin-based smart home
+  toolbox for Home Assistant: dashboards, automations, scenes, alerts, backups
+  and more, all behind one admin hub.</p>
+  <ul>
+    <li>Website:
+      <a href="https://www.fattahi.us" target="_blank" rel="noopener"
+         style="color:var(--acc2)">fattahi.us</a></li>
+    <li>GitHub:
+      <a href="https://github.com/FreeHaTools" target="_blank" rel="noopener"
+         style="color:var(--acc2)">github.com/FreeHaTools</a></li>
+    <li>Source code and issues:
+      <a href="https://github.com/FreeHaTools/Advance-tools" target="_blank"
+         rel="noopener"
+         style="color:var(--acc2)">github.com/FreeHaTools/Advance-tools</a></li>
+  </ul>
+
+  <h3>Reporting a problem</h3>
+  <ol>
+    <li>Open <b>System Center → Support bundle</b> and download the zip. It
+      collects the versions, uptime, the add-on log and every tool's
+      configuration for you.</li>
+    <li>Secrets are stripped automatically — passwords, PINs, tokens, API
+      keys, webhook URLs and e-mail addresses are replaced with
+      <code>&lt;redacted&gt;</code>, and the tool shows you the file list and
+      how many values were removed before you download.</li>
+    <li>Open an issue on
+      <a href="https://github.com/FreeHaTools/Advance-tools/issues"
+         target="_blank" rel="noopener"
+         style="color:var(--acc2)">GitHub</a>, describe what you expected and
+      what happened instead, and attach the zip.</li>
+  </ol>
+
+  <h3>Asking for a feature</h3>
+  <p>Same place — open an issue on GitHub and describe the problem you are
+  trying to solve rather than the solution you have in mind. Which tool it
+  belongs in, and what you do today instead, both help a lot.</p>
+
+  <h3>Support this project</h3>
+  <p>Advance Tools is free and always will be. If it saved you an afternoon,
+  you can <a href="https://github.com/sponsors/FreeHaTools" target="_blank"
+  rel="noopener" style="color:var(--acc2)">buy me a coffee</a> ♥</p>
+</div>
+
+</main>
+</div>
+
+<script>
+"use strict";
+/* Build the sidebar from sections */
+const toc = document.getElementById("toc");
+const secs = Array.from(document.querySelectorAll(".sec"));
+let group = "";
+for (const s of secs) {
+  const g = s.dataset.group || "";
+  if (g !== group) {
+    group = g;
+    const h = document.createElement("div");
+    h.className = "nh"; h.textContent = g;
+    toc.appendChild(h);
+  }
+  const a = document.createElement("a");
+  a.href = "#" + s.id;
+  a.textContent = s.dataset.nav;
+  a.dataset.target = s.id;
+  toc.appendChild(a);
+}
+/* Active link on scroll */
+const links = Array.from(toc.querySelectorAll("a"));
+function setActive() {
+  let cur = secs[0];
+  for (const s of secs)
+    if (!s.classList.contains("hide") &&
+        s.getBoundingClientRect().top < 130) cur = s;
+  links.forEach((l) => l.classList.toggle("on", l.dataset.target === cur.id));
+}
+document.addEventListener("scroll", setActive, { passive: true });
+setActive();
+/* Search filters sections */
+document.getElementById("search").addEventListener("input", (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  for (const s of secs) {
+    const hit = !q || s.textContent.toLowerCase().includes(q);
+    s.classList.toggle("hide", !hit);
+    const link = links.find((l) => l.dataset.target === s.id);
+    if (link) link.style.display = hit ? "" : "none";
+  }
+  setActive();
+});
+</script>
+</body>
+</html>

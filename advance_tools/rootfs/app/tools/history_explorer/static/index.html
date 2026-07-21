@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>History Explorer — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#3ecf8e; --acc2:#22b8cf;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --hover:rgba(62,207,142,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+    --s1:#3ecf8e; --s2:#22b8cf; --s3:#b17aff; --s4:#ffb86b;
+    --s5:#ff6b81; --s6:#ffd75c;
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+
+  header { display:flex; align-items:center; gap:10px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; flex-wrap:wrap; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; min-width:150px; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .ghost.on { color:var(--acc); border-color:var(--acc);
+           background:rgba(62,207,142,.1); }
+  .ghost[disabled] { opacity:.45; cursor:default; }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#04231a;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+  .btn.sm { padding:8px 15px; font-size:12.5px; }
+  .btn[disabled] { opacity:.5; cursor:default; }
+
+  main { padding:18px 22px 60px; max-width:1240px; margin:0 auto; }
+  @media (max-width:520px){ main { padding:14px 12px 50px; } header { padding:12px 14px; } }
+
+  .panel { background:var(--card); border:1px solid var(--line);
+           border-radius:14px; padding:15px 17px; box-shadow:var(--shadow);
+           margin-bottom:14px; }
+  .phead { display:flex; align-items:center; gap:9px; margin-bottom:11px;
+           flex-wrap:wrap; }
+  .phead b { font-size:14px; }
+  .phead .psub { font-size:11px; color:var(--mut); }
+  .phead .sp { flex:1; }
+
+  /* ---- entity picker ---- */
+  .chips { display:flex; flex-wrap:wrap; gap:7px; align-items:center; }
+  .chip { display:inline-flex; align-items:center; gap:7px; background:var(--input);
+          border:1px solid var(--line); border-radius:20px; padding:5px 8px 5px 11px;
+          font-size:12.5px; max-width:100%; }
+  .chip .sw { width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
+  .chip .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+          max-width:200px; }
+  .chip .x { border:0; background:none; color:var(--mut); cursor:pointer;
+          font-size:14px; line-height:1; padding:0 2px; }
+  .chip .x:hover { color:var(--bad); }
+  .chip.add { cursor:pointer; border-style:dashed; color:var(--acc);
+          padding:5px 12px; }
+  .chip.add:hover { border-color:var(--acc); background:var(--hover); }
+
+  /* ---- range controls ---- */
+  .quick { display:flex; flex-wrap:wrap; gap:6px; }
+  .quick button { background:var(--input); border:1px solid var(--line);
+          color:var(--mut); padding:7px 12px; border-radius:9px; cursor:pointer;
+          font-size:12.5px; }
+  .quick button:hover { color:var(--txt); }
+  .quick button.on { background:linear-gradient(135deg,var(--acc),var(--acc2));
+          color:#04231a; font-weight:700; border-color:transparent; }
+  .custom { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;
+          margin-top:11px; }
+  .custom .f { flex:1; min-width:150px; }
+  .custom label { font-size:11px; color:var(--mut); display:block; margin-bottom:4px; }
+  input[type=datetime-local], input[type=search], select {
+    width:100%; padding:8px 11px; border-radius:10px; border:1px solid var(--line);
+    background:var(--input); color:var(--txt); font-size:13px; }
+  input:focus, select:focus { outline:none; border-color:var(--acc); }
+
+  /* ---- chart ---- */
+  #chartWrap { position:relative; }
+  #chartWrap svg { display:block; width:100%; height:auto; touch-action:pan-y; }
+  .axis { stroke:var(--line); stroke-width:1; }
+  .grid { stroke:var(--line); stroke-width:1; opacity:.45;
+          stroke-dasharray:3 4; }
+  .alab { fill:var(--mut); font-size:10px; font-family:"Segoe UI", sans-serif; }
+  .sline { fill:none; stroke-width:2; stroke-linejoin:round;
+           stroke-linecap:round; }
+  .cross { stroke:var(--acc2); stroke-width:1; stroke-dasharray:3 3; }
+  #hoverBox { position:absolute; z-index:6; background:#0d1424;
+          border:1px solid var(--acc2); border-radius:10px; padding:8px 11px;
+          font-size:12px; line-height:1.65; pointer-events:none; display:none;
+          box-shadow:0 10px 28px rgba(0,0,0,.55); white-space:nowrap;
+          max-width:min(90vw,300px); }
+  #hoverBox .ht { color:var(--mut); font-size:10.5px; margin-bottom:4px; }
+  #hoverBox .hr { display:flex; align-items:center; gap:7px; }
+  #hoverBox .hr .sw { width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
+  #hoverBox .hr .hv { margin-left:auto; font-weight:700; padding-left:10px; }
+
+  .legend { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px; }
+  .legend .li { display:flex; align-items:center; gap:6px; font-size:12px;
+          color:var(--mut); cursor:pointer; user-select:none; }
+  .legend .li .sw { width:11px; height:3px; border-radius:2px; }
+  .legend .li.off { opacity:.38; }
+  .legend .li b { color:var(--txt); font-weight:600; }
+
+  /* ---- state timeline ---- */
+  .tlrow { margin-bottom:11px; }
+  .tlhead { display:flex; align-items:baseline; gap:8px; font-size:12px;
+          margin-bottom:4px; }
+  .tlhead b { font-size:12.5px; }
+  .tlhead span { color:var(--mut); font-size:11px; }
+  .tlbar { position:relative; height:22px; border-radius:7px; overflow:hidden;
+          background:var(--input); border:1px solid var(--line); }
+  .tlseg { position:absolute; top:0; bottom:0; }
+  .tlkey { display:flex; flex-wrap:wrap; gap:5px 12px; margin-top:6px; }
+  .tlkey i { font-style:normal; font-size:11px; color:var(--mut);
+          display:inline-flex; align-items:center; gap:5px; }
+  .tlkey i .sw { width:10px; height:10px; border-radius:3px; }
+  .tlaxis { display:flex; justify-content:space-between; font-size:10px;
+          color:var(--mut); margin-top:3px; }
+
+  /* ---- stats table ---- */
+  .tblwrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:12.5px;
+          min-width:520px; }
+  th { text-align:left; color:var(--mut); font-weight:600; font-size:10.5px;
+       text-transform:uppercase; letter-spacing:.07em; padding:7px 9px;
+       border-bottom:1px solid var(--line); white-space:nowrap; }
+  td { padding:9px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  tr:last-child td { border-bottom:0; }
+  td.nm { white-space:normal; min-width:150px; }
+  td.nm .sw { display:inline-block; width:9px; height:9px; border-radius:50%;
+       margin-right:7px; }
+  td.nm small { display:block; color:var(--mut); font-size:10px;
+       font-family:Consolas, monospace; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+
+  .empty { text-align:center; color:var(--mut); padding:40px 14px; font-size:13.5px;
+           line-height:2; }
+  .empty .big { font-size:34px; display:block; margin-bottom:6px; }
+  .notice { background:rgba(255,184,107,.08); border:1px solid
+           rgba(255,184,107,.35); color:var(--warn); border-radius:12px;
+           padding:11px 15px; font-size:12.5px; line-height:1.8;
+           margin-bottom:14px; display:none; }
+  .notice.bad { background:rgba(255,107,129,.08);
+           border-color:rgba(255,107,129,.4); color:#ff9aae; }
+  .res { font-size:11px; color:var(--mut); }
+  .res b { color:var(--acc2); font-weight:600; }
+
+  /* ---- modals ---- */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.72); display:none;
+           z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+           padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(97vw, 720px); margin:0 auto;
+          padding:22px; box-shadow:var(--shadow); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead .micon { width:34px; height:34px; border-radius:10px; display:flex;
+          align-items:center; justify-content:center; font-size:17px;
+          background:var(--input); border:1px solid var(--line); }
+  .mhead h2 { font-size:17px; flex:1; }
+  .msub { color:var(--mut); font-size:12px; margin-bottom:14px; line-height:1.7; }
+
+  .picklist { max-height:min(52vh,420px); overflow-y:auto; border:1px solid var(--line);
+          border-radius:12px; margin-top:10px; background:var(--input); }
+  .pgroup { padding:8px 14px 4px; font-size:10px; color:var(--mut);
+          text-transform:uppercase; letter-spacing:.09em;
+          background:var(--card); position:sticky; top:0; z-index:1;
+          border-bottom:1px solid var(--line); }
+  .prow { display:flex; align-items:center; gap:11px; padding:9px 14px;
+          border-bottom:1px solid var(--line); cursor:pointer; }
+  .prow:last-child { border-bottom:0; }
+  .prow:hover { background:var(--hover); }
+  .prow .cb { width:18px; height:18px; border-radius:6px; flex:0 0 auto;
+          border:2px solid var(--line); background:var(--card);
+          display:flex; align-items:center; justify-content:center;
+          font-size:11px; color:#04231a; }
+  .prow.sel .cb { background:var(--acc); border-color:var(--acc); }
+  .prow.dim { opacity:.4; }
+  .prow .pn { flex:1; min-width:0; }
+  .prow .pn b { display:block; font-size:13px; overflow:hidden;
+          text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+  .prow .pid { font-size:10px; color:var(--mut); font-family:Consolas, monospace;
+          overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pbadge { font-size:9.5px; padding:3px 8px; border-radius:20px;
+          border:1px solid var(--line); color:var(--mut); flex:0 0 auto; }
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:16px;
+           align-items:center; flex-wrap:wrap; }
+  .mfoot .sp { flex:1; }
+  .selcount { font-size:12px; color:var(--mut); }
+  .selcount.over { color:var(--bad); }
+
+  .learn h3 { font-size:12px; color:var(--acc2); text-transform:uppercase;
+        letter-spacing:.1em; margin:18px 0 7px; }
+  .learn p { font-size:13.5px; line-height:1.9; }
+  .learn ul { margin:4px 0 0 20px; }
+  .learn li { font-size:13px; line-height:1.9; }
+
+  #toasts { position:fixed; right:18px; bottom:18px; z-index:500; display:flex;
+        flex-direction:column; gap:8px; }
+  .toast { background:var(--bg2); border:1px solid var(--good); color:var(--txt);
+        border-radius:12px; padding:11px 16px; font-size:13px;
+        box-shadow:0 10px 30px rgba(0,0,0,.5); max-width:340px; line-height:1.6; }
+  .toast.bad { border-color:var(--bad); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📈</div>
+  <h1>History Explorer<small>what actually happened, from the recorder</small></h1>
+  <a class="ghost" href="/admin" target="_top">← Hub</a>
+  <button class="ghost" id="helpBtn" title="How does this tool work?">❓ How it works</button>
+  <button class="ghost" id="csvBtn" title="Download the current data as CSV">⬇ CSV</button>
+  <button class="btn sm" id="runBtn">Load</button>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="phead">
+      <b>Entities</b>
+      <span class="psub" id="pickSub">nothing selected yet</span>
+      <div class="sp"></div>
+      <button class="ghost" id="clearSel">Clear</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <section class="panel">
+    <div class="phead">
+      <b>Time range</b>
+      <span class="psub" id="rangeSub"></span>
+    </div>
+    <div class="quick" id="quick">
+      <button data-q="hour">Last hour</button>
+      <button data-q="today">Today</button>
+      <button data-q="24h" class="on">24 hours</button>
+      <button data-q="7d">7 days</button>
+      <button data-q="30d">30 days</button>
+      <button data-q="month">This month</button>
+    </div>
+    <div class="custom">
+      <div class="f"><label for="fromIn">From</label>
+        <input type="datetime-local" id="fromIn"></div>
+      <div class="f"><label for="toIn">To</label>
+        <input type="datetime-local" id="toIn"></div>
+      <div class="f" style="max-width:170px"><label for="bucketIn">Resolution</label>
+        <select id="bucketIn">
+          <option value="auto">Auto (recommended)</option>
+          <option value="raw">Raw history</option>
+          <option value="5m">5 minutes</option>
+          <option value="1h">Hourly</option>
+          <option value="1d">Daily</option>
+        </select></div>
+    </div>
+  </section>
+
+  <div class="notice" id="notice"></div>
+
+  <section class="panel" id="chartPanel">
+    <div class="phead">
+      <b>Chart</b>
+      <div class="sp"></div>
+      <span class="res" id="resText"></span>
+    </div>
+    <div id="chartWrap"><div id="hoverBox"></div><div id="chartHost"></div></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="panel" id="timelinePanel" style="display:none">
+    <div class="phead"><b>State timeline</b>
+      <span class="psub">when each entity was in which state</span></div>
+    <div id="timeline"></div>
+  </section>
+
+  <section class="panel" id="statsPanel" style="display:none">
+    <div class="phead"><b>Statistics</b>
+      <span class="psub" id="statsSub"></span></div>
+    <div class="tblwrap"><table id="statsTable"></table></div>
+  </section>
+</main>
+
+<!-- entity picker -->
+<div class="modal" id="pickModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">🔍</div>
+      <h2>Pick entities</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub">Search by name, entity id or area. Numeric sensors are
+      drawn as lines; everything else becomes a state timeline.</div>
+    <input type="search" id="pickSearch" placeholder="Filter entities…">
+    <div class="picklist" id="pickList"><div class="empty">Loading entities…</div></div>
+    <div class="mfoot">
+      <span class="selcount" id="selCount">0 selected</span>
+      <div class="sp"></div>
+      <button class="ghost" data-close>Close</button>
+      <button class="btn sm" id="pickDone">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- how it works -->
+<div class="modal" id="helpModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">❓</div>
+      <h2>How History Explorer works</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="learn">
+      <h3>Where the data comes from</h3>
+      <p>Everything here is read from <b>Home Assistant's recorder</b> — the
+        database HA writes state changes into. This tool never stores history
+        of its own, so your <b>recorder settings decide how far back you can
+        look</b> and which entities exist at all. If an entity is excluded from
+        the recorder, it will be empty here no matter what range you pick.</p>
+
+      <h3>Raw history vs long-term statistics</h3>
+      <p>The recorder keeps two very different things, and this tool picks
+        between them for you:</p>
+      <ul>
+        <li><b>Raw history</b> — every single state change, exactly as it
+          happened. Used for ranges up to <b>48 hours</b>. Full detail, but a
+          month of it would be millions of rows.</li>
+        <li><b>Long-term statistics</b> — pre-computed hourly and daily
+          summaries that survive recorder purges. Used for longer ranges.
+          Each point is an <b>average over its bucket</b>, so a two-minute
+          spike is smoothed away.</li>
+      </ul>
+      <p>The line under the chart always tells you which one you are looking
+        at. You can override it with the <b>Resolution</b> selector — just
+        remember that asking for raw history over 30 days will be slow, and
+        that only numeric sensors have statistics at all. Switches, lights and
+        binary sensors are <b>always</b> read from raw history.</p>
+
+      <h3>Why there are gaps in the line</h3>
+      <p>A break in a line is real information, not a rendering bug. It means
+        the entity reported <code>unavailable</code> or <code>unknown</code>,
+        or simply reported nothing at all — the device was off, restarting, or
+        out of range. Those moments are deliberately <b>not</b> drawn as zero:
+        a thermostat that goes unavailable did not suddenly read 0°.</p>
+      <p>An entity that only appears halfway through the range is the same
+        story — it simply had no history before that point.</p>
+
+      <h3>Down-sampling</h3>
+      <p>A series longer than 1500 points is thinned server-side before it is
+        sent, keeping the first and last point of every unbroken run and never
+        closing a gap. When that happens the chart says so. The statistics are
+        computed on the same points you see.</p>
+
+      <h3>How the numbers are computed</h3>
+      <ul>
+        <li><b>Mean</b> is <b>time-weighted</b>: a value that held for six
+          hours counts more than one that held for six seconds. That is what
+          makes it comparable across irregular sampling.</li>
+        <li><b>Delta</b> is simply last − first over the range.</li>
+        <li><b>On-time</b> counts every second spent in an "on"-like state
+          (on, open, home, unlocked, playing, detected…). Time spent
+          unavailable counts towards neither on nor off.</li>
+        <li><b>Transitions</b> is how many times the state actually changed
+          inside the range.</li>
+      </ul>
+
+      <h3>CSV export</h3>
+      <p>⬇ CSV gives you the same data as the chart: one row per timestamp,
+        one column per entity, ISO-8601 timestamps in your Home Assistant time
+        zone. Blank cells mean that entity had nothing to report at that
+        instant — they are not zeros.</p>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<script src="/tools/history_explorer/static/app.js"></script>
+</body>
+</html>

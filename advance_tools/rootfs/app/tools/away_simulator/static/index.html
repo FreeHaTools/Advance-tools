@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Away Simulator — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#b17aff; --acc2:#22b8cf;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --hover:rgba(177,122,255,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#12041f;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+  .btn.sm { padding:8px 15px; font-size:12.5px; }
+  .btn[disabled] { opacity:.5; cursor:default; }
+  .stat { font-size:12px; color:var(--mut); }
+  .stat .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+            background:var(--bad); margin-right:5px; }
+  .stat .dot.ok { background:var(--good); }
+
+  main { padding:20px 22px 80px; max-width:1180px; margin:0 auto;
+         display:flex; flex-direction:column; gap:16px; }
+
+  .card { background:var(--card); border:1px solid var(--line);
+          border-radius:14px; padding:18px 20px; box-shadow:var(--shadow); }
+  .card h2 { font-size:14px; display:flex; align-items:center; gap:8px;
+          margin-bottom:4px; }
+  .card .sub { font-size:12px; color:var(--mut); line-height:1.7;
+          margin-bottom:12px; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:860px){ .row2 { grid-template-columns:1fr; } }
+
+  /* ---- hero ---- */
+  #hero { display:flex; align-items:center; gap:24px; padding:24px 26px;
+          transition:box-shadow .4s, border-color .4s; flex-wrap:wrap; }
+  #hero.st-active { border-color:rgba(62,207,142,.55);
+          box-shadow:0 0 40px rgba(62,207,142,.18), var(--shadow); }
+  #hero.st-paused { border-color:rgba(255,184,107,.55);
+          box-shadow:0 0 40px rgba(255,184,107,.15), var(--shadow); }
+  #hero.st-warn { border-color:rgba(255,107,129,.5);
+          box-shadow:0 0 36px rgba(255,107,129,.12), var(--shadow); }
+  .bigsw { position:relative; width:96px; height:52px; border-radius:30px;
+          background:var(--line); cursor:pointer; transition:.25s; flex:0 0 auto;
+          border:0; padding:0; }
+  .bigsw::after { content:''; position:absolute; top:6px; left:6px; width:40px;
+          height:40px; border-radius:50%; background:#fff; transition:.25s;
+          box-shadow:0 3px 10px rgba(0,0,0,.4); }
+  .bigsw.on { background:var(--good); }
+  .bigsw.on::after { left:50px; }
+  .bigsw.paused { background:var(--warn); }
+  #heroTxt { flex:1; min-width:220px; }
+  #statusTitle { font-size:19px; font-weight:700; margin-bottom:4px; }
+  #statusTitle.c-good { color:var(--good); }
+  #statusTitle.c-warn { color:var(--warn); }
+  #statusTitle.c-mut { color:var(--mut); }
+  #statusTitle.c-bad { color:var(--bad); }
+  #statusSub { font-size:12.5px; color:var(--mut); line-height:1.7; }
+  #statusSub b { color:var(--acc2); font-weight:600; }
+
+  /* ---- entity picker ---- */
+  .combo-wrap { position:relative; }
+  #entSearch { width:100%; padding:9px 12px; border-radius:10px;
+          border:1px solid var(--line); background:var(--input);
+          color:var(--txt); font-size:13px; }
+  #entSearch:focus { outline:none; border-color:var(--acc); }
+  .combo-list { position:absolute; left:0; right:0; top:calc(100% + 4px);
+          max-height:230px; overflow-y:auto; background:#0d1424;
+          border:1px solid var(--acc2); border-radius:10px; z-index:60;
+          display:none; box-shadow:0 14px 34px rgba(0,0,0,.55); }
+  .combo-list.open { display:block; }
+  .combo-it { padding:8px 12px; cursor:pointer; font-size:12.5px;
+          display:flex; gap:8px; align-items:baseline; }
+  .combo-it:hover, .combo-it.sel { background:rgba(34,184,207,.12); }
+  .combo-it .cn { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;
+          white-space:nowrap; }
+  .combo-it .cid { color:var(--mut); font-size:10.5px;
+          font-family:Consolas, monospace; overflow:hidden;
+          text-overflow:ellipsis; white-space:nowrap; max-width:46%; }
+  .chipsline { display:flex; flex-wrap:wrap; gap:7px; margin-top:11px; }
+  .echip { display:inline-flex; align-items:center; gap:7px; font-size:12px;
+          background:var(--input); border:1px solid var(--line);
+          border-radius:16px; padding:6px 11px; }
+  .echip .sdot { width:8px; height:8px; border-radius:50%; background:var(--mut);
+          flex:0 0 auto; opacity:.5; }
+  .echip .sdot.on { background:var(--warn); opacity:1;
+          box-shadow:0 0 8px rgba(255,184,107,.8); }
+  .echip .nm { max-width:190px; overflow:hidden; text-overflow:ellipsis;
+          white-space:nowrap; }
+  .echip button { background:none; border:0; color:var(--mut); cursor:pointer;
+          font-size:13px; padding:0 2px; }
+  .echip button:hover { color:var(--txt); }
+  .echip button.rm:hover { color:var(--bad); }
+  .echip button.zap:hover { color:var(--warn); }
+  .echip button[disabled] { opacity:.4; cursor:default; }
+
+  /* ---- settings ---- */
+  label.f { font-size:12px; color:var(--mut); display:flex; align-items:center;
+          margin:14px 0 6px; }
+  .segrow { display:inline-flex; border:1px solid var(--line);
+          border-radius:10px; overflow:hidden; }
+  .segrow button { background:var(--input); border:0; color:var(--mut);
+          padding:8px 16px; cursor:pointer; font-size:12.5px;
+          border-right:1px solid var(--line); }
+  .segrow button:last-child { border-right:0; }
+  .segrow button.on { background:var(--acc); color:#12041f; font-weight:700; }
+  input[type=range] { width:100%; accent-color:var(--acc); }
+  .rangeline { display:flex; align-items:center; gap:12px; }
+  .rangeline b { min-width:70px; text-align:right; font-size:13px;
+          color:var(--acc2); }
+  .winrow { display:flex; align-items:center; gap:9px; }
+  .winrow input[type=time] { padding:8px 10px; border-radius:9px;
+          border:1px solid var(--line); background:var(--input);
+          color:var(--txt); font-size:13px; }
+  .winrow input[type=time]:focus { outline:none; border-color:var(--acc); }
+  .winrow span { color:var(--mut); font-size:12px; }
+  .boolrow { display:flex; align-items:center; gap:10px; margin-top:16px; }
+  .boolrow .bl { font-size:13px; flex:1; display:flex; align-items:center; }
+  .sw { position:relative; width:44px; height:24px; border-radius:20px;
+        background:var(--line); cursor:pointer; transition:.2s; flex:0 0 auto; }
+  .sw::after { content:''; position:absolute; top:3px; left:3px; width:18px;
+        height:18px; border-radius:50%; background:#fff; transition:.2s; }
+  .sw.on { background:var(--good); }
+  .sw.on::after { left:23px; }
+  .personline { font-size:11.5px; color:var(--mut); margin-top:8px;
+        line-height:1.8; }
+  .personline .p { display:inline-flex; align-items:center; gap:5px;
+        border:1px solid var(--line); border-radius:14px; padding:2px 9px;
+        margin-right:6px; }
+  .personline .p.home { border-color:rgba(255,184,107,.5); color:var(--warn); }
+
+  /* ---- timeline ---- */
+  .planhead { display:flex; align-items:center; gap:10px; }
+  .planhead h2 { flex:1; }
+  .tlwrap { margin-top:8px; }
+  .tlrow { display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+  .tlrow .lbl { width:150px; font-size:11.5px; color:var(--mut); text-align:right;
+        overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+        flex:0 0 auto; }
+  .tlbar { position:relative; flex:1; height:22px; background:var(--input);
+        border:1px solid var(--line); border-radius:7px; overflow:visible; }
+  .tlseg { position:absolute; top:3px; bottom:3px; border-radius:5px;
+        background:linear-gradient(180deg,#ffd27a,#ffb347); opacity:.9;
+        box-shadow:0 0 10px rgba(255,184,107,.55); min-width:3px; }
+  .tlmk { position:absolute; top:50%; transform:translate(-50%,-50%);
+        width:9px; height:9px; border-radius:50%; background:var(--acc2);
+        border:2px solid #0d1424; cursor:default; z-index:2; }
+  .tlmk.done { background:var(--good); }
+  .tlmk.missed { background:var(--line); }
+  .tlnow { position:absolute; top:-3px; bottom:-3px; width:2px;
+        background:var(--bad); z-index:3; border-radius:2px;
+        box-shadow:0 0 6px rgba(255,107,129,.8); }
+  .tlscale { display:flex; margin-left:160px; justify-content:space-between;
+        font-size:9.5px; color:var(--mut); padding:0 1px 4px; }
+  @media (max-width:640px){ .tlrow .lbl { width:86px; } .tlscale { margin-left:96px; } }
+
+  /* ---- plan action list ---- */
+  .plist { margin-top:14px; border-top:1px solid var(--line); padding-top:10px;
+        display:flex; flex-direction:column; gap:2px; max-height:300px;
+        overflow-y:auto; }
+  .pitem { display:flex; align-items:center; gap:10px; font-size:12.5px;
+        padding:6px 8px; border-radius:8px; }
+  .pitem:hover { background:var(--hover); }
+  .pitem .pt { font-family:Consolas, monospace; font-size:12px; color:var(--acc2);
+        width:44px; flex:0 0 auto; }
+  .pitem .pn { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;
+        white-space:nowrap; }
+  .pitem .pa { font-weight:700; font-size:11.5px; width:36px; text-align:center;
+        flex:0 0 auto; }
+  .pitem .pa.on { color:var(--warn); } .pitem .pa.off { color:var(--mut); }
+  .pitem .ps { font-size:11px; width:78px; text-align:right; flex:0 0 auto; }
+  .pitem .ps.done { color:var(--good); }
+  .pitem .ps.missed { color:var(--mut); }
+  .pitem .ps.up { color:var(--acc2); }
+  .pitem.dim { opacity:.55; }
+  .skipnote { margin-top:10px; color:var(--warn); font-size:12px;
+        background:rgba(255,184,107,.08); border:1px solid rgba(255,184,107,.35);
+        border-radius:10px; padding:9px 13px; line-height:1.7; }
+  .errnote { margin-top:10px; color:#ff9aae; font-size:12.5px;
+        background:#3a1a22; border:1px solid #7a2a3a; border-radius:10px;
+        padding:9px 13px; line-height:1.7; }
+
+  /* ---- log ---- */
+  .logline { display:flex; gap:10px; font-size:12.5px; padding:6px 4px;
+        border-bottom:1px solid rgba(40,50,76,.5); align-items:baseline; }
+  .logline:last-child { border-bottom:0; }
+  .logline .lt { color:var(--mut); font-size:11px; width:80px; flex:0 0 auto; }
+  .logline .lx { flex:1; line-height:1.6; }
+  .logline.bad .lx { color:var(--bad); }
+
+  .empty { text-align:center; color:var(--mut); padding:34px 10px;
+        font-size:13.5px; line-height:2; }
+  .empty .big { font-size:34px; display:block; margin-bottom:6px; }
+
+  /* ---- hint (tooltip) system ---- */
+  .hint { display:inline-flex; align-items:center; justify-content:center;
+          width:16px; height:16px; border-radius:50%; border:1px solid var(--line);
+          background:var(--input); color:var(--mut); font-size:10px;
+          font-weight:700; cursor:help; margin-left:6px; vertical-align:1px;
+          user-select:none; flex:0 0 auto; }
+  .hint:hover { color:var(--acc2); border-color:var(--acc2); }
+  #tipbox { position:fixed; z-index:400; width:min(92vw, 360px);
+            background:#0d1424; border:1px solid var(--acc2); border-radius:14px;
+            padding:14px 16px; box-shadow:0 14px 40px rgba(0,0,0,.6);
+            display:none; font-size:12.5px; line-height:1.75; }
+  #tipbox b.t { display:block; color:var(--acc2); font-size:13px;
+            margin-bottom:4px; }
+  #tipbox .ex { margin-top:8px; background:var(--input); border:1px solid
+            var(--line); border-left:3px solid var(--acc); border-radius:8px;
+            padding:8px 11px; font-family:Consolas, monospace; font-size:11.5px;
+            white-space:pre-wrap; color:#e2d4f7; }
+  #tipbox .ex::before { content:'EXAMPLE'; display:block; font-family:"Segoe UI";
+            font-size:9px; letter-spacing:.12em; color:var(--mut);
+            margin-bottom:3px; }
+
+  /* ---- modals ---- */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.72); display:none;
+           z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+           padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(97vw, 760px); margin:0 auto;
+          padding:24px; box-shadow:var(--shadow); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead .micon { width:34px; height:34px; border-radius:10px; display:flex;
+          align-items:center; justify-content:center; font-size:17px;
+          background:var(--input); border:1px solid var(--line); }
+  .mhead h2 { font-size:17px; flex:1; }
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+  .learn h3 { font-size:12px; color:var(--acc2); text-transform:uppercase;
+        letter-spacing:.1em; margin:18px 0 7px; }
+  .learn p { font-size:13.5px; line-height:1.9; color:var(--txt); }
+  .learn ul { margin:4px 0 0 20px; }
+  .learn li { font-size:13px; line-height:1.9; color:var(--txt); }
+
+  /* ---- toasts ---- */
+  #toasts { position:fixed; right:18px; bottom:18px; z-index:500; display:flex;
+        flex-direction:column; gap:8px; }
+  .toast { background:var(--bg2); border:1px solid var(--good); color:var(--txt);
+        border-radius:12px; padding:11px 16px; font-size:13px;
+        box-shadow:0 10px 30px rgba(0,0,0,.5); animation:tin .2s ease;
+        max-width:340px; line-height:1.6; }
+  .toast.bad { border-color:var(--bad); }
+  @keyframes tin { from { opacity:0; transform:translateY(8px); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🏠</div>
+  <h1>Away Simulator<small>replay your real lighting history while you're on vacation</small></h1>
+  <span class="stat" id="connStat"><span class="dot"></span>connecting…</span>
+  <button class="ghost" id="learnBtn">📖 Learn</button>
+  <a class="ghost" href="/admin" target="_top">← Hub</a>
+</header>
+
+<main>
+
+  <!-- hero: big on/off + status -->
+  <div class="card" id="hero">
+    <button class="bigsw" id="mainSwitch" title="Enable / disable the simulation"></button>
+    <div id="heroTxt">
+      <div id="statusTitle" class="c-mut">Loading…</div>
+      <div id="statusSub"></div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <!-- entity picker -->
+    <div class="card">
+      <h2>💡 Entities to simulate
+        <span class="hint" data-t="Which entities?"
+          data-b="Pick the lights and switches that are visible from outside or that you normally use in the evening — living room, kitchen, bedroom, porch. Their real history is what gets replayed."></span>
+      </h2>
+      <div class="sub">Search and add lights or switches. Use the ⚡ button to
+        blink an entity and verify the add-on can control it.</div>
+      <div class="combo-wrap">
+        <input id="entSearch" type="text" autocomplete="off"
+               placeholder="Search lights &amp; switches…">
+        <div class="combo-list" id="entList"></div>
+      </div>
+      <div class="chipsline" id="entChips"></div>
+    </div>
+
+    <!-- settings -->
+    <div class="card">
+      <h2>⚙️ Settings</h2>
+      <div class="sub">Changes are saved instantly and today's plan is rebuilt.</div>
+
+      <label class="f">Replay the day from … days ago
+        <span class="hint" data-t="Days back"
+          data-b="Which past day to copy. 7 is the best default: it replays the same weekday last week, so your Tuesday looks like a normal Tuesday. 1 replays yesterday; 14 goes two weeks back if last week was unusual."></span>
+      </label>
+      <div class="segrow" id="daysSeg">
+        <button data-v="1">1</button><button data-v="2">2</button>
+        <button data-v="7" class="on">7</button><button data-v="14">14</button>
+      </div>
+
+      <label class="f">Randomness
+        <span class="hint" data-t="Random time offset (jitter)"
+          data-b="Every replayed action is shifted by a random amount up to this many minutes, once, when the plan is built. So the pattern is familiar but never an exact copy — which is exactly how a real person behaves."
+          data-ex="History: light on at 19:32&#10;Jitter ±15 → today it fires at 19:41"></span>
+      </label>
+      <div class="rangeline">
+        <input type="range" id="jitter" min="0" max="60" step="5" value="15">
+        <b id="jitterLabel">±15 min</b>
+      </div>
+
+      <label class="f">Active window
+        <span class="hint" data-t="Active window"
+          data-b="Actions scheduled outside this window are dropped. Use it to keep the simulation from flicking lights at 3 AM, or narrow it to evenings only. A window like 18:00 → 02:00 wraps past midnight."></span>
+      </label>
+      <div class="winrow">
+        <input type="time" id="winFrom" value="00:00">
+        <span>to</span>
+        <input type="time" id="winTo" value="23:59">
+      </div>
+
+      <div class="boolrow">
+        <div class="bl">Pause when someone is home
+          <span class="hint" data-t="Pause when home"
+            data-b="Uses your Home Assistant person entities: while any person is 'home', no simulated actions fire. The moment everyone leaves, the simulation resumes — so you can leave it enabled all the time."></span>
+        </div>
+        <div class="sw on" id="pauseSw"></div>
+      </div>
+      <div class="personline" id="personLine"></div>
+    </div>
+  </div>
+
+  <!-- today's plan -->
+  <div class="card">
+    <div class="planhead">
+      <h2>📅 Today's plan
+        <span class="hint" data-t="Today's plan"
+          data-b="The schedule built from your reference day's history. Amber bars show when each entity will be ON; dots are individual on/off actions — green ✓ means already executed. It rebuilds itself automatically every night."></span>
+      </h2>
+      <span class="stat" id="planMeta"></span>
+      <button class="ghost" id="rebuildBtn" title="Rebuild the plan with fresh jitter">↻ Rebuild</button>
+    </div>
+    <div id="planBody"><div class="empty">Loading…</div></div>
+  </div>
+
+  <!-- activity log -->
+  <div class="card">
+    <h2>📜 Activity log
+      <span class="hint" data-t="Activity log"
+        data-b="What the simulator actually did: every service call, plan rebuild and enable/disable, newest first. Keeps the last 100 entries."></span>
+    </h2>
+    <div id="logBody"><div class="empty">Nothing yet.</div></div>
+  </div>
+
+</main>
+
+<!-- hover tooltip -->
+<div id="tipbox"></div>
+
+<!-- learn modal -->
+<div class="modal" id="learnModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">📖</div>
+      <h2>How Away Simulator works</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="learn">
+      <h3>History replay</h3>
+      <p>Every day the simulator looks at what your selected lights and switches
+         really did N days ago (default 7 — the same weekday last week), and
+         repeats those on/off actions today. Each action is shifted by a random
+         offset (the "randomness" setting) so no two days are identical.</p>
+      <h3>Why it beats random lights</h3>
+      <ul>
+        <li>Random timers look random — lights at 3 AM, kitchen dark at dinner
+            time. Anyone watching for a few evenings spots the pattern.</li>
+        <li>Replaying your own history reproduces <b>your</b> rhythm: the hallway
+            light on your usual wake-up time, the living room lit on movie night,
+            the porch light off when you normally sleep.</li>
+        <li>The jitter keeps it from being a perfect copy of last week.</li>
+      </ul>
+      <h3>Requirements</h3>
+      <ul>
+        <li>Recorder history must be enabled for the chosen entities and reach
+            back at least as far as your "days back" setting (HA keeps 10 days
+            by default).</li>
+        <li>The Advance Tools add-on must keep running while you're away — the
+            schedule is executed by this add-on, not by HA automations.</li>
+        <li>If an entity has no on/off history on the reference day it is
+            listed as skipped for that day.</li>
+      </ul>
+      <h3>Tips</h3>
+      <ul>
+        <li>Enable it <b>before</b> you leave — with "pause when someone is
+            home" on, it stays silent until everyone is gone.</li>
+        <li>Use the ⚡ blink test on each entity once, so you know the add-on
+            can really control it.</li>
+        <li>Pick a normal week as reference: if last week was a holiday, set
+            days back to 14.</li>
+      </ul>
+    </div>
+    <div class="mfoot"><button class="btn" data-close>Got it</button></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="static/app.js"></script>
+</body>
+</html>

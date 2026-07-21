@@ -1,0 +1,9 @@
+{
+  "id": "history_explorer",
+  "name": "History Explorer",
+  "icon": "📈",
+  "color": "#3ecf8e",
+  "description": "Chart and compare what actually happened in your home — pick entities and a time range, get line charts, state timelines, real statistics (min/max/mean/delta/on-time) and a CSV export, straight from Home Assistant's recorder.",
+  "page": "/tools/history_explorer/",
+  "version": "1.0.0"
+}

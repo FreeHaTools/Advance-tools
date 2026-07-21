@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Climate Scheduler — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#ff9d5c; --acc2:#22b8cf;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --hover:rgba(255,157,92,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .ghost.sm { padding:5px 11px; font-size:11.5px; }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#12041f;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+  .btn.sm { padding:8px 15px; font-size:12.5px; }
+  .btn.danger { background:linear-gradient(135deg,#ff6b81,#ff9d5c); }
+  .btn[disabled] { opacity:.5; cursor:default; }
+
+  main { padding:20px 22px 110px; max-width:1180px; margin:0 auto; }
+
+  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px;
+             flex-wrap:wrap; }
+  .toolbar .sp { flex:1; }
+  .stat { font-size:12px; color:var(--mut); }
+  .stat .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+            background:var(--bad); margin-right:5px; }
+  .stat .dot.ok { background:var(--good); }
+
+  /* ---- schedule cards ---- */
+  #cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px,1fr));
+           gap:12px; }
+  .scard { background:var(--card); border:1px solid var(--line); border-radius:14px;
+           padding:14px 16px 12px; box-shadow:var(--shadow);
+           display:flex; flex-direction:column; gap:10px; }
+  .scard.disabled { opacity:.55; }
+  .scard .top { display:flex; align-items:flex-start; gap:11px; }
+  .scard .ticon { width:36px; height:36px; border-radius:10px; display:flex;
+           align-items:center; justify-content:center; font-size:18px;
+           background:var(--input); border:1px solid var(--line); flex:0 0 auto; }
+  .scard .nm { flex:1; min-width:0; }
+  .scard .nm b { display:block; font-size:14px; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .scard .eid { display:block; font-size:11px; color:var(--mut); overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .scard .eid .tval { color:var(--acc2); font-weight:600; }
+  .strip { display:flex; flex-direction:column; gap:3px; }
+  .strip .srow { height:8px; border-radius:3px; background:var(--input);
+           border:1px solid rgba(255,255,255,.04); }
+  .nowline { font-size:12px; color:var(--txt); background:var(--input);
+           border:1px solid var(--line); border-left:3px solid var(--acc2);
+           border-radius:8px; padding:7px 10px; line-height:1.6; }
+  .scard .foot { display:flex; align-items:center; gap:6px;
+           border-top:1px solid var(--line); padding-top:8px; }
+  .scard .last { font-size:10.5px; color:var(--mut); flex:1;
+           font-family:Consolas, monospace; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .iconbtn { background:none; border:0; color:var(--mut); cursor:pointer;
+           font-size:14px; padding:3px 7px; border-radius:7px; }
+  .iconbtn:hover { color:var(--txt); background:var(--hover); }
+  .iconbtn.danger:hover { color:var(--bad); }
+  .empty { text-align:center; color:var(--mut); padding:60px 16px; font-size:14px;
+           grid-column:1/-1; line-height:2.1; }
+  .empty b { color:var(--txt); font-size:16px; }
+
+  .sw { position:relative; width:44px; height:24px; border-radius:20px;
+        background:var(--line); cursor:pointer; transition:.2s; flex:0 0 auto; }
+  .sw::after { content:''; position:absolute; top:3px; left:3px; width:18px;
+        height:18px; border-radius:50%; background:#fff; transition:.2s; }
+  .sw.on { background:var(--good); }
+  .sw.on::after { left:23px; }
+
+  /* ---- activity log ---- */
+  .logsec { margin-top:26px; }
+  .logsec h2 { font-size:13px; color:var(--mut); text-transform:uppercase;
+        letter-spacing:.1em; margin-bottom:10px; display:flex;
+        align-items:center; }
+  .logrow { display:flex; gap:10px; align-items:baseline; font-size:12.5px;
+        padding:7px 10px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .logrow .lt { color:var(--mut); font-size:11px; min-width:64px; }
+  .logrow .la { color:var(--good); font-weight:700; font-size:11px;
+        text-transform:uppercase; letter-spacing:.05em; min-width:118px; }
+  .logrow .la.off { color:var(--warn); }
+  .logrow .ld { color:var(--txt); flex:1; min-width:200px; }
+  .lognone { color:var(--mut); font-size:13px; padding:14px 4px; line-height:1.8; }
+
+  /* ---- hint (tooltip) system ---- */
+  .hint { display:inline-flex; align-items:center; justify-content:center;
+          width:16px; height:16px; border-radius:50%; border:1px solid var(--line);
+          background:var(--input); color:var(--mut); font-size:10px;
+          font-weight:700; cursor:help; margin-left:6px; vertical-align:1px;
+          user-select:none; flex:0 0 auto; }
+  .hint:hover { color:var(--acc2); border-color:var(--acc2); }
+  #tipbox { position:fixed; z-index:400; width:min(92vw, 360px);
+            background:#0d1424; border:1px solid var(--acc2); border-radius:14px;
+            padding:14px 16px; box-shadow:0 14px 40px rgba(0,0,0,.6);
+            display:none; font-size:12.5px; line-height:1.75; }
+  #tipbox b.t { display:block; color:var(--acc2); font-size:13px;
+                margin-bottom:4px; }
+  #tipbox .ex { margin-top:8px; background:var(--input); border:1px solid
+                var(--line); border-left:3px solid var(--acc); border-radius:8px;
+                padding:8px 11px; font-family:Consolas, monospace; font-size:11.5px;
+                white-space:pre-wrap; color:#ffe3cf; }
+  #tipbox .ex::before { content:'EXAMPLE'; display:block; font-family:"Segoe UI";
+                font-size:9px; letter-spacing:.12em; color:var(--mut);
+                margin-bottom:3px; }
+
+  /* ---- modals ---- */
+  .modal { position:fixed; inset:0; background:rgba(4,7,14,.72); display:none;
+           z-index:100; backdrop-filter:blur(4px); overflow-y:auto;
+           padding:24px 12px; }
+  .modal.open { display:block; }
+  .mbox { background:var(--card); border:1px solid var(--line);
+          border-radius:18px; width:min(97vw, 760px); margin:0 auto;
+          padding:24px; box-shadow:var(--shadow); }
+  .mbox.wide { width:min(97vw, 1020px); }
+  .mbox.narrow { width:min(97vw, 520px); }
+  .mhead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .mhead .micon { width:34px; height:34px; border-radius:10px; display:flex;
+          align-items:center; justify-content:center; font-size:17px;
+          background:var(--input); border:1px solid var(--line); }
+  .mhead h2 { font-size:17px; flex:1; }
+  .msub { color:var(--mut); font-size:12px; margin-bottom:16px; line-height:1.7; }
+  .mfoot { display:flex; gap:10px; justify-content:flex-end; margin-top:20px;
+           align-items:center; flex-wrap:wrap; }
+  .mfoot .sp { flex:1; }
+  .err { background:#3a1a22; border:1px solid #7a2a3a; color:#ff9aae;
+         border-radius:10px; padding:10px 13px; margin-top:12px; font-size:13px;
+         display:none; line-height:1.7; }
+
+  label { font-size:12px; color:var(--mut); display:flex; align-items:center;
+          margin:14px 0 5px; }
+  label .req { color:var(--bad); margin-left:4px; }
+  input[type=text], input[type=time], input[type=number], select {
+    width:100%; padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--input); color:var(--txt); font-size:13.5px; }
+  input:focus, select:focus { outline:none; border-color:var(--acc); }
+  .grid { display:grid; gap:0 12px; } .g2 { grid-template-columns:1fr 1fr; }
+  @media (max-width:640px){ .g2 { grid-template-columns:1fr; } }
+
+  /* ---- entity combo ---- */
+  .combo-wrap { position:relative; }
+  .combo-list { position:absolute; left:0; right:0; top:calc(100% + 4px);
+        max-height:230px; overflow-y:auto; background:#0d1424;
+        border:1px solid var(--acc2); border-radius:10px; z-index:60;
+        display:none; box-shadow:0 14px 34px rgba(0,0,0,.55); }
+  .combo-list.open { display:block; }
+  .combo-it { padding:8px 12px; cursor:pointer; font-size:12.5px;
+        display:flex; gap:8px; align-items:baseline; }
+  .combo-it:hover { background:rgba(34,184,207,.12); }
+  .combo-it .cn { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;
+        white-space:nowrap; }
+  .combo-it .cid { color:var(--mut); font-size:10.5px;
+        font-family:Consolas, monospace; overflow:hidden; text-overflow:ellipsis;
+        white-space:nowrap; max-width:46%; }
+
+  /* ---- temperature palette ---- */
+  .palette { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .tchip { background:var(--input); border:1px solid var(--line); color:var(--txt);
+        border-radius:16px; padding:5px 11px; cursor:pointer; font-size:12px;
+        user-select:none; }
+  .tchip::before { content:''; display:inline-block; width:10px; height:10px;
+        border-radius:50%; background:var(--tc, var(--line)); margin-right:6px;
+        vertical-align:-1px; }
+  .tchip:hover { border-color:var(--tc, var(--acc)); }
+  .tchip.on { background:var(--tc, var(--acc)); border-color:var(--tc, var(--acc));
+        color:#0b0f19; font-weight:700; }
+  .tchip.on::before { background:#0b0f19; }
+  .tchip.erase::before { display:none; }
+  .tchip.erase.on { background:var(--bad); border-color:var(--bad); }
+  .palette .custom { display:inline-flex; align-items:center; gap:5px;
+        font-size:12px; color:var(--mut); margin-left:6px; }
+  .palette .custom input { width:74px; padding:5px 9px; font-size:12.5px; }
+  .rangeinfo { font-size:11px; color:var(--mut); margin-left:10px; }
+  .legend { margin-top:8px; max-width:420px; }
+  .legend .lbar { height:8px; border-radius:4px; }
+  .legend .llab { display:flex; justify-content:space-between; font-size:10px;
+        color:var(--mut); margin-top:3px; }
+
+  /* ---- weekly grid ---- */
+  .gridwrap { background:var(--input); border:1px solid var(--line);
+        border-radius:12px; padding:12px 12px 10px; overflow-x:auto; }
+  #edHours { display:grid; grid-template-columns:46px repeat(8,1fr);
+        font-size:10px; color:var(--mut); margin-bottom:5px; min-width:560px; }
+  #edGrid { display:grid; grid-template-columns:46px repeat(48,1fr);
+        row-gap:3px; user-select:none; cursor:crosshair; min-width:560px;
+        touch-action:none; }
+  .daylab { font-size:11px; font-weight:700; color:var(--mut); display:flex;
+        align-items:center; cursor:default; }
+  .cell { height:26px; background:rgba(255,255,255,.035); }
+  .cell.hr { border-left:1px solid rgba(255,255,255,.08); }
+  .cell.pv { opacity:.75; }
+  .cell.sel { box-shadow:inset 0 0 0 2px rgba(255,255,255,.85); }
+
+  .copyrow { display:flex; gap:8px; align-items:center; font-size:12px;
+        color:var(--mut); margin-top:10px; flex-wrap:wrap; }
+
+  .blockpanel { display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+        background:var(--input); border:1px solid var(--acc2); border-radius:12px;
+        padding:10px 14px; margin-top:12px; font-size:12.5px; }
+  .blockpanel b { color:var(--acc2); }
+  .blockpanel .sp { flex:1; }
+  .blockpanel input[type=time] { width:112px; padding:6px 9px; font-size:12.5px; }
+  .stepper { display:flex; align-items:center; gap:2px; border:1px solid var(--line);
+        border-radius:9px; overflow:hidden; }
+  .stepper button { background:var(--card); border:0; color:var(--txt);
+        width:30px; height:28px; cursor:pointer; font-size:15px; }
+  .stepper button:hover { background:var(--hover); }
+  .stepper span { min-width:52px; text-align:center; font-size:13px;
+        font-weight:700; }
+
+  .outrow { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .ochip { display:inline-flex; align-items:center; gap:6px; font-size:12.5px;
+        color:var(--mut); background:var(--input); border:1px solid var(--line);
+        border-radius:20px; padding:7px 14px; cursor:pointer; user-select:none; }
+  .ochip:hover { color:var(--txt); border-color:var(--acc); }
+  .ochip.on { color:#12041f; background:var(--acc); border-color:var(--acc);
+        font-weight:700; }
+  .outrow input[type=number] { width:80px; padding:6px 9px; font-size:12.5px; }
+
+  .summary { margin-top:16px; background:var(--input); border:1px solid var(--line);
+        border-left:3px solid var(--acc); border-radius:10px; padding:10px 13px;
+        font-size:12.5px; line-height:1.9; color:var(--mut); }
+  .summary b { color:var(--txt); }
+
+  /* ---- learn panel ---- */
+  .learn h3 { font-size:12px; color:var(--acc2); text-transform:uppercase;
+        letter-spacing:.1em; margin:18px 0 7px; }
+  .learn p { font-size:13.5px; line-height:1.9; color:var(--txt); }
+  .learn ul { margin:4px 0 0 20px; }
+  .learn li { font-size:13px; line-height:1.9; color:var(--txt); }
+  .learn pre { background:#0a0f1c; border:1px solid var(--line);
+        border-left:3px solid var(--acc); border-radius:10px; padding:12px 15px;
+        font-family:Consolas, monospace; font-size:11.5px; line-height:1.7;
+        white-space:pre-wrap; color:#ffe3cf; overflow-x:auto; margin-top:6px; }
+
+  /* ---- toasts ---- */
+  #toasts { position:fixed; right:18px; bottom:18px; z-index:500; display:flex;
+        flex-direction:column; gap:8px; }
+  .toast { background:var(--bg2); border:1px solid var(--good); color:var(--txt);
+        border-radius:12px; padding:11px 16px; font-size:13px;
+        box-shadow:0 10px 30px rgba(0,0,0,.5); animation:tin .2s ease;
+        max-width:360px; line-height:1.6; }
+  .toast.bad { border-color:var(--bad); }
+  @keyframes tin { from { opacity:0; transform:translateY(8px); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🌡️</div>
+  <h1>Climate Scheduler<small>visual weekly temperature schedules — enforced by the add-on, no automations needed</small></h1>
+  <a class="ghost" href="/admin" target="_top">← Hub</a>
+  <button class="ghost" id="learnBtn">📖 Learn</button>
+  <button class="btn" id="newBtn">＋ New Schedule</button>
+</header>
+
+<main>
+  <div class="toolbar">
+    <div class="sp"></div>
+    <span class="stat" id="connStat"><span class="dot"></span>connecting…</span>
+  </div>
+
+  <div id="cards"><div class="empty">Loading schedules…</div></div>
+
+  <section class="logsec">
+    <h2>🕘 Activity log <span class="hint" data-hint="log">?</span></h2>
+    <div id="logBody"><div class="lognone">Loading…</div></div>
+  </section>
+</main>
+
+<!-- hover tooltip -->
+<div id="tipbox"></div>
+
+<!-- schedule editor -->
+<div class="modal" id="edModal">
+  <div class="mbox wide">
+    <div class="mhead"><div class="micon">🗓️</div>
+      <h2 id="edTitle">New Schedule</h2>
+      <button class="ghost" id="edLearn">📖 Learn</button>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub">Pick a temperature from the palette, then press and drag
+      across the grid to paint blocks. Click a painted block to fine-tune its
+      exact times. Drag vertically to paint several days in one stroke.</div>
+
+    <div class="grid g2">
+      <div>
+        <label>Name <span class="req">*</span><span class="hint" data-hint="name">?</span></label>
+        <input type="text" id="edName" placeholder="e.g. Living room weekly heating">
+      </div>
+      <div>
+        <label>Climate entity <span class="req">*</span><span class="hint" data-hint="entity">?</span></label>
+        <div class="combo-wrap">
+          <input type="text" id="edEntity" placeholder="Search climate entities…" autocomplete="off">
+          <div class="combo-list" id="edEntityList"></div>
+        </div>
+      </div>
+    </div>
+
+    <label>Temperature palette <span class="hint" data-hint="palette">?</span>
+      <span class="rangeinfo" id="edRange"></span></label>
+    <div class="palette" id="edPalette"></div>
+    <div class="legend" id="edLegend"></div>
+
+    <label>Weekly grid <span class="hint" data-hint="grid">?</span></label>
+    <div class="gridwrap">
+      <div id="edHours"></div>
+      <div id="edGrid"></div>
+    </div>
+
+    <div class="copyrow">
+      <span>Copy Monday to:</span>
+      <button class="ghost sm" data-copy="weekdays">Tue–Fri</button>
+      <button class="ghost sm" data-copy="weekend">Sat–Sun</button>
+      <button class="ghost sm" data-copy="all">All days</button>
+      <span class="hint" data-hint="copy">?</span>
+    </div>
+
+    <div class="blockpanel" id="edBlockPanel" style="display:none">
+      <b id="bpDay">Mon</b>
+      <span>from</span><input type="time" id="bpFrom">
+      <span>to</span><input type="time" id="bpTo">
+      <div class="stepper">
+        <button id="bpMinus" title="Cooler">−</button>
+        <span id="bpTemp">21°</span>
+        <button id="bpPlus" title="Warmer">＋</button>
+      </div>
+      <span class="hint" data-hint="block">?</span>
+      <div class="sp"></div>
+      <button class="ghost sm" id="bpDelete">🗑 Delete block</button>
+    </div>
+
+    <label>Outside blocks <span class="hint" data-hint="outside">?</span></label>
+    <div class="outrow" id="edOutRow">
+      <button type="button" class="ochip" data-out="off">⏻ Turn off</button>
+      <button type="button" class="ochip" data-out="temp">🌡 Keep at fallback</button>
+      <span id="edOutTempWrap" style="display:none;align-items:center;gap:5px">
+        <input type="number" id="edOutTemp" step="0.5" value="17"> <span style="color:var(--mut)">°</span>
+      </span>
+      <button type="button" class="ochip" data-out="nothing">✋ Do nothing</button>
+    </div>
+
+    <div class="summary" id="edSummary"></div>
+
+    <div class="err" id="edErr"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn" id="edSave">Save schedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- learn panel -->
+<div class="modal" id="learnModal">
+  <div class="mbox">
+    <div class="mhead"><div class="micon">📖</div>
+      <h2>How Climate Scheduler works</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="learn">
+      <h3>What a schedule does</h3>
+      <p>A schedule is a weekly map of target temperatures for one thermostat
+        (climate entity). You paint blocks like “Mon–Fri 06:30–08:30 → 21°” on
+        a grid. Every 60 seconds the add-on checks each enabled schedule: if
+        the current time is inside a block it makes sure the thermostat is on
+        and set to the block's temperature; outside all blocks it does what
+        you chose — turn off, hold a fallback temperature, or nothing.</p>
+      <h3>Important to know</h3>
+      <ul>
+        <li><b>The add-on must stay running.</b> Schedules are enforced by
+          this add-on itself — no Home Assistant automations are created. If
+          the add-on stops, thermostats keep whatever setting they had last.</li>
+        <li>Times use the Home Assistant server's local time zone.</li>
+        <li>The scheduler only calls Home Assistant when something actually
+          differs (target temperature off by more than 0.05°, or the unit is
+          off during a block), so it never spams your devices.</li>
+        <li>If you change the thermostat by hand during a block, the scheduler
+          will set it back within a minute. Pause the schedule (toggle on the
+          card) when you want manual control.</li>
+      </ul>
+      <h3>Examples</h3>
+      <pre>Workday heating
+  Mon–Fri: 06:30–08:30 → 21°, 17:00–22:00 → 21.5°
+  Sat–Sun: 08:00–23:00 → 21°
+  Outside blocks: turn off
+
+Night setback (never fully off)
+  Every day: 07:00–23:00 → 21°
+  Outside blocks: keep at fallback 17°</pre>
+      <h3>Tips</h3>
+      <ul>
+        <li>Design Monday first, then use “Copy Monday to” to fill the week
+          and tweak the weekend.</li>
+        <li>The temperature chips follow your thermostat's step size
+          (usually 0.5°); values outside its min/max range are rejected.</li>
+        <li>Don't run a second schedule against the same thermostat — and
+          disable any schedule built into the device itself, or the two will
+          fight each other.</li>
+        <li>“Do nothing” outside blocks is great when another system (or a
+          human) should stay in charge between blocks.</li>
+      </ul>
+    </div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="btn" id="learnCreate">＋ Create a schedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- confirm dialog -->
+<div class="modal" id="confirmModal">
+  <div class="mbox narrow">
+    <div class="mhead"><div class="micon">⚠️</div>
+      <h2>Delete schedule?</h2>
+      <button class="ghost" data-close>✕</button></div>
+    <div class="msub" id="confirmSub"></div>
+    <div class="mfoot">
+      <div class="sp"></div>
+      <button class="ghost" data-close>Cancel</button>
+      <button class="btn danger" id="confirmYes">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="static/app.js"></script>
+</body>
+</html>

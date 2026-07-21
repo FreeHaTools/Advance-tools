@@ -1,0 +1,9 @@
+{
+  "id": "system_center",
+  "name": "System Center",
+  "icon": "🧰",
+  "color": "#9aa7bd",
+  "description": "Diagnostics and migration. Build a fully redacted support bundle you can safely send to anyone, export your dashboards and every tool's settings to one file, and import that file on another Home Assistant — always with an automatic rollback point.",
+  "page": "/tools/system_center/",
+  "version": "1.0.0"
+}

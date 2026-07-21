@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-label="Advance Tools">
+  <title>Advance Tools</title>
+  <!-- Maskable-safe: every painted detail stays inside the inner 80% circle
+       (radius 205 around 256,256) that Android launchers are guaranteed to
+       keep, so the icon survives circle, squircle and rounded-square masks. -->
+  <defs>
+    <linearGradient id="at-shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4f8cff"/>
+      <stop offset="1" stop-color="#7b5cff"/>
+    </linearGradient>
+    <radialGradient id="at-glow" cx="0.5" cy="0.28" r="0.8">
+      <stop offset="0" stop-color="#4f8cff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#4f8cff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- full-bleed dark plate: matches the app background (#0f1420) -->
+  <rect width="512" height="512" fill="#0f1420"/>
+  <rect width="512" height="512" fill="url(#at-glow)"/>
+
+  <!-- shield -->
+  <path fill="url(#at-shield)" d="M 156 140
+    H 356 A 22 22 0 0 1 378 163
+    C 378 260 340 344 256 392
+    C 172 344 134 260 134 163
+    A 22 22 0 0 1 156 140 Z"/>
+
+  <!-- toolbox cut out of the shield -->
+  <path fill="none" stroke="#0f1420" stroke-width="16" stroke-linecap="round"
+        d="M 224 226 v -20 a 14 14 0 0 1 14 -14 h 36 a 14 14 0 0 1 14 14 v 20"/>
+  <rect x="186" y="222" width="140" height="98" rx="18" fill="#0f1420"/>
+  <rect x="186" y="250" width="140" height="6" fill="#4f8cff" opacity="0.55"/>
+  <rect x="240" y="268" width="32" height="26" rx="8" fill="#4f8cff"/>
+</svg>
