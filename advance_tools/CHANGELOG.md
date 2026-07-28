@@ -3,6 +3,40 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.0.3
+
+**Automation Maker keeps up with Home Assistant 2026.7.** Home Assistant 2026.7
+promoted purpose-specific triggers (`battery` → `became_low`, `vacuum` →
+`returned_to_dock`, and friends) out of Labs and made them the default in its
+own automation editor. Automation Maker had no form for them, and it used to
+fall back to the Template form for anything it did not recognise — so opening
+such an automation here and pressing save replaced its trigger with an empty
+template. The same happened to `choose`, `if / then`, `repeat`, `parallel` and
+`event` actions, and to `and` / `or` / `not` condition groups.
+
+- Anything the visual builder has no form for now opens as an **Advanced
+  (kept as-is)** block: the exact JSON Home Assistant stored, saved back
+  unchanged. Nothing is guessed at and nothing is dropped.
+- The same block is available from the quick-add chips, so a purpose-specific
+  trigger or a `choose` action can be pasted in by hand.
+- Fields the forms do not model (`id`, `alias`, `enabled`, `variables`,
+  `attribute`, `not_to`, …) are now carried through a round-trip instead of
+  being stripped.
+- Automations are written in the **modern schema** — `triggers:` /
+  `conditions:` / `actions:`, with `trigger:` for the trigger type and
+  `action:` for the service call. Both schemas are still read, so older
+  automations open exactly as before, but editing one that Home Assistant
+  already stored in the modern form no longer downgrades it.
+- Fixed: the **Continue on timeout** checkbox on a Wait-until action was
+  decoration — unticking it still saved "continue anyway". It is now honoured.
+
+Verified against Home Assistant Core 2026.7.4 / Supervisor 2026.07.3: every
+REST and WebSocket call the add-on makes still behaves as before, so this
+release is a correctness fix, not a migration.
+
+Docs now point at **Settings → Apps**, which is what Home Assistant 2026.7
+calls the add-on screens.
+
 ## 1.0.2
 
 **Advance Tools now runs inside Home Assistant.** Click it in the sidebar and

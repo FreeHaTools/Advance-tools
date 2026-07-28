@@ -426,7 +426,8 @@ tablet may show, and logout only ever leads back to the login page.
 ## HTTPS
 
 By default the panel speaks plain HTTP on port 8234. To enable HTTPS, open the
-add-on's **Configuration** tab:
+add-on's **Configuration** tab (**Settings → Apps → Advance Tools**; on Home
+Assistant 2026.6 and older, **Settings → Add-ons → Advance Tools**):
 
 - `ssl: true` — serve **HTTPS** on 8234 using certificates from Home
   Assistant's `/ssl` folder (`certfile`/`keyfile`, default

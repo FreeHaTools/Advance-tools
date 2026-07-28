@@ -34,7 +34,7 @@ from aiohttp import WSMsgType, web
 log = logging.getLogger("advance_tools")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-VERSION = "1.0.2"  # keep in sync with config.yaml
+VERSION = "1.0.3"  # keep in sync with config.yaml
 START_TIME = time.time()
 
 # ---------------------------------------------------------------- paths / env
