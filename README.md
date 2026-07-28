@@ -75,10 +75,12 @@ reference an entity *before* you remove it.
 
 ## Install
 
-1. **Settings → Add-ons → Add-on Store → ⋮ → Repositories**, and add:
+1. **Settings → Apps → Install app → ⋮ → Repositories**, and add:
    ```
    https://github.com/FreeHaTools/Advance-tools
    ```
+   (On Home Assistant 2026.6 and older this menu is called
+   **Settings → Add-ons → Add-on Store**.)
 2. Install **Advance Tools**, start it, and open it from the sidebar.
 3. The setup wizard walks you through creating a password and building your
    first dashboard.

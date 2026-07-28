@@ -368,16 +368,20 @@ const TIPS = {
   t_pattern: { t: 'Repeating interval', d: 'Fires on a repeating clock pattern. Use /N for "every N": minutes "/15" = every 15 minutes. A plain number means "at that value": hours "6" = only at 6 o\'clock. Leave a field empty for "any".', e: 'Minutes: /30 → every half hour.\nHours: /2, Minutes: 0 → every 2 hours on the hour.' },
   t_sun: { t: 'Sun — sunrise / sunset', d: 'Fires at sunrise or sunset for your home location. Offset shifts it: negative = before, positive = after, format HH:MM:SS.', e: 'Event: sunset, Offset: -00:30:00\n→ 30 minutes BEFORE sunset.' },
   t_template: { t: 'Template (advanced)', d: 'A Jinja2 template that fires when it becomes true. This is the power-user escape hatch — anything you can express in a template can be a trigger.', e: "{{ states('sensor.power') | float > 3000 }}" },
+  t_raw: { t: 'Raw trigger (kept as-is)', d: 'This trigger uses a type the visual builder does not have a form for — for example one of the purpose-specific triggers Home Assistant added in 2026.7. Its JSON is shown exactly as Home Assistant stored it and is saved back unchanged, so nothing is lost. Edit the JSON directly if you want to change it.', e: '{\n  "trigger": "battery",\n  "entity_id": "sensor.front_door_battery",\n  "behavior": "became_low"\n}' },
 
   c_state: { t: 'Entity is in a state', d: 'Passes only if the entity is CURRENTLY in the given state at the moment the trigger fires.', e: 'Entity: person.mike, State: home\n→ only act when Mike is home.' },
   c_numeric: { t: 'Numeric value is above/below', d: 'Passes if the sensor value is currently above and/or below your bounds.', e: 'Entity: sensor.outdoor_temp, Below: 5\n→ only when it is cold outside.' },
   c_time: { t: 'Time window & weekdays', d: 'Passes only between After and Before (crossing midnight is fine, e.g. 22:00 → 06:00), and only on the selected weekdays (none selected = every day).', e: 'After 22:00, Before 06:30, Mon–Fri\n→ weeknights only.' },
   c_template: { t: 'Template (advanced)', d: 'A Jinja2 template; passes when it renders true.', e: "{{ state_attr('climate.living', 'temperature') > 22 }}" },
+  c_raw: { t: 'Raw condition (kept as-is)', d: 'This condition uses a type the visual builder does not have a form for — for example and/or/not groups, device conditions, or the purpose-specific conditions Home Assistant added in 2026.7. Its JSON is shown exactly as Home Assistant stored it and is saved back unchanged.', e: '{\n  "condition": "or",\n  "conditions": [ … ]\n}' },
 
   a_service: { t: 'Call a service', d: 'The main action type: services do everything in HA — turn things on/off, set temperature, send notifications, run scripts… Pick the service, choose the target entity, and optionally pass extra data as JSON.', e: 'Service: light.turn_on\nEntity: light.hallway\nData: {"brightness_pct": 60, "transition": 2}' },
   a_delay: { t: 'Delay', d: 'Pauses the actions for a fixed time, then continues with the next one. If the automation triggers again during the delay, the Run mode decides what happens.', e: '00:05:00 → wait 5 minutes.' },
   a_wait: { t: 'Wait until', d: 'Pauses until an entity reaches a state (or the timeout runs out). With "continue on timeout" enabled, the following actions still run after the timeout; disabled, the run stops there.', e: 'Wait until binary_sensor.door = off\nTimeout: 00:02:00\n→ wait max 2 min for the door to close.' },
   a_stop: { t: 'Stop', d: 'Ends the automation run right here. Useful as a guard after a Wait-until that timed out.', e: 'Wait for door to close (2 min) → Stop if it never closed.' },
+  a_raw: { t: 'Raw action (kept as-is)', d: 'This action uses a building block the visual builder does not have a form for — if / then, choose, repeat, parallel, fire an event, set a variable, and so on. Its JSON is shown exactly as Home Assistant stored it and is saved back unchanged, so complex automations survive a round-trip through this editor.', e: '{\n  "choose": [ … ],\n  "default": [ … ]\n}' },
+  f_raw: { t: 'Raw JSON', d: 'The exact JSON Home Assistant has for this block. It is passed straight back on save, so leaving it untouched changes nothing. If you edit it, it must stay valid JSON.', e: '{"trigger": "state", "entity_id": "binary_sensor.door", "to": "on"}' },
 
   f_entity: { t: 'Entity', d: 'The device or sensor this block works with. Start typing to search by friendly name or entity id — the list shows the live state of each entity.', e: 'light.office_room — "Office light" (state: off)' },
   f_from: { t: 'From (optional)', d: 'Only fire if the entity was previously in THIS state. Leave empty to accept any previous state.', e: 'From: off, To: on → only off→on, not unavailable→on.' },
@@ -576,8 +580,50 @@ const entityField = (cls, val) => H('f_entity', 'Entity') +
   `<input type="text" class="${cls} centity" value="${esc(val)}"
      placeholder="Type to search entities…">`;
 
+/* Escape hatch: any trigger / condition / action whose type this builder has
+   no form for is round-tripped verbatim through a JSON box instead of being
+   silently rewritten. Home Assistant keeps adding building blocks (the
+   purpose-specific triggers of 2026.7, choose/if/repeat/parallel actions, and
+   so on) and an editor that cannot render them must still not destroy them. */
+function rawDef(kind, tip) {
+  return {
+    icon: '🧩', name: 'Advanced (kept as-is)', tip: tip, raw: true,
+    owns: [],
+    html: o => H('f_raw', `This ${kind} has no form here — its JSON is kept exactly as Home Assistant stored it`) +
+      `<textarea class="x-raw json" rows="6" spellcheck="false">${
+        esc(JSON.stringify(o || {}, null, 2))}</textarea>`,
+    read: v => {
+      const txt = v('x-raw').trim();
+      if (!txt) throw new Error(`An advanced ${kind} block is empty.`);
+      let o;
+      try { o = JSON.parse(txt); }
+      catch (e) { throw new Error(`An advanced ${kind} block is not valid JSON.`); }
+      // Home Assistant also accepts shorthand blocks written as a bare
+      // template string, so a string is just as legal here as an object.
+      if (typeof o === 'string') return o;
+      if (!o || typeof o !== 'object' || Array.isArray(o))
+        throw new Error(`An advanced ${kind} block must be a JSON object or a template string.`);
+      return o;
+    },
+    sum: v => {
+      let o;
+      try { o = JSON.parse(v('x-raw')); } catch (e) { return '⚠ not valid JSON'; }
+      if (typeof o !== 'object' || o === null)
+        return `${String(o).slice(0, 60)} — passed through unchanged`;
+      const kw = o.trigger || o.platform || o.condition || o.action || o.service
+        || Object.keys(o)[0] || '?';
+      const beh = o.behavior ? ` · ${o.behavior}` : '';
+      const ent = o.entity_id
+        ? ` · ${Array.isArray(o.entity_id) ? o.entity_id.join(', ') : o.entity_id}`
+        : '';
+      return `${kw}${beh}${ent} — passed through unchanged`;
+    },
+  };
+}
+
 const TRIG_DEFS = {
   state: { icon: '🔀', name: 'Entity state', tip: 't_state',
+    owns: ['platform', 'trigger', 'entity_id', 'from', 'to', 'for'],
     html: t => entityField('t-entity', t.entity_id) +
       `<div class="grid g3">
         <div>${H('f_from', 'From (optional)')}
@@ -588,7 +634,7 @@ const TRIG_DEFS = {
           <input class="t-for" value="${esc(fmtFor(t.for))}" placeholder="00:00:00"></div>
       </div>`,
     read: (v) => {
-      const o = { platform: 'state', entity_id: v('t-entity') };
+      const o = { trigger: 'state', entity_id: v('t-entity') };
       if (v('t-from')) o.from = v('t-from');
       if (v('t-to')) o.to = v('t-to');
       if (v('t-for')) o.for = v('t-for');
@@ -599,6 +645,7 @@ const TRIG_DEFS = {
       (v('t-to') ? ` to "${v('t-to')}"` : '') +
       (v('t-for') ? ` and stays for ${v('t-for')}` : '') },
   numeric_state: { icon: '📈', name: 'Numeric threshold', tip: 't_numeric',
+    owns: ['platform', 'trigger', 'entity_id', 'above', 'below'],
     html: t => entityField('t-entity', t.entity_id) +
       `<div class="grid g2">
         <div>${H('f_above', 'Above')}
@@ -607,7 +654,7 @@ const TRIG_DEFS = {
           <input class="t-below" type="number" step="any" value="${esc(t.below)}"></div>
       </div>`,
     read: v => {
-      const o = { platform: 'numeric_state', entity_id: v('t-entity') };
+      const o = { trigger: 'numeric_state', entity_id: v('t-entity') };
       if (v('t-above') !== '') o.above = parseFloat(v('t-above'));
       if (v('t-below') !== '') o.below = parseFloat(v('t-below'));
       return o;
@@ -616,18 +663,20 @@ const TRIG_DEFS = {
       (v('t-above') !== '' ? ` above ${v('t-above')}` : '') +
       (v('t-below') !== '' ? ` below ${v('t-below')}` : '') },
   time: { icon: '⏰', name: 'At a time', tip: 't_time',
+    owns: ['platform', 'trigger', 'at'],
     html: t => H('f_at', 'Time') +
       `<input class="t-at" type="time" value="${esc(String(t.at || '18:00').slice(0,5))}">`,
-    read: v => ({ platform: 'time', at: v('t-at') + ':00' }),
+    read: v => ({ trigger: 'time', at: v('t-at') + ':00' }),
     sum: v => `Every day at ${v('t-at') || '…'}` },
   time_pattern: { icon: '🔁', name: 'Interval', tip: 't_pattern',
+    owns: ['platform', 'trigger', 'hours', 'minutes', 'seconds'],
     html: t => `<div class="grid g3">
         <div><label>Hours</label><input class="t-hours" value="${esc(t.hours)}" placeholder="* or /2"></div>
         <div><label>Minutes</label><input class="t-minutes" value="${esc(t.minutes)}" placeholder="/15"></div>
         <div><label>Seconds</label><input class="t-seconds" value="${esc(t.seconds)}" placeholder=""></div>
       </div>`,
     read: v => {
-      const o = { platform: 'time_pattern' };
+      const o = { trigger: 'time_pattern' };
       if (v('t-hours')) o.hours = v('t-hours');
       if (v('t-minutes')) o.minutes = v('t-minutes');
       if (v('t-seconds')) o.seconds = v('t-seconds');
@@ -636,6 +685,7 @@ const TRIG_DEFS = {
     sum: v => `Repeating: hours=${v('t-hours') || 'any'},` +
       ` minutes=${v('t-minutes') || 'any'}, seconds=${v('t-seconds') || 'any'}` },
   sun: { icon: '🌅', name: 'Sunrise / sunset', tip: 't_sun',
+    owns: ['platform', 'trigger', 'event', 'offset'],
     html: t => `<div class="grid g2">
         <div><label>Event</label><select class="t-event">
           <option value="sunset" ${t.event === 'sunset' ? 'selected' : ''}>Sunset</option>
@@ -645,21 +695,24 @@ const TRIG_DEFS = {
           <input class="t-offset" value="${esc(t.offset)}" placeholder="-00:30:00"></div>
       </div>`,
     read: v => {
-      const o = { platform: 'sun', event: v('t-event') };
+      const o = { trigger: 'sun', event: v('t-event') };
       if (v('t-offset')) o.offset = v('t-offset');
       return o;
     },
     sum: v => `At ${v('t-event')}` +
       (v('t-offset') ? ` with offset ${v('t-offset')}` : '') },
   template: { icon: '🧠', name: 'Template (advanced)', tip: 't_template',
+    owns: ['platform', 'trigger', 'value_template'],
     html: t => H('f_template', 'Fires when this renders true') +
       `<textarea class="t-tpl tpl">${esc(t.value_template)}</textarea>`,
-    read: v => ({ platform: 'template', value_template: v('t-tpl') }),
+    read: v => ({ trigger: 'template', value_template: v('t-tpl') }),
     sum: v => `When template becomes true` },
+  raw: rawDef('trigger', 't_raw'),
 };
 
 const COND_DEFS = {
   state: { icon: '🎚️', name: 'Entity state is', tip: 'c_state',
+    owns: ['condition', 'entity_id', 'state'],
     html: c => entityField('c-entity', c.entity_id) +
       `<label>State equals</label>
        <input class="c-state" value="${esc(c.state)}" placeholder="home / on / off">`,
@@ -667,6 +720,7 @@ const COND_DEFS = {
                   state: v('c-state') }),
     sum: v => `Only if ${v('c-entity') || '…'} is "${v('c-state') || '…'}"` },
   numeric_state: { icon: '📊', name: 'Value above/below', tip: 'c_numeric',
+    owns: ['condition', 'entity_id', 'above', 'below'],
     html: c => entityField('c-entity', c.entity_id) +
       `<div class="grid g2">
         <div>${H('f_above', 'Above')}
@@ -684,6 +738,7 @@ const COND_DEFS = {
       (v('c-above') !== '' ? ` above ${v('c-above')}` : '') +
       (v('c-below') !== '' ? ` below ${v('c-below')}` : '') },
   time: { icon: '🕐', name: 'Time window', tip: 'c_time',
+    owns: ['condition', 'after', 'before', 'weekday'],
     html: c => `<div class="grid g2">
         <div><label>After</label>
           <input class="c-after" type="time" value="${esc(String(c.after || '08:00').slice(0,5))}"></div>
@@ -707,24 +762,27 @@ const COND_DEFS = {
         (wd.length ? ` on ${wd.join(', ')}` : '');
     } },
   template: { icon: '🧠', name: 'Template (advanced)', tip: 'c_template',
+    owns: ['condition', 'value_template'],
     html: c => H('f_template', 'Passes when this renders true') +
       `<textarea class="c-tpl tpl">${esc(c.value_template)}</textarea>`,
     read: v => ({ condition: 'template', value_template: v('c-tpl') }),
     sum: () => 'Only if template is true' },
+  raw: rawDef('condition', 'c_raw'),
 };
 
 const ACT_DEFS = {
   service: { icon: '🛠️', name: 'Call a service', tip: 'a_service',
+    owns: ['service', 'action', 'target', 'entity_id', 'data'],
     html: a => H('f_service', 'Service') +
       `<input type="text" class="a-service cservice"
-         value="${esc(a.service || 'light.turn_on')}" placeholder="light.turn_on">` +
+         value="${esc(a.action || a.service || 'light.turn_on')}" placeholder="light.turn_on">` +
       entityField('a-entity',
         a.target?.entity_id || a.entity_id || (a.data || {}).entity_id || '') +
       H('f_data', 'Extra data — JSON (optional)') +
       `<textarea class="a-data json" placeholder='{"brightness_pct": 60}'>${
         esc(dataNoEntity(a.data))}</textarea>`,
     read: v => {
-      const o = { service: v('a-service') };
+      const o = { action: v('a-service') };
       if (v('a-entity')) o.target = { entity_id: v('a-entity') };
       const raw = v('a-data').trim();
       if (raw) {
@@ -736,12 +794,14 @@ const ACT_DEFS = {
     sum: v => `Call ${v('a-service') || '…'}` +
       (v('a-entity') ? ` on ${v('a-entity')}` : '') },
   delay: { icon: '⏳', name: 'Delay', tip: 'a_delay',
+    owns: ['delay'],
     html: a => H('f_delay', 'Wait for') +
       `<input class="a-delay" value="${esc(typeof a.delay === 'string'
         ? a.delay : '00:00:05')}" placeholder="00:05:00">`,
     read: v => ({ delay: v('a-delay') || '00:00:05' }),
     sum: v => `Wait ${v('a-delay') || '…'}` },
   wait: { icon: '⏸️', name: 'Wait until', tip: 'a_wait',
+    owns: ['wait_for_trigger', 'timeout', 'continue_on_timeout'],
     html: a => {
       const wt = (a.wait_for_trigger && a.wait_for_trigger[0]) || {};
       return entityField('a-wentity', wt.entity_id) +
@@ -757,18 +817,23 @@ const ACT_DEFS = {
           Continue on timeout <span class="hint" data-tip="f_cont">?</span></label>`;
     },
     read: v => {
-      const o = { wait_for_trigger: [{ platform: 'state',
+      const o = { wait_for_trigger: [{ trigger: 'state',
         entity_id: v('a-wentity'), to: v('a-wstate') }] };
       if (v('a-timeout')) o.timeout = v('a-timeout');
+      // The checkbox used to be read-only decoration: an unticked box silently
+      // saved as "continue anyway", which is the opposite of what it showed.
+      if (v('a-cont') === false) o.continue_on_timeout = false;
       return o;
     },
     sum: v => `Wait until ${v('a-wentity') || '…'} = "${v('a-wstate') || '…'}"` +
       (v('a-timeout') ? ` (max ${v('a-timeout')})` : '') },
   stop: { icon: '🛑', name: 'Stop', tip: 'a_stop',
+    owns: ['stop'],
     html: a => `<label>Reason (optional)</label>
       <input class="a-stopr" value="${esc(a.stop)}" placeholder="done">`,
     read: v => ({ stop: v('a-stopr') || 'stopped' }),
     sum: () => 'Stop the automation run here' },
+  raw: rawDef('action', 'a_raw'),
 };
 
 function fmtFor(f) {
@@ -797,17 +862,30 @@ function addBlock(section, defs, type, data) {
         onclick="this.closest('.block').remove(); refreshUI()">✕</button></div>
     <div class="bf">${def.html(data || {})}</div>
     <div class="sum"></div>`;
+  // Keys this form has no field for (id, alias, enabled, variables, attribute,
+  // not_to, …) are remembered here and merged back in on save, so opening an
+  // automation in the builder never quietly strips parts of it.
+  div._extra = extraKeys(data, def.owns);
   $(section).appendChild(div);
   div.querySelectorAll('.centity').forEach(i => attachCombo(i, entityItems));
   div.querySelectorAll('.cservice').forEach(i => attachCombo(i, serviceItems));
   refreshUI();
+}
+function extraKeys(data, owns) {
+  if (!data || typeof data !== 'object' || !Array.isArray(owns)) return {};
+  return Object.fromEntries(
+    Object.entries(data).filter(([k]) => !owns.includes(k)));
 }
 function readBlock(div, defs) {
   const v = cls => {
     const n = div.querySelector('.' + cls);
     return n ? (n.type === 'checkbox' ? n.checked : n.value.trim()) : '';
   };
-  return defs[div.dataset.type].read(v, div);
+  const def = defs[div.dataset.type];
+  const out = def.read(v, div);
+  // A raw block already carries everything; for the rest, re-attach whatever
+  // the form does not model. Form values win on conflict.
+  return def.raw ? out : { ...(div._extra || {}), ...out };
 }
 function sumBlock(div, defs) {
   const v = cls => {
@@ -848,10 +926,15 @@ function collect(strict) {
     try { return readBlock(b, defs); }
     catch (e) { if (strict) throw e; return { error: e.message }; }
   });
+  // Modern schema (Home Assistant 2024.10+): plural section keys, `trigger:`
+  // as the trigger type and `action:` as the service call. The singular
+  // `trigger:`/`action:` sections and the `platform:`/`service:` keys are
+  // deprecated, and writing them back would downgrade automations that
+  // Home Assistant's own editor already stores in the modern form.
   const cfg = { alias, description: $('#b-desc').value.trim(),
-    trigger: read('#b-triggers', TRIG_DEFS),
-    condition: read('#b-conditions', COND_DEFS),
-    action: read('#b-actions', ACT_DEFS),
+    triggers: read('#b-triggers', TRIG_DEFS),
+    conditions: read('#b-conditions', COND_DEFS),
+    actions: read('#b-actions', ACT_DEFS),
     mode: $('#b-mode').value };
   if (!cfg.description) delete cfg.description;
   return cfg;
@@ -877,27 +960,46 @@ document.addEventListener('change', ev => {
 
 /* ============================================================ normalize HA config */
 const asArr = x => Array.isArray(x) ? x : (x != null ? [x] : []);
+/* Read either schema, always hand the builder the modern one. */
+const isObj = x => !!x && typeof x === 'object' && !Array.isArray(x);
 function normTrigger(t) {
+  if (!isObj(t)) return t;
   const o = { ...t };
-  if (!o.platform && o.trigger) { o.platform = o.trigger; delete o.trigger; }
+  if (!o.trigger && o.platform) { o.trigger = o.platform; delete o.platform; }
   return o;
 }
 function normAction(a) {
+  if (!isObj(a)) return a;
   const o = { ...a };
-  if (o.action && !o.service) { o.service = o.action; delete o.action; }
+  if (o.action === undefined && o.service !== undefined) {
+    o.action = o.service; delete o.service;
+  }
   return o;
 }
+/* Anything this builder has no form for falls through to the raw block, which
+   round-trips it byte-for-byte. It must never be guessed at: mapping an
+   unknown trigger onto the template form (or an unknown action onto the
+   service form) silently destroyed the automation on the next save. */
 function actionType(a) {
+  if (!isObj(a)) return 'raw';
   if (a.delay !== undefined) return 'delay';
-  if (a.wait_for_trigger !== undefined || a.wait_template !== undefined) return 'wait';
+  if (a.wait_for_trigger !== undefined || a.wait_template !== undefined) {
+    // Only the simple single-state wait has a form.
+    const w = asArr(a.wait_for_trigger).map(normTrigger);
+    return (a.wait_template === undefined && w.length === 1
+            && w[0].trigger === 'state') ? 'wait' : 'raw';
+  }
   if (a.stop !== undefined) return 'stop';
-  return 'service';
+  if (a.action !== undefined || a.service !== undefined) return 'service';
+  return 'raw';
 }
 function triggerType(t) {
-  return TRIG_DEFS[t.platform] ? t.platform : 'template';
+  const k = isObj(t) && (t.trigger || t.platform);
+  return k && k !== 'raw' && TRIG_DEFS[k] ? k : 'raw';
 }
 function condType(c) {
-  return COND_DEFS[c.condition] ? c.condition : 'template';
+  const k = isObj(c) && c.condition;
+  return k && k !== 'raw' && COND_DEFS[k] ? k : 'raw';
 }
 
 /* ============================================================ open/edit/save */
@@ -938,9 +1040,9 @@ async function editAuto(id, duplicate, name, eid) {
   $('#b-alias').value = (cfg.alias || '') + (duplicate ? ' (copy)' : '');
   $('#b-desc').value = cfg.description || '';
   $('#b-mode').value = cfg.mode || 'single';
-  const trigs = asArr(cfg.trigger ?? cfg.triggers).map(normTrigger);
-  const conds = asArr(cfg.condition ?? cfg.conditions);
-  const acts = asArr(cfg.action ?? cfg.actions).map(normAction);
+  const trigs = asArr(cfg.triggers ?? cfg.trigger).map(normTrigger);
+  const conds = asArr(cfg.conditions ?? cfg.condition);
+  const acts = asArr(cfg.actions ?? cfg.action).map(normAction);
   trigs.length
     ? trigs.forEach(t => addBlock('#b-triggers', TRIG_DEFS, triggerType(t), t))
     : addBlock('#b-triggers', TRIG_DEFS, 'state');
@@ -958,16 +1060,17 @@ async function saveAutomation() {
   try {
     const cfg = collect(true);
     if (!cfg.alias) throw new Error('Give the automation a name.');
-    if (!cfg.trigger.length)
+    if (!cfg.triggers.length)
       throw new Error('Add at least one trigger in the WHEN section.');
-    if (!cfg.action.length)
+    if (!cfg.actions.length)
       throw new Error('Add at least one action in the THEN section.');
-    cfg.trigger.forEach(t => {
-      if ('entity_id' in t && !t.entity_id)
+    cfg.triggers.forEach(t => {
+      if (isObj(t) && 'entity_id' in t && !t.entity_id)
         throw new Error('A trigger is missing its entity.');
     });
-    cfg.action.forEach(a => {
-      if (a.service === '') throw new Error('An action is missing its service.');
+    cfg.actions.forEach(a => {
+      if (isObj(a) && a.action === '')
+        throw new Error('An action is missing its service.');
     });
     $('#b-state').textContent = 'saving…';
     const r = await fetch(`${API}/config`, { method: 'POST',
