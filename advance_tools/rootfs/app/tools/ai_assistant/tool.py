@@ -444,8 +444,14 @@ async def _llm_anthropic(model, messages, collector, origin):
                     headers={"x-api-key": key,
                              "anthropic-version": "2023-06-01"}) as resp:
                 body = await resp.json(content_type=None)
+                if not isinstance(body, dict):
+                    raise RuntimeError(
+                        f"Anthropic API: unexpected response "
+                        f"(HTTP {resp.status}): {str(body)[:200]}")
                 if resp.status != 200:
-                    msg = (body.get("error") or {}).get("message") or str(body)
+                    err = body.get("error")
+                    msg = (err.get("message") if isinstance(err, dict)
+                           else None) or str(body)
                     raise RuntimeError(f"Anthropic API: {msg}")
             content = body.get("content") or []
             convo.append({"role": "assistant", "content": content})
@@ -507,9 +513,21 @@ async def _llm_openai_compatible(model, messages, collector, origin,
             payload = {"model": model, "messages": convo, "tools": tools}
             async with http.post(url, json=payload, headers=headers) as resp:
                 body = await resp.json(content_type=None)
+                # Gemini's OpenAI-compat endpoint wraps errors in a list.
+                if isinstance(body, list):
+                    body = body[0] if body and isinstance(body[0], dict) else {}
+                if not isinstance(body, dict):
+                    raise RuntimeError(
+                        f"AI provider: unexpected response "
+                        f"(HTTP {resp.status}): {str(body)[:200]}")
                 if resp.status != 200:
-                    msg = (body.get("error") or {}).get("message") or str(body)
-                    raise RuntimeError(f"AI provider: {msg}")
+                    err = body.get("error")
+                    if isinstance(err, dict):
+                        msg = err.get("message") or str(err)
+                    else:
+                        msg = str(err or body)
+                    raise RuntimeError(f"AI provider (HTTP {resp.status}): "
+                                       f"{msg}")
             choice = (body.get("choices") or [{}])[0]
             message = choice.get("message") or {}
             convo.append(message)
@@ -630,8 +648,15 @@ async def _transcribe(audio, filename="voice.ogg"):
                     OPENAI_STT_URL, data=form,
                     headers={"Authorization": f"Bearer {key}"}) as resp:
                 body = await resp.json(content_type=None)
+                if isinstance(body, list):
+                    body = body[0] if body and isinstance(body[0], dict) else {}
+                if not isinstance(body, dict):
+                    return None, (f"Transcription failed "
+                                  f"(HTTP {resp.status}): {str(body)[:200]}")
                 if resp.status != 200:
-                    msg = (body.get("error") or {}).get("message") or str(body)
+                    err = body.get("error")
+                    msg = (err.get("message") if isinstance(err, dict)
+                           else None) or str(body)
                     return None, f"Transcription failed: {msg}"
                 return (body.get("text") or "").strip(), None
     except Exception as exc:
