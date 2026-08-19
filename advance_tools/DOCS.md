@@ -20,7 +20,9 @@ are untouched.
 
 Talk to your home in plain language — by text, voice or Telegram. Pick an
 AI brain in Settings: **Claude** (Anthropic API key), **ChatGPT** (OpenAI
-API key) or a **local Ollama** / any OpenAI-compatible server. The
+API key) or **Custom / Local** — a local Ollama or any OpenAI-compatible
+server, including free hosted tiers such as Google Gemini, Groq,
+OpenRouter and Cerebras (paste their base URL plus a free API key). The
 assistant reads your entities and calls the right services: "turn off all
 lights", "set the bedroom lamp to 50% red", "is the front door locked?".
 
