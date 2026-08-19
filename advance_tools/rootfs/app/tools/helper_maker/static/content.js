@@ -485,7 +485,7 @@ actions:
       ],
       tips: [
         "Template syntax: {{ states('sensor.x') | float(0) * 2 }}",
-        "Test templates first in HA's Developer Tools → Template.",
+        "Test templates first in HA's Tools → Template (called Developer Tools before 2026.8).",
         "Set a unit and device class so graphs and dashboards behave.",
       ],
       yaml:

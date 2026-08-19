@@ -100,6 +100,20 @@ def _parse_ts(value):
         return None
 
 
+def _dev_entry_ids(dev):
+    """Config entry ids for a device registry entry.
+
+    HA 2026.8 restricts each device to a single config entry and exposes it
+    as ``config_entry_id``; the old ``config_entries`` list is deprecated
+    (removal planned for 2027.8). Prefer the new field, fall back to the old
+    list on pre-2026.8 cores.
+    """
+    entry_id = dev.get("config_entry_id")
+    if entry_id:
+        return [entry_id]
+    return list(dev.get("config_entries") or [])
+
+
 def _num(value):
     try:
         return float(value)
@@ -336,7 +350,7 @@ def _find_dead_devices(reg_list, devices, areas, states, now):
             "area": areas.get(dev.get("area_id")),
             "integration": next((r.get("platform") for r in ents
                                  if r.get("platform")), None),
-            "config_entries": dev.get("config_entries") or [],
+            "config_entries": _dev_entry_ids(dev),
             "reason": reason,
             "since_days": (round((now - since) / 86400, 1)
                            if since else None),
@@ -766,7 +780,7 @@ async def api_device_remove(request):
             continue
 
         errors, removed_entities = [], []
-        for entry_id in dev.get("config_entries") or []:
+        for entry_id in _dev_entry_ids(dev):
             try:
                 await X.HA.ws_call({
                     "type": "config/device_registry/remove_config_entry",
