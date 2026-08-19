@@ -3,6 +3,15 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.2.1
+
+- Fixed: **AI Assistant** crashed with "'list' object has no attribute
+  'get'" when a provider returned a list-shaped body — Google Gemini's
+  OpenAI-compatible endpoint wraps errors in a list. Error responses
+  from every provider (chat and transcription) are now parsed
+  tolerantly and the provider's real error message (with the HTTP
+  status) is shown instead.
+
 ## 1.2.0
 
 **AI Assistant: free hosted AI providers.** The third provider option is
