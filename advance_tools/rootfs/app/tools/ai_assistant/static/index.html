@@ -174,7 +174,7 @@
           <select id="s-provider">
             <option value="anthropic">Claude (Anthropic API)</option>
             <option value="openai">ChatGPT (OpenAI API)</option>
-            <option value="ollama">Local — Ollama / OpenAI-compatible</option>
+            <option value="ollama">Custom / Local — Ollama, Groq, Gemini, OpenRouter …</option>
           </select></div>
         <div class="field"><label>Model</label>
           <input id="s-model" placeholder="(provider default)">
@@ -186,10 +186,19 @@
           <input id="s-okey" type="password" placeholder="sk-…">
           <div class="hint" id="okey-state">Also used to transcribe Telegram
             voice notes, whatever the chat provider.</div></div>
-        <div class="field" id="f-ollama"><label>Ollama URL</label>
+        <div class="field" id="f-ollama"><label>Server URL</label>
           <input id="s-ollama" placeholder="http://homeassistant.local:11434">
-          <div class="hint">Any OpenAI-compatible server works
-            (Ollama, LM Studio, llama.cpp …).</div></div>
+          <div class="hint">Any OpenAI-compatible server. Local: Ollama,
+            LM Studio, llama.cpp. Free hosted tiers:
+            <code>https://api.groq.com/openai</code>,
+            <code>https://generativelanguage.googleapis.com/v1beta/openai</code>
+            (Gemini), <code>https://openrouter.ai/api/v1</code>,
+            <code>https://api.cerebras.ai</code>.</div></div>
+        <div class="field" id="f-ckey"><label>API key (optional)</label>
+          <input id="s-ckey" type="password"
+                 placeholder="only if the server needs one">
+          <div class="hint" id="ckey-state">Needed for Groq / Gemini /
+            OpenRouter / Cerebras; leave empty for a local Ollama.</div></div>
       </div>
       <div class="savebar">
         <button class="btn sm" id="testbtn">🔌 Test connection</button>

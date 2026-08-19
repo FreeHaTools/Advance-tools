@@ -69,6 +69,7 @@ DEFAULT_SETTINGS = {
     "anthropic_key": "",
     "openai_key": "",
     "ollama_url": "http://homeassistant.local:11434",
+    "custom_key": "",   # optional — for hosted OpenAI-compatible APIs (Groq, Gemini, …)
     "model": "",                 # empty → provider default
     "assistant_name": "Nova",    # also the wake word ("hey nova")
     "language": "auto",          # STT hint for the browser mic
@@ -468,10 +469,30 @@ async def _llm_anthropic(model, messages, collector, origin):
     return "I ran out of steps — please try a simpler request.", convo
 
 
+def _openai_url(base_url):
+    """Chat-completions URL for an OpenAI-compatible server.
+
+    Accepts the base URLs people actually paste:
+      http://host:11434                     -> …/v1/chat/completions
+      https://api.groq.com/openai           -> …/v1/chat/completions
+      https://openrouter.ai/api/v1          -> …/chat/completions
+      https://generativelanguage.googleapis.com/v1beta/openai
+                                            -> …/chat/completions
+      a full …/chat/completions URL         -> used verbatim
+    """
+    if not base_url:
+        return OPENAI_URL
+    base = base_url.rstrip("/")
+    if base.endswith("/chat/completions"):
+        return base
+    if base.endswith("/v1") or base.endswith("/v1beta/openai"):
+        return base + "/chat/completions"
+    return base + "/v1/chat/completions"
+
+
 async def _llm_openai_compatible(model, messages, collector, origin,
                                  base_url=None, key=None):
-    url = (base_url.rstrip("/") + "/v1/chat/completions") if base_url \
-        else OPENAI_URL
+    url = _openai_url(base_url)
     headers = {}
     if key:
         headers["Authorization"] = f"Bearer {key}"
@@ -525,7 +546,8 @@ async def _agent(messages, origin):
     else:  # ollama / any OpenAI-compatible local server
         text, _ = await _llm_openai_compatible(
             model, messages, collector, origin,
-            base_url=s.get("ollama_url") or "http://localhost:11434")
+            base_url=s.get("ollama_url") or "http://localhost:11434",
+            key=s.get("custom_key") or None)
     return text, collector
 
 
@@ -803,6 +825,7 @@ def _public_settings():
     s = json.loads(json.dumps(_STATE["settings"]))
     s["anthropic_key_set"] = bool(s.pop("anthropic_key", ""))
     s["openai_key_set"] = bool(s.pop("openai_key", ""))
+    s["custom_key_set"] = bool(s.pop("custom_key", ""))
     s["telegram"]["token_set"] = bool(s["telegram"].pop("token", ""))
     s["safety"]["pin_set"] = bool(s["safety"].pop("pin", ""))
     return s
@@ -837,7 +860,7 @@ async def api_settings(request):
             s[key] = str(body[key] or "").strip()
     if not s.get("assistant_name"):
         s["assistant_name"] = "Nova"
-    for key in ("anthropic_key", "openai_key"):
+    for key in ("anthropic_key", "openai_key", "custom_key"):
         if key in body:                      # "" clears, non-empty replaces
             s[key] = str(body[key] or "").strip()
 
@@ -953,7 +976,8 @@ async def api_test(request):
         else:
             text, _ = await _llm_openai_compatible(
                 model, messages, collector, "test",
-                base_url=s.get("ollama_url") or "http://localhost:11434")
+                base_url=s.get("ollama_url") or "http://localhost:11434",
+                key=s.get("custom_key") or None)
         return web.json_response({"ok": True, "provider": provider,
                                   "model": model, "reply": text[:200]})
     except Exception as exc:

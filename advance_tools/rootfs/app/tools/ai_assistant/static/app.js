@@ -371,6 +371,10 @@ function fillSettings() {
   $('okey-state').textContent = (s.openai_key_set
     ? '✅ key saved — leave empty to keep it. '
     : '') + 'Also used to transcribe Telegram voice notes.';
+  $('ckey-state').textContent = s.custom_key_set
+    ? '\u2705 key saved \u2014 leave empty to keep it'
+    : 'Needed for Groq / Gemini / OpenRouter / Cerebras; leave empty for ' +
+      'a local Ollama.';
   $('pin-state').textContent = (s.safety || {}).pin_set
     ? '✅ PIN set — leave empty to keep it' : 'no PIN yet';
   $('tg-state').innerHTML = ((s.telegram || {}).token_set
@@ -387,6 +391,7 @@ function updateProviderFields() {
   const p = $('s-provider').value;
   $('f-akey').style.display = p === 'anthropic' ? '' : 'none';
   $('f-ollama').style.display = p === 'ollama' ? '' : 'none';
+  $('f-ckey').style.display = p === 'ollama' ? '' : 'none';
   $('modelhint').textContent = 'Default: ' + (DEFAULTS[p] || '');
 }
 $('s-provider').addEventListener('change', updateProviderFields);
@@ -411,6 +416,7 @@ $('savebtn').addEventListener('click', async () => {
   };
   if ($('s-akey').value.trim()) body.anthropic_key = $('s-akey').value.trim();
   if ($('s-okey').value.trim()) body.openai_key = $('s-okey').value.trim();
+  if ($('s-ckey').value.trim()) body.custom_key = $('s-ckey').value.trim();
   if ($('s-pin').value.trim()) body.safety.pin = $('s-pin').value.trim();
   if ($('s-tgtoken').value.trim()) {
     body.telegram.token = $('s-tgtoken').value.trim();
@@ -421,7 +427,7 @@ $('savebtn').addEventListener('click', async () => {
       method: 'POST', body: JSON.stringify(body),
     });
     SETTINGS = res.settings;
-    ['s-akey', 's-okey', 's-pin', 's-tgtoken'].forEach((id) => {
+    ['s-akey', 's-okey', 's-ckey', 's-pin', 's-tgtoken'].forEach((id) => {
       $(id).value = '';
     });
     fillSettings();

@@ -3,6 +3,20 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.2.0
+
+**AI Assistant: free hosted AI providers.** The third provider option is
+now **Custom / Local** — any OpenAI-compatible server, with an optional
+API key. That unlocks the no-cost hosted tiers (Google Gemini, Groq,
+OpenRouter, Cerebras) next to a local Ollama:
+
+- Optional API key field for the custom server (stored server-side,
+  never echoed back).
+- Smarter URL handling — paste the base URL as each provider documents
+  it (`…/openai`, `…/v1`, a full `…/chat/completions`, or a bare host)
+  and the right chat-completions endpoint is derived.
+- Settings hints list the free providers and their base URLs.
+
 ## 1.1.0
 
 **New tool: AI Assistant 🤖 — talk to your home in plain language.**
