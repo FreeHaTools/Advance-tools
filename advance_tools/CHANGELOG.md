@@ -3,6 +3,26 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.1.0
+
+**New tool: AI Assistant 🤖 — talk to your home in plain language.**
+
+- Pluggable AI brain: Claude (Anthropic API), ChatGPT (OpenAI API) or a
+  local Ollama / any OpenAI-compatible server. Function-calling agent
+  that searches your entities and calls the right services — "turn off
+  all lights", "set the bedroom lamp to 50% red", "lock the front door".
+- Voice in the browser: push-to-talk on the mic button, a "Hey <name>"
+  wake-word mode, and spoken replies (all client-side Web Speech API).
+- Telegram bot: text and voice notes from anywhere (voice transcription
+  via OpenAI Whisper when an OpenAI key is set), with an allow-list of
+  chat IDs.
+- Safety layer for protected domains (locks, alarm, covers by default):
+  run freely, require a confirmation, require a PIN, or block. Pending
+  actions are parked server-side and only run once confirmed — in the
+  web chat or via Telegram inline buttons.
+- API keys, the bot token and the PIN are stored server-side and never
+  sent back to the browser.
+
 ## 1.0.4
 
 **Verified against Home Assistant 2026.8 — no breakage, two small updates.**

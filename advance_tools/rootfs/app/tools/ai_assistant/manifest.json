@@ -1,0 +1,9 @@
+{
+  "id": "ai_assistant",
+  "name": "AI Assistant",
+  "icon": "🤖",
+  "color": "#c792ea",
+  "description": "Talk to your home in plain language — by text, voice or Telegram. A pluggable AI brain (Claude, ChatGPT or a local Ollama) reads your entities and calls the right services: 'turn off all lights', 'set the bedroom lamp to 50% red', 'is the front door locked?'. Push-to-talk and a 'Hey …' wake word in the browser, spoken replies, and a safety layer that can require a confirmation or a PIN before doors, locks or the alarm are touched.",
+  "page": "/tools/ai_assistant/",
+  "version": "1.0.0"
+}

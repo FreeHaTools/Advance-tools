@@ -16,6 +16,29 @@ your first dashboard automatically, and you're done. Existing
 installations skip the wizard entirely — users, dashboards and passwords
 are untouched.
 
+## AI Assistant
+
+Talk to your home in plain language — by text, voice or Telegram. Pick an
+AI brain in Settings: **Claude** (Anthropic API key), **ChatGPT** (OpenAI
+API key) or a **local Ollama** / any OpenAI-compatible server. The
+assistant reads your entities and calls the right services: "turn off all
+lights", "set the bedroom lamp to 50% red", "is the front door locked?".
+
+Voice in the browser: hold the mic button to talk (push-to-talk), or
+enable the wake word and say "Hey <name>" — replies can be spoken aloud.
+Speech recognition runs in the browser (Chrome works best); audio never
+passes through the add-on.
+
+Telegram: create a bot with @BotFather, paste the token, allow your chat
+ID, and command the house from anywhere — text or voice notes (voice
+transcription needs an OpenAI key, whatever the chat provider). Use a
+different bot than Notify Hub's; Telegram allows one listener per token.
+
+Safety: protected domains (locks, alarm and covers by default) can run
+freely, ask for a confirmation, require a PIN, or be blocked entirely.
+Confirmations show as a button in the chat and as inline buttons in
+Telegram.
+
 ## History Explorer
 
 Pick up to six entities and a range and see what actually happened: a
