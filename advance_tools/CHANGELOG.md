@@ -3,6 +3,20 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.0.4
+
+**Verified against Home Assistant 2026.8 — no breakage, two small updates.**
+Every WebSocket command and REST path the add-on uses was checked against the
+2026.8 release; all of them are unchanged.
+
+- **Entity Doctor** now reads a device's config entry from the new
+  `config_entry_id` field introduced by 2026.8 (each device now belongs to a
+  single config entry), falling back to the deprecated `config_entries` list
+  on older cores. This future-proofs dead-device removal for the planned
+  2027.8 removal of the old field.
+- **Helper Maker**: the template tip now points at **Tools → Template** —
+  Home Assistant 2026.8 renamed "Developer Tools" to "Tools".
+
 ## 1.0.3
 
 **Automation Maker keeps up with Home Assistant 2026.7.** Home Assistant 2026.7
