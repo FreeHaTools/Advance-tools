@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Assistant — Advance Tools</title>
+<style>
+  :root {
+    --bg:#0b0f19; --bg2:#101624; --card:#161e2f; --line:#28324c;
+    --txt:#e8edf7; --mut:#8b98b8; --acc:#c792ea; --acc2:#f0a5ff;
+    --good:#3ecf8e; --bad:#ff6b81; --warn:#ffb86b; --input:#0e1422;
+    --hover:rgba(199,146,234,.09); --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; margin:0; font-family:"Segoe UI", Tahoma, sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+
+  header { display:flex; align-items:center; gap:12px; padding:14px 22px;
+           background:var(--bg2); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:20; flex-wrap:wrap; }
+  header .logo { width:38px; height:38px; border-radius:11px; display:flex;
+           align-items:center; justify-content:center; font-size:19px;
+           background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  header h1 { font-size:16px; flex:1; min-width:170px; }
+  header h1 small { display:block; font-size:10px; color:var(--mut); font-weight:400; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid var(--line);
+           color:var(--mut); padding:8px 13px; border-radius:9px; cursor:pointer;
+           font-size:13px; text-decoration:none; display:inline-block; }
+  .ghost:hover { color:var(--txt); border-color:var(--acc); }
+  .btn { background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#230a2e;
+         border:0; padding:11px 22px; border-radius:10px; cursor:pointer;
+         font-size:14px; font-weight:700; }
+  .btn:active { transform:scale(.98); }
+  .btn.sm { padding:8px 15px; font-size:12.5px; }
+  .btn.danger { background:linear-gradient(135deg,#ff6b81,#ff9d5c); color:#2a0a10; }
+  .btn[disabled] { opacity:.5; cursor:default; }
+
+  main { padding:18px 22px 40px; max-width:900px; margin:0 auto; }
+
+  .tabs { display:flex; gap:6px; border-bottom:1px solid var(--line);
+          margin-bottom:18px; flex-wrap:wrap; }
+  .tab { background:none; border:0; border-bottom:2px solid transparent;
+         color:var(--mut); padding:11px 15px; cursor:pointer; font-size:13.5px; }
+  .tab:hover { color:var(--txt); }
+  .tab.on { color:var(--acc); border-bottom-color:var(--acc); font-weight:600; }
+  .page { display:none; }
+  .page.on { display:block; }
+
+  /* ---- chat ---- */
+  #chatwrap { display:flex; flex-direction:column;
+              height:calc(100vh - 205px); min-height:380px; }
+  #msgs { flex:1; overflow-y:auto; padding:8px 4px; display:flex;
+          flex-direction:column; gap:10px; }
+  .msg { max-width:78%; padding:11px 15px; border-radius:15px;
+         font-size:14.5px; line-height:1.5; white-space:pre-wrap;
+         word-break:break-word; }
+  .msg.user { align-self:flex-end; background:linear-gradient(135deg,#3d2a55,#4d2f66);
+              border:1px solid #5c3f7a; border-bottom-right-radius:4px; }
+  .msg.bot  { align-self:flex-start; background:var(--card);
+              border:1px solid var(--line); border-bottom-left-radius:4px; }
+  .msg.sys  { align-self:center; background:none; border:0; color:var(--mut);
+              font-size:12px; padding:2px; }
+  .msg .acts { margin-top:8px; font-size:12px; color:var(--mut); }
+  .msg .acts div { padding:2px 0; }
+  .msg .acts .ok::before  { content:"✅ "; }
+  .msg .acts .bad::before { content:"⚠️ "; }
+  .confirmbox { align-self:flex-start; background:#241a33; border:1px solid #5c3f7a;
+                border-radius:13px; padding:13px 16px; max-width:78%; }
+  .confirmbox p { font-size:13px; margin-bottom:9px; }
+  .confirmbox code { color:var(--warn); font-size:12px; }
+  .confirmbox input { width:110px; margin-right:8px; }
+  .typing { align-self:flex-start; color:var(--mut); font-size:13px;
+            padding:6px 12px; }
+  .typing span { animation:blink 1.2s infinite; }
+  .typing span:nth-child(2){ animation-delay:.2s } .typing span:nth-child(3){ animation-delay:.4s }
+  @keyframes blink { 0%,80%,100%{opacity:.25} 40%{opacity:1} }
+
+  #inputrow { display:flex; gap:8px; padding-top:12px; align-items:flex-end; }
+  #inputrow textarea { flex:1; background:var(--input); color:var(--txt);
+        border:1px solid var(--line); border-radius:12px; padding:12px 14px;
+        font-size:14.5px; resize:none; min-height:48px; max-height:130px; }
+  #inputrow textarea:focus { outline:none; border-color:var(--acc); }
+  .micbtn { width:48px; height:48px; border-radius:50%; border:1px solid var(--line);
+            background:var(--card); color:var(--txt); font-size:20px; cursor:pointer;
+            flex:none; display:flex; align-items:center; justify-content:center;
+            user-select:none; -webkit-user-select:none; touch-action:none; }
+  .micbtn.rec { background:linear-gradient(135deg,#ff6b81,#ff9d5c);
+                border-color:transparent; animation:pulse 1.1s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(255,107,129,.5)}
+                     70%{box-shadow:0 0 0 14px rgba(255,107,129,0)}
+                     100%{box-shadow:0 0 0 0 rgba(255,107,129,0)} }
+  #sendbtn { height:48px; }
+
+  #voicebar { display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+              padding:9px 2px 0; font-size:12.5px; color:var(--mut); }
+  #voicebar label { display:flex; gap:6px; align-items:center; cursor:pointer; }
+  #wakestate { color:var(--acc); }
+  #wakestate.listening { color:var(--good); }
+
+  /* ---- settings ---- */
+  .card { background:var(--card); border:1px solid var(--line);
+          border-radius:14px; padding:18px 20px; margin-bottom:16px; }
+  .card h2 { font-size:14px; margin-bottom:13px; color:var(--acc2); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+          gap:13px; }
+  .field label { display:block; font-size:11.5px; color:var(--mut);
+                 margin-bottom:5px; text-transform:uppercase; letter-spacing:.05em; }
+  .field input, .field select { width:100%; background:var(--input);
+        color:var(--txt); border:1px solid var(--line); border-radius:9px;
+        padding:10px 12px; font-size:13.5px; }
+  .field input:focus, .field select:focus { outline:none; border-color:var(--acc); }
+  .hint { font-size:11.5px; color:var(--mut); margin-top:5px; line-height:1.45; }
+  .statusline { font-size:12.5px; margin-top:9px; }
+  .statusline .ok { color:var(--good); } .statusline .bad { color:var(--bad); }
+  .savebar { display:flex; gap:10px; align-items:center; margin-top:6px; }
+
+  /* ---- help ---- */
+  .help p, .help li { font-size:13.5px; line-height:1.65; color:var(--txt); }
+  .help p { margin-bottom:10px; }
+  .help ul { margin:0 0 12px 20px; }
+  .help code { background:var(--input); border:1px solid var(--line);
+               border-radius:5px; padding:1px 6px; font-size:12.5px; }
+
+  .toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+           background:#1f2c1f; border:1px solid var(--good); color:var(--txt);
+           border-radius:10px; padding:11px 20px; font-size:13.5px; z-index:99;
+           box-shadow:var(--shadow); }
+  .toast.bad { background:#2c1f22; border-color:var(--bad); }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🤖</div>
+  <h1 id="title">AI Assistant<small>Talk to your home — text, voice or Telegram</small></h1>
+  <a class="ghost" href="/?d=__admin__">← Hub</a>
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="tab on" data-page="chat">💬 Chat</button>
+    <button class="tab" data-page="settings">⚙️ Settings</button>
+    <button class="tab" data-page="help">📖 Help</button>
+  </div>
+
+  <!-- ================= CHAT ================= -->
+  <section class="page on" id="page-chat">
+    <div id="chatwrap">
+      <div id="msgs"></div>
+      <div id="inputrow">
+        <button class="micbtn" id="micbtn" title="Hold to talk">🎤</button>
+        <textarea id="input" rows="1"
+                  placeholder="Ask anything… e.g. turn off all lights"></textarea>
+        <button class="btn" id="sendbtn">Send</button>
+      </div>
+      <div id="voicebar">
+        <label><input type="checkbox" id="wakechk">
+          Wake word <span id="wakename">“Hey Nova”</span></label>
+        <span id="wakestate"></span>
+        <label><input type="checkbox" id="speakchk" checked>
+          🔊 Speak replies</label>
+        <button class="ghost" id="resetbtn" style="margin-left:auto">🧹 New conversation</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SETTINGS ================= -->
+  <section class="page" id="page-settings">
+    <div class="card">
+      <h2>🧠 AI engine</h2>
+      <div class="grid">
+        <div class="field"><label>Provider</label>
+          <select id="s-provider">
+            <option value="anthropic">Claude (Anthropic API)</option>
+            <option value="openai">ChatGPT (OpenAI API)</option>
+            <option value="ollama">Local — Ollama / OpenAI-compatible</option>
+          </select></div>
+        <div class="field"><label>Model</label>
+          <input id="s-model" placeholder="(provider default)">
+          <div class="hint" id="modelhint"></div></div>
+        <div class="field" id="f-akey"><label>Anthropic API key</label>
+          <input id="s-akey" type="password" placeholder="sk-ant-…">
+          <div class="hint" id="akey-state"></div></div>
+        <div class="field" id="f-okey"><label>OpenAI API key</label>
+          <input id="s-okey" type="password" placeholder="sk-…">
+          <div class="hint" id="okey-state">Also used to transcribe Telegram
+            voice notes, whatever the chat provider.</div></div>
+        <div class="field" id="f-ollama"><label>Ollama URL</label>
+          <input id="s-ollama" placeholder="http://homeassistant.local:11434">
+          <div class="hint">Any OpenAI-compatible server works
+            (Ollama, LM Studio, llama.cpp …).</div></div>
+      </div>
+      <div class="savebar">
+        <button class="btn sm" id="testbtn">🔌 Test connection</button>
+        <span class="statusline" id="teststate"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🗣 Assistant &amp; voice</h2>
+      <div class="grid">
+        <div class="field"><label>Assistant name (wake word)</label>
+          <input id="s-name" placeholder="Nova">
+          <div class="hint">You'll say “Hey &lt;name&gt;” in wake-word mode.
+            Pick a name the mic hears easily.</div></div>
+        <div class="field"><label>Voice language</label>
+          <select id="s-lang">
+            <option value="auto">Auto (browser default)</option>
+            <option value="en-US">English</option>
+            <option value="fa-IR">فارسی (Persian)</option>
+            <option value="de-DE">Deutsch</option>
+            <option value="es-ES">Español</option>
+            <option value="fr-FR">Français</option>
+          </select>
+          <div class="hint">Used by the browser microphone and spoken
+            replies.</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🛡 Safety</h2>
+      <div class="grid">
+        <div class="field"><label>Protected actions</label>
+          <select id="s-safety">
+            <option value="allow">Run freely (no confirmation)</option>
+            <option value="confirm">Ask for confirmation</option>
+            <option value="pin">Ask for confirmation + PIN</option>
+            <option value="block">Block completely</option>
+          </select></div>
+        <div class="field"><label>Protected domains</label>
+          <input id="s-sens" placeholder="lock, alarm_control_panel, cover">
+          <div class="hint">Comma-separated. Actions touching these domains
+            follow the rule on the left; everything else runs freely.</div></div>
+        <div class="field"><label>PIN</label>
+          <input id="s-pin" type="password" inputmode="numeric"
+                 placeholder="•••• (leave empty to keep)">
+          <div class="hint" id="pin-state"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📨 Telegram bot</h2>
+      <div class="grid">
+        <div class="field"><label>Bot token</label>
+          <input id="s-tgtoken" type="password" placeholder="123456:ABC-…">
+          <div class="hint" id="tg-state">Create one with @BotFather.
+            ⚠ Use a <b>different</b> bot than Notify Hub — Telegram allows
+            only one listener per token.</div></div>
+        <div class="field"><label>Allowed chat IDs</label>
+          <input id="s-tgchats" placeholder="12345678, 87654321">
+          <div class="hint">Message the bot once — it replies with your
+            chat ID. Only listed chats can give commands.</div></div>
+        <div class="field"><label>Polling</label>
+          <select id="s-tgpoll">
+            <option value="1">On</option>
+            <option value="0">Off</option>
+          </select>
+          <div class="hint" id="botstatus"></div></div>
+      </div>
+    </div>
+
+    <div class="savebar">
+      <button class="btn" id="savebtn">💾 Save settings</button>
+      <span class="statusline" id="savestate"></span>
+    </div>
+  </section>
+
+  <!-- ================= HELP ================= -->
+  <section class="page help" id="page-help">
+    <div class="card">
+      <h2>What can I say?</h2>
+      <ul>
+        <li>“Turn off all the lights.”</li>
+        <li>“Set the bedroom lamp to 50% and make it red.”</li>
+        <li>“Is the front door locked?” — “Lock it.”</li>
+        <li>“Set the living room to 21 degrees.”</li>
+        <li>“Open the garage” (asks for confirmation / PIN if protected).</li>
+        <li>“Which windows are open?” / “What's the temperature outside?”</li>
+      </ul>
+      <p>The assistant answers in the language you use — Persian works.</p>
+    </div>
+    <div class="card">
+      <h2>Voice</h2>
+      <p><b>Push-to-talk:</b> hold the 🎤 button (or press it once to start
+        and again to stop on devices without long-press), speak, release.</p>
+      <p><b>Wake word:</b> tick the checkbox and leave the tab open — say
+        “Hey &lt;name&gt;”, wait for the chime, then speak your command.
+        Uses the browser's speech recognition; Chrome works best. The mic
+        stays local — audio is not sent to this add-on.</p>
+      <p><b>Spoken replies</b> use the browser's own voice; toggle 🔊 off to
+        keep it silent.</p>
+    </div>
+    <div class="card">
+      <h2>Telegram</h2>
+      <p>Create a bot with <code>@BotFather</code>, paste the token in
+        Settings, send the bot any message, then add the chat ID it shows
+        you to the allow-list. Text and voice notes both work — voice notes
+        need an OpenAI API key for transcription (the chat brain can still
+        be Claude or a local model).</p>
+    </div>
+    <div class="card">
+      <h2>Safety</h2>
+      <p>Domains listed as <i>protected</i> (locks, alarm, covers by
+        default) follow the safety rule: run freely, ask for confirmation,
+        require the PIN, or be blocked. Confirmations appear as a button in
+        this chat and as inline buttons in Telegram. Everything the
+        assistant does goes through your Home Assistant user permissions —
+        it can never do more than the add-on itself can.</p>
+    </div>
+  </section>
+</main>
+
+<script src="/tools/ai_assistant/static/app.js"></script>
+</body>
+</html>
