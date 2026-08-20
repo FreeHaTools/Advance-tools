@@ -3,6 +3,24 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.6.0
+
+**Voice v3 — hears you the first time, answers faster.**
+
+- The wake word now triggers on the recogniser's **instant interim
+  results** (non-English configs) instead of waiting for finalisation
+  after a silence — no more repeating "Hey Nova" ten times.
+- Fixed a Chrome bug where a stuck text-to-speech flag silently ate
+  every wake word after the assistant had spoken once: the guard now
+  uses its own timed window.
+- While the assistant waits for your command it opens the chat and
+  shows the **live transcript** of what it hears, and sends after just
+  ~1.1 s of silence.
+- **Half the latency per command**: the controllable devices (lights,
+  switches, covers, locks, climate, media, scenes, scripts) are handed
+  to the AI up front, so it calls the right service immediately instead
+  of first asking for an entity list.
+
 ## 1.5.1
 
 - Fixed: **Persian voice mode broke the wake word.** The wake listener

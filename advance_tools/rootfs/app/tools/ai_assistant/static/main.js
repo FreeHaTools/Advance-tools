@@ -177,6 +177,7 @@ $('resetbtn').addEventListener('click', () => {
 function speak(text) {
   if (!$('speakchk').checked) return;
   if (!('speechSynthesis' in window)) return;
+  ttsUntil = Date.now() + Math.min(6000, 400 + String(text).length * 65);
   try {
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(
@@ -227,8 +228,11 @@ function ackText() {
   return (SETTINGS.language || '').startsWith('fa') ? '\u062c\u0627\u0646\u0645\u061f' : 'Yes?';
 }
 
+let ttsUntil = 0;   // Chrome's speechSynthesis.speaking can stick at true
+
 function speakForce(text) {
   if (!('speechSynthesis' in window)) return;
+  ttsUntil = Date.now() + Math.min(6000, 400 + String(text).length * 65);
   try {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(String(text).slice(0, 200));
@@ -443,14 +447,18 @@ function wakeCapture() {
     const r = new SR();
     r.lang = lang;
     r.continuous = true;
-    r.interimResults = false;
+    r.interimResults = true;
     r.onresult = (ev) => {
-      if (window.speechSynthesis && window.speechSynthesis.speaking) return;
-      const raw = ev.results[ev.results.length - 1][0].transcript;
-      text = (text + ' ' + raw).trim();
-      $('input').value = text;
-      clearTimeout(timer);
-      timer = setTimeout(finish, 1700);
+      if (Date.now() < ttsUntil) return;
+      let interim = '';
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        if (ev.results[i].isFinal) {
+          text = (text + ' ' + ev.results[i][0].transcript).trim();
+          clearTimeout(timer);
+          timer = setTimeout(finish, 1100);
+        } else interim += ev.results[i][0].transcript;
+      }
+      $('input').value = (text + ' ' + interim).trim();
     };
     r.onend = () => { if (!done) setTimeout(spin, 150); };
     r.onerror = (ev) => {
@@ -473,21 +481,26 @@ function runWake() {
   /* Wake listener always in English — the Latin wake name is heard reliably
      in any accent; the command is captured separately in srLang(). */
   wake.lang = 'en-US';
-  wake.interimResults = false;
+  wake.interimResults = true;   // react instantly, no finalisation wait
   wake.continuous = true;
   if (!wakeCap) {
     $('wakestate').textContent = '\ud83d\udc42 listening for wake word\u2026';
     $('wakestate').className = '';
   }
 
+  let wakeMute = 0;
   wake.onresult = (ev) => {
-    if (window.speechSynthesis && window.speechSynthesis.speaking) return;
-    const raw = ev.results[ev.results.length - 1][0].transcript;
+    if (Date.now() < ttsUntil || Date.now() < wakeMute) return;
+    const res = ev.results[ev.results.length - 1];
+    const raw = res[0].transcript;
     if (!wakeCap) {
       const m = matchWake(raw);
       if (!m) return;
+      const en = srLang().toLowerCase().slice(0, 2) === 'en';
+      if (en && !res.isFinal) return;   // inline commands need the final text
+      wakeMute = Date.now() + 2500;
       beep(990);
-      if (m.rest && srLang().toLowerCase().slice(0, 2) === 'en') {
+      if (m.rest && en) {
         beep(660); send(m.rest); return;
       }
       speakForce(ackText());                 // answer the wake word out loud

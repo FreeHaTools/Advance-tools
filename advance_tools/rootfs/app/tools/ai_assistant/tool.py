@@ -396,6 +396,32 @@ async def _run_tool(name, args, origin, collector):
     return {"error": f"unknown tool {name!r}"}
 
 
+CTRL_DOMAINS = ("light", "switch", "fan", "cover", "lock", "climate",
+                "media_player", "scene", "script", "vacuum",
+                "alarm_control_panel", "input_boolean")
+
+
+def _catalog_lines(limit=260):
+    """Compact list of controllable entities for the system prompt.
+
+    Inlining these lets the model call the right service immediately
+    instead of spending an extra round-trip on list_entities — roughly
+    halving the latency of a typical voice command.
+    """
+    areas = _area_maps()
+    lines = []
+    for eid, st in X.HA.states.items():
+        dom = eid.split(".")[0]
+        if dom not in CTRL_DOMAINS:
+            continue
+        name = (st.get("attributes") or {}).get("friendly_name") or eid
+        area = areas.get(eid)
+        lines.append(f"{eid} | {name}" + (f" | {area}" if area else ""))
+        if len(lines) >= limit:
+            break
+    return lines
+
+
 def _system_prompt():
     s = _STATE["settings"]
     name = s.get("assistant_name") or "Nova"
@@ -412,9 +438,13 @@ def _system_prompt():
         "You control real devices through the provided tools.\n"
         f"Areas: {', '.join(area_names) or 'unknown'}.\n"
         f"Entity domains: {dom_line}.\n"
+        "Controllable entities (entity_id | name | area):\n"
+        + "\n".join(_catalog_lines()) + "\n"
         "Rules:\n"
-        "- Use list_entities to find the right entity before acting; never "
-        "invent entity ids.\n"
+        "- Act DIRECTLY with call_service using ids from the list above — "
+        "do NOT call list_entities for devices that are already listed. "
+        "Use list_entities only for sensors, states or things not listed; "
+        "never invent entity ids.\n"
         "- 'all lights' → list_entities(domain='light'), then one "
         "light.turn_off with the list of entity_ids.\n"
         "- Brightness: light.turn_on with brightness_pct (0-100). Colours: "
