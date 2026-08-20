@@ -558,6 +558,9 @@ function atAiBeep(freq) {
 function atAiSpeak(w, text, force) {
   if (!force && w && w.speak === false) return;
   if (!('speechSynthesis' in window)) return;
+  /* Track our own speaking window — Chrome's speechSynthesis.speaking can
+     get stuck at true forever, which used to silently eat every wake word. */
+  atAi.ttsUntil = Date.now() + Math.min(6000, 400 + String(text).length * 65);
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(
@@ -823,8 +826,13 @@ function atAiWakeStart(w) {
   function atAiCapture() {
     atAi.micBusy = true;
     if (atAi.wake) { try { atAi.wake.onend = null; atAi.wake.stop(); } catch (e) {} }
+    atOpenAssist(w);                        // visible feedback right away
+    const live = t => {
+      const inp = document.querySelector('#at-aiov .at-fsinput');
+      if (inp) inp.value = t;
+    };
     let lang = atAiLang();
-    let text = '', timer = null, done = false;
+    let finals = '', interim = '', timer = null, done = false;
     const deadline = Date.now() + 12000;
     const finish = () => {
       if (done) return;
@@ -832,7 +840,9 @@ function atAiWakeStart(w) {
       clearTimeout(timer);
       atAi.micBusy = false;
       setTimeout(run, 300);                 // resume wake listening
-      if (text.trim()) wakeCommand(text.trim());
+      const said = (finals || interim).trim();
+      live('');
+      if (said) wakeCommand(said);
       else atAiBeep(440);
     };
     const spin = () => {
@@ -840,13 +850,18 @@ function atAiWakeStart(w) {
       if (Date.now() > deadline) { finish(); return; }
       const r = new SR();
       r.lang = lang;
-      r.continuous = true; r.interimResults = false;
+      r.continuous = true; r.interimResults = true;
       r.onresult = ev => {
-        if (window.speechSynthesis && speechSynthesis.speaking) return;
-        const raw = ev.results[ev.results.length - 1][0].transcript;
-        text = (text + ' ' + raw).trim();
-        clearTimeout(timer);
-        timer = setTimeout(finish, 1700);
+        if (Date.now() < (atAi.ttsUntil || 0)) return;
+        interim = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          if (ev.results[i].isFinal) {
+            finals = (finals + ' ' + ev.results[i][0].transcript).trim();
+            clearTimeout(timer);
+            timer = setTimeout(finish, 1100);   // short pause = done talking
+          } else interim += ev.results[i][0].transcript;
+        }
+        live((finals + ' ' + interim).trim());
       };
       r.onend = () => { if (!done) setTimeout(spin, 150); };
       r.onerror = ev => {
@@ -867,19 +882,29 @@ function atAiWakeStart(w) {
     atAi.wake = r;
     /* The wake listener always runs in English: the wake name is Latin and
        en-US hears it reliably in any accent. The command itself is captured
-       separately in the configured language (atAiCapture). */
+       separately in the configured language (atAiCapture). Interim results
+       are on so the wake word reacts instantly instead of waiting for the
+       recogniser to finalise after a silence. */
     r.lang = 'en-US';
-    r.continuous = true; r.interimResults = false;
+    r.continuous = true; r.interimResults = true;
     r.onresult = ev => {
       permErrs = 0;
-      if (window.speechSynthesis && speechSynthesis.speaking) return;
-      const raw = ev.results[ev.results.length - 1][0].transcript;
+      if (Date.now() < (atAi.ttsUntil || 0)) return;   // our own voice
+      if (Date.now() < (atAi.wakeMute || 0)) return;   // just triggered
+      const res = ev.results[ev.results.length - 1];
+      const raw = res[0].transcript;
       if (!atAi.cap) {
         const m = matchWake(raw);
         if (!m) return;
-        atAiBeep(990);
         const cfgLang = atAiLang().toLowerCase();
-        if (m.rest && cfgLang.slice(0, 2) === 'en') {
+        const en = cfgLang.slice(0, 2) === 'en';
+        /* English configs keep the inline "hey nova do X" form, which needs
+           the FINAL transcript; other languages trigger instantly on the
+           interim result — no waiting for Chrome to finalise. */
+        if (en && !res.isFinal) return;
+        atAi.wakeMute = Date.now() + 2500;
+        atAiBeep(990);
+        if (m.rest && en) {
           wakeCommand(m.rest);
           return;
         }
