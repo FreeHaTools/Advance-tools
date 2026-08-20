@@ -3114,6 +3114,44 @@ window.AT_BUILTIN_PACKS = [
 .SKIN .sub { font-size:11px; color:var(--mut); }
 .SKIN .arrow { margin-left:auto; font-size:18px; color:var(--mut); }` },
 
+  /* ---- AI Assistant (aiassist — talk to the whole house) ---- */
+  { kind: 'skin', id: 'ai-orb', name: 'AI Assistant orb', category: 'Home Life',
+    for: 'aiassist', size: [180, 200], card: false, html: `
+      <span class="at-aiwbadge" style="display:none">👂</span>
+      <div class="orb"><span class="ic">🎤</span></div>
+      <div class="at-name lbl">{{name}}</div>`, css: `
+.SKIN { align-items:center; justify-content:center; gap:12px; cursor:pointer; }
+.SKIN .orb { width:110px; height:110px; max-width:82%; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(circle at 32% 30%,
+    color-mix(in srgb,var(--accent) 70%,#fff),
+    var(--accent) 62%, color-mix(in srgb,var(--accent) 55%,#000));
+  animation:icr-glow 2.6s ease-in-out infinite; transition:transform .15s; }
+.SKIN:active .orb { transform:scale(.92); }
+.SKIN .ic { font-size:44px; }
+.SKIN .lbl { margin:0; font-size:14px; font-weight:600; color:var(--text,#e8edf7); }` },
+
+  { kind: 'skin', id: 'ai-bar', name: 'AI Assistant bar', category: 'Home Life',
+    for: 'aiassist', size: [320, 90], card: true, html: `
+      <span class="at-aiwbadge" style="display:none">👂</span>
+      <div class="row"><span class="ic">🎤</span>
+        <div class="tx"><span class="at-name">{{name}}</span>
+          <span class="sub">Tap to talk or type</span></div>
+        <span class="arrow">▸</span></div>`, css: `
+.SKIN { cursor:pointer; justify-content:center; transition:transform .15s; }
+.SKIN:active { transform:scale(.985); }
+.SKIN .row { display:flex; align-items:center; gap:14px; }
+.SKIN .ic { flex:0 0 52px; width:52px; height:52px; font-size:28px;
+  display:flex; align-items:center; justify-content:center; border-radius:16px;
+  background:color-mix(in srgb,var(--accent) 25%,transparent);
+  animation:icb-pulse 2.6s ease-in-out infinite; }
+.SKIN .tx { display:flex; flex-direction:column; min-width:0; }
+.SKIN .tx .at-name { margin:0; font-size:15px; font-weight:700;
+  color:var(--text,#e8edf7); overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; }
+.SKIN .sub { font-size:11px; color:var(--mut); }
+.SKIN .arrow { margin-left:auto; font-size:18px; color:var(--mut); }` },
+
   /* ---- Security keypad (seckeypad — arm/disarm with a PIN, no login) ---- */
   { kind: 'skin', id: 'sk-pad', name: 'Security keypad', category: 'Home Life',
     for: 'seckeypad', size: [300, 520], card: true, html: `

@@ -3,6 +3,23 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.3.0
+
+**AI Assistant on your dashboards.** Dashboard Maker's element gallery
+(Home Life) gains two new elements — **AI Assistant orb** and
+**AI Assistant bar**:
+
+- Tap the element to open a chat overlay with a talk button — right on
+  the dashboard, no need to open the tool.
+- Optional always-on **wake word**: while the dashboard is open, say
+  "Hey <name>" and speak your command; a 👂 badge shows when the
+  listener is active. Replies can be spoken aloud. Both options are
+  per-element settings in the designer.
+- The chat/confirm APIs now accept any signed-in user (settings, keys
+  and the provider test remain admin-only). Safety rules — confirmation,
+  PIN, blocked domains — apply to dashboard users exactly as in the
+  tool.
+
 ## 1.2.2
 
 - Fixed: the 1.2.0 **Custom / Local API key** field could be missing in

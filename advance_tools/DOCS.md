@@ -41,6 +41,14 @@ freely, ask for a confirmation, require a PIN, or be blocked entirely.
 Confirmations show as a button in the chat and as inline buttons in
 Telegram.
 
+Dashboard widget: Dashboard Maker's element gallery (Home Life category)
+has **AI Assistant orb** and **AI Assistant bar** elements. Drop one on
+any dashboard and the tablet showing it becomes a voice assistant: tap
+to open the chat, or leave the wake word enabled and just say
+"Hey <name>". Any signed-in user can talk to the assistant; settings
+stay admin-only and the safety rules (confirmation / PIN) apply
+everywhere.
+
 ## History Explorer
 
 Pick up to six entities and a range and see what actually happened: a

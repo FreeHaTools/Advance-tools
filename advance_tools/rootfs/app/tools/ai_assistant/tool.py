@@ -134,6 +134,15 @@ def _err(message, status=400):
     return web.json_response({"error": str(message)}, status=status)
 
 
+def _require_user(request):
+    """Any signed-in user — dashboard widgets are not admin-only."""
+    user = X.request_user(request)
+    if not user:
+        raise web.HTTPUnauthorized(
+            text='{"error": "sign in first"}', content_type="application/json")
+    return user
+
+
 # ---------------------------------------------------------------- catalog
 
 def _area_maps():
@@ -921,7 +930,7 @@ async def api_settings(request):
 
 
 async def api_chat(request):
-    X.require_admin(request)
+    _require_user(request)
     try:
         body = await request.json()
     except Exception:
@@ -931,7 +940,7 @@ async def api_chat(request):
         return _err("empty message")
     if len(text) > 2000:
         return _err("message too long")
-    user = X.request_user(request) or "web"
+    user = X.request_user(request)
     sid = f"web:{user}:{body.get('session') or 'default'}"
     if body.get("reset"):
         _RUNTIME["sessions"].pop(sid, None)
@@ -947,7 +956,7 @@ async def api_chat(request):
 
 
 async def api_confirm(request):
-    X.require_admin(request)
+    _require_user(request)
     try:
         body = await request.json()
     except Exception:
@@ -973,7 +982,7 @@ async def api_confirm(request):
 
 
 async def api_cancel(request):
-    X.require_admin(request)
+    _require_user(request)
     try:
         body = await request.json()
     except Exception:
@@ -1011,7 +1020,7 @@ async def api_test(request):
 
 async def api_transcribe(request):
     """Browser fallback STT (when Web Speech API is unavailable)."""
-    X.require_admin(request)
+    _require_user(request)
     audio = await request.read()
     if not audio or len(audio) > 10 * 1024 * 1024:
         return _err("no audio / too large")
@@ -1020,6 +1029,21 @@ async def api_transcribe(request):
     if err:
         return _err(err, 502)
     return web.json_response({"text": text})
+
+
+async def api_widget_config(request):
+    """Assistant name + language for the dashboard widget (no secrets)."""
+    _require_user(request)
+    s = _STATE["settings"]
+    provider, model = _provider_conf()
+    ready = bool((provider == "anthropic" and s.get("anthropic_key")) or
+                 (provider == "openai" and s.get("openai_key")) or
+                 provider == "ollama")
+    return web.json_response({
+        "assistant_name": s.get("assistant_name") or "Nova",
+        "language": s.get("language") or "auto",
+        "ready": ready,
+    })
 
 
 # ---------------------------------------------------------------- lifecycle
@@ -1053,6 +1077,7 @@ def register(app, ctx, manifest):
     app.router.add_post(f"{base}/cancel", api_cancel)
     app.router.add_post(f"{base}/test", api_test)
     app.router.add_post(f"{base}/transcribe", api_transcribe)
+    app.router.add_get(f"{base}/widget_config", api_widget_config)
 
     app.on_startup.append(_on_startup)
     app.on_cleanup.append(_on_cleanup)

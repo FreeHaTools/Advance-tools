@@ -467,6 +467,238 @@ function atOpenNote(noteId) {
 }
 
 /* ---- Intercom: fullscreen announce panel (targets, quick msgs, TTS, voice) */
+/* ---------------- AI Assistant (aiassist) ---------------- */
+
+const atAi = { cfg: null, wakeOn: false, wake: null, micBusy: false,
+               session: 'dash-' + slug + '-' + Date.now(), ui: null };
+
+const atAiFetch = (url, body) => fetch(url, {
+  method: body ? 'POST' : 'GET',
+  headers: body ? { 'Content-Type': 'application/json' } : undefined,
+  body: body ? JSON.stringify(body) : undefined,
+}).then(async r => {
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+});
+
+function atAiCfg() {
+  if (atAi.cfg) return Promise.resolve(atAi.cfg);
+  return atAiFetch('/api/tools/ai_assistant/widget_config')
+    .then(c => (atAi.cfg = c))
+    .catch(() => (atAi.cfg = { assistant_name: 'Assistant', language: 'auto',
+                               ready: false }));
+}
+
+function atAiLang() {
+  const l = (atAi.cfg || {}).language;
+  return l && l !== 'auto' ? l : (navigator.language || 'en-US');
+}
+
+function atAiBeep(freq) {
+  try {
+    const c = new (window.AudioContext || window.webkitAudioContext)();
+    const o = c.createOscillator(), g = c.createGain();
+    o.connect(g); g.connect(c.destination);
+    o.frequency.value = freq || 880; g.gain.value = 0.07;
+    o.start();
+    setTimeout(() => { o.stop(); c.close(); }, 130);
+  } catch (e) { /* no audio */ }
+}
+
+function atAiSpeak(w, text) {
+  if (w && w.speak === false) return;
+  if (!('speechSynthesis' in window)) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(
+      String(text).replace(/[✅⚠️🔐🎤👂]/g, '').slice(0, 400));
+    const l = (atAi.cfg || {}).language;
+    if (l && l !== 'auto') u.lang = l;
+    speechSynthesis.speak(u);
+  } catch (e) { /* best effort */ }
+}
+
+async function atAiSend(w, text, ui) {
+  text = (text || '').trim();
+  if (!text) return;
+  ui.add('u', text);
+  const th = ui.add('s', '… thinking');
+  try {
+    const res = await atAiFetch('/api/tools/ai_assistant/chat',
+      { message: text, session: atAi.session });
+    th.remove();
+    ui.add('b', res.reply);
+    atAiSpeak(w, res.reply);
+    if (res.pending) ui.confirm(w, res.pending);
+  } catch (e) {
+    th.remove();
+    ui.add('b', '⚠️ ' + (e.message || e));
+  }
+}
+
+function atOpenAssist(w) {
+  const existing = document.getElementById('at-aiov');
+  if (existing && existing.classList.contains('open') && atAi.ui)
+    return atAi.ui;
+  const name = w.label || (atAi.cfg || {}).assistant_name || 'Assistant';
+  const ov = atOverlay('at-aiov', `
+    <div class="at-fspanel at-aipanel">
+      <div class="at-fshead"><span>🎤 ${esc(name)}</span>
+        <button class="at-fsx">✕</button></div>
+      <div class="at-fsbody"><div class="at-aimsgs"></div></div>
+      <div class="at-fsrow">
+        <button class="at-fsbtn at-aimic" title="Tap to talk">🎤</button>
+        <input class="at-fsinput" placeholder="Ask anything…" maxlength="500">
+        <button class="at-fsbtn at-aisend">Send</button>
+      </div>
+    </div>`);
+  const msgs = ov.querySelector('.at-aimsgs');
+  const input = ov.querySelector('.at-fsinput');
+  const scroll = () => {
+    const body = ov.querySelector('.at-fsbody');
+    body.scrollTop = body.scrollHeight;
+  };
+  const ui = {
+    add(cls, text) {
+      const m = document.createElement('div');
+      m.className = 'at-aim ' + cls;
+      m.textContent = text;
+      msgs.appendChild(m); scroll();
+      return m;
+    },
+    confirm(w2, p) {
+      const box = document.createElement('div');
+      box.className = 'at-aiconf';
+      box.innerHTML = `<span>🔐 ${esc(p.summary || 'Confirm this action?')}</span>` +
+        (p.needs_pin ? '<input type="password" inputmode="numeric" ' +
+                       'placeholder="PIN" class="at-fsinput">' : '') +
+        '<div class="btns"><button class="at-fsbtn ok">✅ Confirm</button>' +
+        '<button class="at-fsbtn no" ' +
+        'style="background:rgba(255,255,255,.15)">Cancel</button></div>';
+      msgs.appendChild(box); scroll();
+      box.querySelector('.ok').onclick = async () => {
+        try {
+          const res = await atAiFetch('/api/tools/ai_assistant/confirm',
+            { id: p.id, pin: (box.querySelector('input') || {}).value || '' });
+          box.remove();
+          ui.add('b', res.ok ? '✅ Done.' : '⚠️ Something failed.');
+          atAiSpeak(w2, res.ok ? 'Done' : 'Something failed');
+        } catch (e) { ui.add('b', '⚠️ ' + (e.message || e)); }
+      };
+      box.querySelector('.no').onclick = () => {
+        atAiFetch('/api/tools/ai_assistant/cancel', { id: p.id }).catch(() => {});
+        box.remove();
+        ui.add('s', 'Cancelled.');
+      };
+    },
+  };
+  atAi.ui = ui;
+  if ((atAi.cfg || {}).ready === false)
+    ui.add('s', 'No AI provider configured yet — an admin sets it up in the ' +
+                'AI Assistant tool.');
+
+  const send = () => { const t = input.value; input.value = ''; atAiSend(w, t, ui); };
+  ov.querySelector('.at-aisend').onclick = send;
+  input.onkeydown = ev => { if (ev.key === 'Enter') send(); };
+
+  /* tap-to-talk mic inside the overlay */
+  const mic = ov.querySelector('.at-aimic');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null;
+  mic.onclick = () => {
+    if (!SR) { ui.add('s', 'No speech recognition in this browser — use Chrome.'); return; }
+    if (rec) { try { rec.stop(); } catch (e) {} return; }
+    atAi.micBusy = true;
+    if (atAi.wake) { try { atAi.wake.stop(); } catch (e) {} }
+    rec = new SR();
+    rec.lang = atAiLang();
+    rec.interimResults = true; rec.continuous = true;
+    let finalText = '';
+    rec.onresult = ev => {
+      let interim = '';
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        if (ev.results[i].isFinal) finalText += ev.results[i][0].transcript;
+        else interim += ev.results[i][0].transcript;
+      }
+      input.value = (finalText + ' ' + interim).trim();
+    };
+    rec.onend = () => {
+      rec = null; atAi.micBusy = false;
+      mic.classList.remove('rec');
+      if (input.value.trim()) send();
+    };
+    rec.onerror = () => {};
+    mic.classList.add('rec');
+    input.value = '';
+    try { rec.start(); } catch (e) { atAi.micBusy = false; }
+  };
+  return ui;
+}
+
+/* page-level wake-word listener — one recognizer no matter how many widgets */
+function atAiWakeStart(w) {
+  if (atAi.wakeOn) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  atAi.wakeOn = true;
+  const badges = on => document.querySelectorAll('.at-aiwbadge')
+    .forEach(b => { b.style.display = on ? '' : 'none'; });
+  atAiCfg().then(run);
+
+  function phrases() {
+    const n = ((atAi.cfg || {}).assistant_name || 'nova').toLowerCase();
+    return ['hey ' + n, 'ok ' + n, 'hi ' + n, n];
+  }
+
+  function run() {
+    if (!atAi.wakeOn) { badges(false); return; }
+    if (atAi.micBusy) { setTimeout(run, 800); return; }
+    const r = new SR();
+    atAi.wake = r;
+    r.lang = atAiLang();
+    r.continuous = true; r.interimResults = false;
+    let capturing = false, captured = '', timer = null;
+    const finish = () => {
+      clearTimeout(timer);
+      capturing = false;
+      const cmd = captured.trim();
+      captured = '';
+      if (cmd) {
+        atAiBeep(660);
+        const ui = atOpenAssist(w);
+        atAiSend(w, cmd, ui);
+      }
+    };
+    r.onresult = ev => {
+      if (window.speechSynthesis && speechSynthesis.speaking) return;
+      const text = ev.results[ev.results.length - 1][0].transcript
+        .trim().toLowerCase();
+      if (!capturing) {
+        const hit = phrases().find(ph => text.includes(ph));
+        if (!hit) return;
+        capturing = true;
+        captured = text.split(hit).pop().trim();
+        atAiBeep(990);
+        if (captured) finish();
+        else timer = setTimeout(finish, 7000);
+      } else {
+        captured = (captured + ' ' + text).trim();
+        clearTimeout(timer);
+        timer = setTimeout(finish, 1200);
+      }
+    };
+    r.onend = () => { setTimeout(run, 500); };
+    r.onerror = ev => {
+      if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+        atAi.wakeOn = false;
+        badges(false);
+      }
+    };
+    try { r.start(); badges(true); } catch (e) { setTimeout(run, 1500); }
+  }
+}
+
 function atOpenIntercom(w) {
   const ov = atOverlay('at-icov', `
     <div class="at-fspanel">
@@ -1777,6 +2009,16 @@ function bind(w, el, updaters) {
       el.onclick = () => atOpenSecKeypad(w);
     }
     atPoll(el, pad.refresh, 3000);
+  }
+
+  if (w.type === 'aiassist') {
+    el.classList.add('tap');
+    setTxt(el, '.at-name', w.label || 'Assistant');
+    atAiCfg().then(c => {
+      if (!w.label) setTxt(el, '.at-name', c.assistant_name || 'Assistant');
+    });
+    el.onclick = () => atOpenAssist(w);
+    if (w.wake !== false) atAiWakeStart(w);
   }
 }
 
