@@ -3,6 +3,21 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.5.0
+
+**AI Assistant: Fallback AI.** Free API tiers rate-limit quickly (Gemini
+free allows only a handful of requests per minute, and one voice command
+costs several) — which looked like the assistant randomly not working.
+
+- New optional **Fallback AI** (Settings → AI engine): a second
+  OpenAI-compatible server + key + model, used automatically whenever
+  the main AI answers with a rate limit, quota error, outage or
+  timeout. Free Groq as a backup for free Gemini means the assistant
+  effectively always answers.
+- Without a fallback configured, a quota error now explains itself:
+  "the free tier's rate limit was hit; wait a minute, or set a
+  Fallback AI…".
+
 ## 1.4.2
 
 - Better voice diagnostics: a device without any microphone (Chrome

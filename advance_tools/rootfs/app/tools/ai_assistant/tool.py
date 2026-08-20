@@ -70,6 +70,9 @@ DEFAULT_SETTINGS = {
     "openai_key": "",
     "ollama_url": "http://homeassistant.local:11434",
     "custom_key": "",   # optional — for hosted OpenAI-compatible APIs (Groq, Gemini, …)
+    "fallback_url": "",          # optional second OpenAI-compatible server,
+    "fallback_key": "",          # used automatically when the primary AI is
+    "fallback_model": "",        # rate-limited or down (e.g. Groq behind Gemini)
     "model": "",                 # empty → provider default
     "assistant_name": "Nova",    # also the wake word ("hey nova")
     "wake_aliases": "",          # extra wake spellings, comma-separated
@@ -561,9 +564,15 @@ async def _llm_openai_compatible(model, messages, collector, origin,
     return "I ran out of steps — please try a simpler request.", convo
 
 
-async def _agent(messages, origin):
-    """Run one agent request. Returns (reply_text, collector)."""
-    collector = {"actions": [], "pending": None}
+def _is_transient(exc):
+    """Provider failures worth retrying elsewhere: rate limits, outages."""
+    msg = str(exc)
+    return ("HTTP 429" in msg or "HTTP 5" in msg or "quota" in msg.lower()
+            or "overloaded" in msg.lower() or isinstance(exc, asyncio.TimeoutError)
+            or "timeout" in msg.lower() or "Cannot connect" in msg)
+
+
+async def _run_primary(messages, collector, origin):
     provider, model = _provider_conf()
     s = _STATE["settings"]
     if provider == "anthropic":
@@ -578,7 +587,39 @@ async def _agent(messages, origin):
             model, messages, collector, origin,
             base_url=s.get("ollama_url") or "http://localhost:11434",
             key=s.get("custom_key") or None)
-    return text, collector
+    return text
+
+
+async def _run_fallback(messages, collector, origin):
+    s = _STATE["settings"]
+    text, _ = await _llm_openai_compatible(
+        (s.get("fallback_model") or "").strip() or "llama-3.1-8b-instant",
+        messages, collector, origin,
+        base_url=s.get("fallback_url"),
+        key=s.get("fallback_key") or None)
+    return text
+
+
+async def _agent(messages, origin):
+    """Run one agent request. Returns (reply_text, collector)."""
+    collector = {"actions": [], "pending": None}
+    try:
+        text = await _run_primary(messages, collector, origin)
+        return text, collector
+    except Exception as exc:
+        if not _is_transient(exc):
+            raise
+        if not (_STATE["settings"].get("fallback_url") or "").strip():
+            if "429" in str(exc) or "quota" in str(exc).lower():
+                raise RuntimeError(
+                    str(exc) + " — the free tier's rate limit was hit; wait "
+                    "a minute, or set a Fallback AI in Settings so this "
+                    "switches over automatically.")
+            raise
+        X.log.warning("ai_assistant: primary AI failed (%s) — using fallback",
+                      exc)
+        text = await _run_fallback(messages, collector, origin)
+        return text, collector
 
 
 # ---------------------------------------------------------------- sessions
@@ -863,6 +904,7 @@ def _public_settings():
     s["anthropic_key_set"] = bool(s.pop("anthropic_key", ""))
     s["openai_key_set"] = bool(s.pop("openai_key", ""))
     s["custom_key_set"] = bool(s.pop("custom_key", ""))
+    s["fallback_key_set"] = bool(s.pop("fallback_key", ""))
     s["telegram"]["token_set"] = bool(s["telegram"].pop("token", ""))
     s["safety"]["pin_set"] = bool(s["safety"].pop("pin", ""))
     return s
@@ -893,12 +935,12 @@ async def api_settings(request):
             return _err("unknown provider")
         s["provider"] = body["provider"]
     for key in ("model", "assistant_name", "language", "ollama_url",
-                "wake_aliases", "ack_text"):
+                "wake_aliases", "ack_text", "fallback_url", "fallback_model"):
         if key in body:
             s[key] = str(body[key] or "").strip()
     if not s.get("assistant_name"):
         s["assistant_name"] = "Nova"
-    for key in ("anthropic_key", "openai_key", "custom_key"):
+    for key in ("anthropic_key", "openai_key", "custom_key", "fallback_key"):
         if key in body:                      # "" clears, non-empty replaces
             s[key] = str(body[key] or "").strip()
 

@@ -485,6 +485,10 @@ function fillSettings() {
   $('s-name').value = s.assistant_name || 'Nova';
   $('s-lang').value = s.language || 'auto';
   $('s-aliases').value = s.wake_aliases || '';
+  $('s-fburl').value = s.fallback_url || '';
+  $('s-fbmodel').value = s.fallback_model || '';
+  $('fbkey-state').textContent = s.fallback_key_set
+    ? '\u2705 key saved \u2014 leave empty to keep it' : 'no key yet';
   $('s-ack').value = s.ack_text || '';
   $('s-ollama').value = s.ollama_url || '';
   $('s-safety').value = (s.safety || {}).mode || 'confirm';
@@ -530,6 +534,8 @@ $('savebtn').addEventListener('click', async () => {
     ack_text: $('s-ack').value,
     language: $('s-lang').value,
     ollama_url: $('s-ollama').value,
+    fallback_url: $('s-fburl').value,
+    fallback_model: $('s-fbmodel').value,
     safety: {
       mode: $('s-safety').value,
       sensitive_domains: $('s-sens').value.split(',')
@@ -544,6 +550,7 @@ $('savebtn').addEventListener('click', async () => {
   if ($('s-akey').value.trim()) body.anthropic_key = $('s-akey').value.trim();
   if ($('s-okey').value.trim()) body.openai_key = $('s-okey').value.trim();
   if ($('s-ckey').value.trim()) body.custom_key = $('s-ckey').value.trim();
+  if ($('s-fbkey').value.trim()) body.fallback_key = $('s-fbkey').value.trim();
   if ($('s-pin').value.trim()) body.safety.pin = $('s-pin').value.trim();
   if ($('s-tgtoken').value.trim()) {
     body.telegram.token = $('s-tgtoken').value.trim();
@@ -554,7 +561,7 @@ $('savebtn').addEventListener('click', async () => {
       method: 'POST', body: JSON.stringify(body),
     });
     SETTINGS = res.settings;
-    ['s-akey', 's-okey', 's-ckey', 's-pin', 's-tgtoken'].forEach((id) => {
+    ['s-akey', 's-okey', 's-ckey', 's-fbkey', 's-pin', 's-tgtoken'].forEach((id) => {
       $(id).value = '';
     });
     fillSettings();
