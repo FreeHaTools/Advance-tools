@@ -213,6 +213,16 @@
           <input id="s-name" placeholder="Nova">
           <div class="hint">You'll say “Hey &lt;name&gt;” in wake-word mode.
             Pick a name the mic hears easily.</div></div>
+        <div class="field"><label>Wake aliases</label>
+          <input id="s-aliases" placeholder="هی نوا, های نوا">
+          <div class="hint">Other spellings the recognizer may hear for the
+            name — comma separated. Add the Persian script of the name when
+            you speak Farsi.</div></div>
+        <div class="field"><label>Wake reply</label>
+          <input id="s-ack" placeholder="جانم؟ / Yes?">
+          <div class="hint">Spoken out loud when the wake word is heard
+            alone. Empty = automatic (جانم؟ for Persian, "Yes?"
+            otherwise).</div></div>
         <div class="field"><label>Voice language</label>
           <select id="s-lang">
             <option value="auto">Auto (browser default)</option>

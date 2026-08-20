@@ -72,6 +72,9 @@ DEFAULT_SETTINGS = {
     "custom_key": "",   # optional — for hosted OpenAI-compatible APIs (Groq, Gemini, …)
     "model": "",                 # empty → provider default
     "assistant_name": "Nova",    # also the wake word ("hey nova")
+    "wake_aliases": "",          # extra wake spellings, comma-separated
+                                 # (e.g. Persian script the recognizer emits)
+    "ack_text": "",              # spoken reply to the wake word ("Yes?")
     "language": "auto",          # STT hint for the browser mic
     "safety": {
         "mode": "confirm",       # allow | confirm | pin | block
@@ -889,7 +892,8 @@ async def api_settings(request):
         if body["provider"] not in PROVIDERS:
             return _err("unknown provider")
         s["provider"] = body["provider"]
-    for key in ("model", "assistant_name", "language", "ollama_url"):
+    for key in ("model", "assistant_name", "language", "ollama_url",
+                "wake_aliases", "ack_text"):
         if key in body:
             s[key] = str(body[key] or "").strip()
     if not s.get("assistant_name"):
@@ -1039,9 +1043,16 @@ async def api_widget_config(request):
     ready = bool((provider == "anthropic" and s.get("anthropic_key")) or
                  (provider == "openai" and s.get("openai_key")) or
                  provider == "ollama")
+    lang = s.get("language") or "auto"
+    ack = (s.get("ack_text") or "").strip()
+    if not ack:
+        ack = "\u062c\u0627\u0646\u0645\u061f" if lang.startswith("fa") \
+            else "Yes?"
     return web.json_response({
         "assistant_name": s.get("assistant_name") or "Nova",
-        "language": s.get("language") or "auto",
+        "wake_aliases": s.get("wake_aliases") or "",
+        "ack_text": ack,
+        "language": lang,
         "ready": ready,
     })
 
