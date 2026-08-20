@@ -3,6 +3,14 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.2.2
+
+- Fixed: the 1.2.0 **Custom / Local API key** field could be missing in
+  practice — a stale build kept serving the pre-1.2.0 `app.js`, so the
+  key never reached the server ("Missing or invalid Authorization
+  header" from Gemini). The script now ships as `main.js`, which forces
+  every cache and build layer to pick up the current version.
+
 ## 1.2.1
 
 - Fixed: **AI Assistant** crashed with "'list' object has no attribute
