@@ -3,6 +3,18 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.5.1
+
+- Fixed: **Persian voice mode broke the wake word.** The wake listener
+  now always runs in English — the Latin wake name ("Nova") is heard
+  reliably in any accent — while the command after the wake reply is
+  captured separately in the configured language (فارسی). Push-to-talk
+  and the dashboard mic also auto-switch to English with a notice when
+  the browser's speech engine cannot listen in the configured language.
+- With an English voice language, saying the wake word and the command
+  in one breath still works; in other languages the assistant answers
+  the wake word first, then listens for the command in your language.
+
 ## 1.5.0
 
 **AI Assistant: Fallback AI.** Free API tiers rate-limit quickly (Gemini

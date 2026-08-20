@@ -193,6 +193,7 @@ const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let ptt = null;          // push-to-talk recognizer
 let pttActive = false;
 let pttFinal = '';
+let pttLang = null;
 let wake = null;         // wake-word recognizer
 let wakeWanted = false;
 
@@ -291,7 +292,7 @@ async function pttStart() {
 function pttSpin() {
   if (!pttActive) return;
   ptt = new SR();
-  ptt.lang = srLang();
+  ptt.lang = pttLang || srLang();
   ptt.interimResults = true;
   ptt.continuous = true;
   ptt.onresult = (ev) => {
@@ -314,6 +315,12 @@ function pttSpin() {
   };
   ptt.onerror = (ev) => {
     const e = (ev || {}).error;
+    if (e === 'language-not-supported' && (pttLang || srLang()) !== 'en-US') {
+      pttLang = 'en-US';
+      toast('This browser cannot listen in that language \u2014 ' +
+            'switching to English.', true);
+      return;
+    }
     if (e === 'not-allowed') pttActive = false;
     if (e && e !== 'aborted' && e !== 'no-speech')
       toast(e === 'not-allowed'
@@ -408,10 +415,64 @@ function startWake() {
   });
 }
 
+let capActive = false;
+
+/* Capture one command in the CONFIGURED language (e.g. fa-IR) while the wake
+   listener is paused; falls back to English when the browser cannot hear
+   that language. */
+function wakeCapture() {
+  capActive = true;
+  if (wake) { try { wake.onend = null; wake.stop(); } catch (e) {} }
+  let lang = srLang();
+  let text = '', timer = null, done = false;
+  const deadline = Date.now() + 12000;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    capActive = false;
+    $('wakestate').textContent = '\ud83d\udc42 listening for wake word\u2026';
+    $('wakestate').className = '';
+    restartWakeIfWanted();
+    if (text.trim()) { beep(660); send(text.trim()); }
+    else beep(440);
+  };
+  const spin = () => {
+    if (done) return;
+    if (Date.now() > deadline) { finish(); return; }
+    const r = new SR();
+    r.lang = lang;
+    r.continuous = true;
+    r.interimResults = false;
+    r.onresult = (ev) => {
+      if (window.speechSynthesis && window.speechSynthesis.speaking) return;
+      const raw = ev.results[ev.results.length - 1][0].transcript;
+      text = (text + ' ' + raw).trim();
+      $('input').value = text;
+      clearTimeout(timer);
+      timer = setTimeout(finish, 1700);
+    };
+    r.onend = () => { if (!done) setTimeout(spin, 150); };
+    r.onerror = (ev) => {
+      const e = (ev || {}).error;
+      if (e === 'language-not-supported' && lang !== 'en-US') {
+        lang = 'en-US';
+        toast('This browser cannot listen in that language \u2014 ' +
+              'switching to English.', true);
+      } else if (e === 'not-allowed') finish();
+    };
+    try { r.start(); } catch (e) { setTimeout(spin, 300); }
+  };
+  timer = setTimeout(finish, 9000);
+  spin();
+}
+
 function runWake() {
-  if (!wakeWanted || pttActive) return;
+  if (!wakeWanted || pttActive || capActive) return;
   wake = new SR();
-  wake.lang = srLang();
+  /* Wake listener always in English — the Latin wake name is heard reliably
+     in any accent; the command is captured separately in srLang(). */
+  wake.lang = 'en-US';
   wake.interimResults = false;
   wake.continuous = true;
   if (!wakeCap) {
@@ -426,12 +487,13 @@ function runWake() {
       const m = matchWake(raw);
       if (!m) return;
       beep(990);
-      if (m.rest) { beep(660); send(m.rest); return; }
+      if (m.rest && srLang().toLowerCase().slice(0, 2) === 'en') {
+        beep(660); send(m.rest); return;
+      }
       speakForce(ackText());                 // answer the wake word out loud
       $('wakestate').textContent = '\ud83c\udf99 yes? say your command\u2026';
       $('wakestate').className = 'listening';
-      wakeCap = { text: '', timer: null };
-      wakeArm(9000);
+      wakeCapture();
     } else {
       wakeCap.text = (wakeCap.text + ' ' + vNorm(raw)).trim();
       wakeArm(1600);
