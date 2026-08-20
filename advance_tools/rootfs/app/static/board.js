@@ -659,6 +659,7 @@ function atOpenAssist(w) {
   const mic = ov.querySelector('.at-aimic');
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let rec = null, recActive = false, recFinal = '', recTimer = null;
+  let recLang = null;
   const recStopSend = () => {
     recActive = false;
     clearTimeout(recTimer);
@@ -667,7 +668,7 @@ function atOpenAssist(w) {
   const recSpin = () => {
     if (!recActive) return;
     rec = new SR();
-    rec.lang = atAiLang();
+    rec.lang = recLang || atAiLang();
     rec.interimResults = true; rec.continuous = true;
     rec.onresult = ev => {
       let interim = '';
@@ -689,6 +690,12 @@ function atOpenAssist(w) {
     };
     rec.onerror = ev => {
       const e = (ev || {}).error;
+      if (e === 'language-not-supported' && (recLang || atAiLang()) !== 'en-US') {
+        recLang = 'en-US';
+        ui.add('s', '\ud83c\udfa4 This browser cannot listen in that ' +
+                    'language \u2014 switching to English.');
+        return;
+      }
       if (e === 'not-allowed') recActive = false;
       if (e && e !== 'aborted' && e !== 'no-speech')
         ui.add('s', '\ud83c\udfa4 ' + (e === 'not-allowed'
@@ -810,12 +817,58 @@ function atAiWakeStart(w) {
     }, ms);
   }
 
+  /* Capture one command in the CONFIGURED language (e.g. fa-IR), while the
+     wake listener is paused. Restart-and-accumulate like the overlay mic;
+     falls back to English if the browser cannot hear that language. */
+  function atAiCapture() {
+    atAi.micBusy = true;
+    if (atAi.wake) { try { atAi.wake.onend = null; atAi.wake.stop(); } catch (e) {} }
+    let lang = atAiLang();
+    let text = '', timer = null, done = false;
+    const deadline = Date.now() + 12000;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      atAi.micBusy = false;
+      setTimeout(run, 300);                 // resume wake listening
+      if (text.trim()) wakeCommand(text.trim());
+      else atAiBeep(440);
+    };
+    const spin = () => {
+      if (done) return;
+      if (Date.now() > deadline) { finish(); return; }
+      const r = new SR();
+      r.lang = lang;
+      r.continuous = true; r.interimResults = false;
+      r.onresult = ev => {
+        if (window.speechSynthesis && speechSynthesis.speaking) return;
+        const raw = ev.results[ev.results.length - 1][0].transcript;
+        text = (text + ' ' + raw).trim();
+        clearTimeout(timer);
+        timer = setTimeout(finish, 1700);
+      };
+      r.onend = () => { if (!done) setTimeout(spin, 150); };
+      r.onerror = ev => {
+        const e = (ev || {}).error;
+        if (e === 'language-not-supported' && lang !== 'en-US') lang = 'en-US';
+        else if (e === 'not-allowed') finish();
+      };
+      try { r.start(); } catch (e) { setTimeout(spin, 300); }
+    };
+    timer = setTimeout(finish, 9000);       // nothing said at all
+    spin();
+  }
+
   function run() {
     if (!atAi.wakeOn) { badges(false); return; }
     if (atAi.micBusy) { setTimeout(run, 800); return; }
     const r = new SR();
     atAi.wake = r;
-    r.lang = atAiLang();
+    /* The wake listener always runs in English: the wake name is Latin and
+       en-US hears it reliably in any accent. The command itself is captured
+       separately in the configured language (atAiCapture). */
+    r.lang = 'en-US';
     r.continuous = true; r.interimResults = false;
     r.onresult = ev => {
       permErrs = 0;
@@ -825,13 +878,16 @@ function atAiWakeStart(w) {
         const m = matchWake(raw);
         if (!m) return;
         atAiBeep(990);
-        if (m.rest) { wakeCommand(m.rest); return; }
+        const cfgLang = atAiLang().toLowerCase();
+        if (m.rest && cfgLang.slice(0, 2) === 'en') {
+          wakeCommand(m.rest);
+          return;
+        }
         /* wake word alone — answer out loud and wait for the command.
            Capture state lives on atAi so it survives the session restarts
            mobile browsers do after every pause. */
         atAiSpeak(w, (atAi.cfg || {}).ack_text || 'Yes?', true);
-        atAi.cap = { text: '', timer: null };
-        armCapTimer(9000);
+        atAiCapture();
       } else {
         atAi.cap.text = (atAi.cap.text + ' ' + atAiNorm(raw)).trim();
         armCapTimer(1600);
