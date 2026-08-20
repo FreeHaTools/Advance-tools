@@ -238,11 +238,22 @@ function speakForce(text) {
 }
 
 function micPermission() {
+  /* Resolves '' on success, or the DOMException name on failure. */
   const gm = navigator.mediaDevices && navigator.mediaDevices.getUserMedia
     ? navigator.mediaDevices.getUserMedia({ audio: true }) : null;
-  if (!gm) return Promise.resolve(true);
-  return gm.then(st => { st.getTracks().forEach(t => t.stop()); return true; })
-           .catch(() => false);
+  if (!gm) return Promise.resolve('');
+  return gm.then(st => { st.getTracks().forEach(t => t.stop()); return ''; })
+           .catch(e => (e && e.name) || 'NotAllowedError');
+}
+
+function micFailText(name) {
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError')
+    return 'No microphone was found on this device — plug one in or use a ' +
+           'device that has one.';
+  if (name === 'NotReadableError' || name === 'TrackStartError')
+    return 'The microphone is busy or not working — check the system sound ' +
+           'settings.';
+  return 'Microphone permission was denied — allow the mic for this site.';
 }
 
 function beep(freq) {
@@ -264,10 +275,8 @@ async function pttStart() {
   const reason = voiceBlockReason();
   if (reason) { toast(reason, true); return; }
   if (pttActive) return;
-  if (!(await micPermission())) {
-    toast('Microphone permission was denied \u2014 allow the mic for this site.', true);
-    return;
-  }
+  const permErr = await micPermission();
+  if (permErr) { toast(micFailText(permErr), true); return; }
   if (pttActive) return;
   stopWakeInternal();                  // one mic user at a time
   pttActive = true;
@@ -388,10 +397,9 @@ function wakeArm(ms) {
 function startWake() {
   const reason = voiceBlockReason();
   if (reason) { toast(reason, true); $('wakechk').checked = false; return; }
-  micPermission().then((ok) => {
-    if (!ok) {
-      toast('Microphone permission was denied \u2014 allow the mic for this site.',
-            true);
+  micPermission().then((permErr) => {
+    if (permErr) {
+      toast(micFailText(permErr), true);
       $('wakechk').checked = false;
       return;
     }
