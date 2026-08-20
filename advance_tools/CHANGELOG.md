@@ -3,6 +3,18 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.3.1
+
+- Fixed: **voice silently failing** on dashboards and the AI Assistant
+  page. The browser refuses microphone access inside Home Assistant's
+  ingress frame, and Chrome only shows the mic permission prompt during
+  a tap — so the wake word could never start and the talk button did
+  nothing without explanation. Now: the mic permission is requested
+  properly (inside the tap; the wake word waits for the first touch
+  when permission isn't granted yet), and every blocked case says
+  exactly why — HA frame (use the direct address), denied permission,
+  missing HTTPS, or an unreachable browser speech service.
+
 ## 1.3.0
 
 **AI Assistant on your dashboards.** Dashboard Maker's element gallery

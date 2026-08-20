@@ -495,6 +495,37 @@ function atAiLang() {
   return l && l !== 'auto' ? l : (navigator.language || 'en-US');
 }
 
+function atAiFramed() {
+  /* cross-origin frame (HA ingress) — the browser refuses mic access there.
+     Same-origin frames (the hub's nav overlay) inherit permission and are OK. */
+  if (window.top === window.self) return false;
+  try { void window.top.location.host; return false; }
+  catch (e) { return true; }
+}
+
+function atAiVoiceBlockReason() {
+  if (!(window.SpeechRecognition || window.webkitSpeechRecognition))
+    return 'This browser has no speech recognition — use Chrome.';
+  if (!window.isSecureContext)
+    return 'Voice needs the HTTPS address.';
+  if (atAiFramed())
+    return 'The microphone is blocked inside the Home Assistant frame — ' +
+           'open this dashboard at its direct address instead ' +
+           '(e.g. https://<your-addon-domain>/d/…, or the installed app).';
+  return '';
+}
+
+function atAiMicPermission() {
+  /* Explicit permission prompt — call from inside a user gesture. */
+  const gm = navigator.mediaDevices && navigator.mediaDevices.getUserMedia
+    ? navigator.mediaDevices.getUserMedia({ audio: true }) : null;
+  if (!gm) return Promise.resolve(true);
+  return gm.then(stream => {
+    stream.getTracks().forEach(t => t.stop());
+    return true;
+  }).catch(() => false);
+}
+
 function atAiBeep(freq) {
   try {
     const c = new (window.AudioContext || window.webkitAudioContext)();
@@ -597,6 +628,7 @@ function atOpenAssist(w) {
   if ((atAi.cfg || {}).ready === false)
     ui.add('s', 'No AI provider configured yet — an admin sets it up in the ' +
                 'AI Assistant tool.');
+  if (atAi.blocked) ui.add('s', '🎤 ' + atAi.blocked);
 
   const send = () => { const t = input.value; input.value = ''; atAiSend(w, t, ui); };
   ov.querySelector('.at-aisend').onclick = send;
@@ -606,9 +638,15 @@ function atOpenAssist(w) {
   const mic = ov.querySelector('.at-aimic');
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let rec = null;
-  mic.onclick = () => {
-    if (!SR) { ui.add('s', 'No speech recognition in this browser — use Chrome.'); return; }
+  mic.onclick = async () => {
+    const reason = atAiVoiceBlockReason();
+    if (reason) { ui.add('s', '🎤 ' + reason); return; }
     if (rec) { try { rec.stop(); } catch (e) {} return; }
+    if (!(await atAiMicPermission())) {
+      ui.add('s', '🎤 Microphone permission was denied — allow the mic for ' +
+                  'this site in the browser and try again.');
+      return;
+    }
     atAi.micBusy = true;
     if (atAi.wake) { try { atAi.wake.stop(); } catch (e) {} }
     rec = new SR();
@@ -628,7 +666,16 @@ function atOpenAssist(w) {
       mic.classList.remove('rec');
       if (input.value.trim()) send();
     };
-    rec.onerror = () => {};
+    rec.onerror = ev => {
+      const e = (ev || {}).error;
+      if (e && e !== 'aborted' && e !== 'no-speech')
+        ui.add('s', '🎤 ' + (e === 'not-allowed'
+          ? 'Microphone blocked — allow the mic for this site.'
+          : e === 'network'
+            ? 'The browser speech service is unreachable — check the ' +
+              'internet connection, or use Chrome.'
+            : 'Speech error: ' + e));
+    };
     mic.classList.add('rec');
     input.value = '';
     try { rec.start(); } catch (e) { atAi.micBusy = false; }
@@ -640,11 +687,35 @@ function atOpenAssist(w) {
 function atAiWakeStart(w) {
   if (atAi.wakeOn) return;
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
+  const reason = atAiVoiceBlockReason();
+  if (reason) { atAi.blocked = reason; return; }
   atAi.wakeOn = true;
+  let netErrs = 0;
   const badges = on => document.querySelectorAll('.at-aiwbadge')
     .forEach(b => { b.style.display = on ? '' : 'none'; });
-  atAiCfg().then(run);
+
+  /* Chrome only shows the mic permission prompt inside a user gesture, so:
+     already granted → start now; otherwise wait for the first tap, ask via
+     getUserMedia, then start the wake listener. */
+  let kicked = false;
+  const kickoff = () => { if (kicked) return; kicked = true; atAiCfg().then(run); };
+  const waitGesture = () => {
+    const once = async () => {
+      document.removeEventListener('pointerdown', once);
+      if (await atAiMicPermission()) kickoff();
+      else {
+        atAi.wakeOn = false;
+        atAi.blocked = 'Microphone permission was denied — allow the mic ' +
+                       'for this site to use the wake word.';
+      }
+    };
+    document.addEventListener('pointerdown', once);
+  };
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: 'microphone' })
+      .then(p => { if (p.state === 'granted') kickoff(); else waitGesture(); })
+      .catch(waitGesture);
+  } else waitGesture();
 
   function phrases() {
     const n = ((atAi.cfg || {}).assistant_name || 'nova').toLowerCase();
@@ -690,12 +761,23 @@ function atAiWakeStart(w) {
     };
     r.onend = () => { setTimeout(run, 500); };
     r.onerror = ev => {
-      if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+      const e = (ev || {}).error;
+      if (e === 'not-allowed' || e === 'service-not-allowed') {
         atAi.wakeOn = false;
+        atAi.blocked = 'Microphone permission was denied — allow the mic ' +
+                       'for this site to use the wake word.';
         badges(false);
+      } else if (e === 'network' && ++netErrs >= 4) {
+        atAi.wakeOn = false;
+        atAi.blocked = 'The browser speech service is unreachable — the ' +
+                       'wake word needs Chrome with internet access.';
+        badges(false);
+      } else if (e !== 'network' && e !== 'no-speech' && e !== 'aborted') {
+        /* transient — keep the restart loop going */
       }
     };
-    try { r.start(); badges(true); } catch (e) { setTimeout(run, 1500); }
+    try { r.start(); badges(true); netErrs = Math.max(0, netErrs - 1); }
+    catch (e) { setTimeout(run, 1500); }
   }
 }
 
