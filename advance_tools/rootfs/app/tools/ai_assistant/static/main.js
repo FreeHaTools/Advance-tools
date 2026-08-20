@@ -201,6 +201,26 @@ function srLang() {
   return (lang && lang !== 'auto') ? lang : (navigator.language || 'en-US');
 }
 
+function voiceBlockReason() {
+  if (!SR) return 'This browser has no speech recognition — use Chrome.';
+  if (!window.isSecureContext) return 'Voice needs the HTTPS address.';
+  if (window.top !== window.self) {
+    try { void window.top.location.host; } catch (e) {
+      return 'The microphone is blocked inside the Home Assistant frame — ' +
+             'open Advance Tools at its direct address to use voice.';
+    }
+  }
+  return '';
+}
+
+function micPermission() {
+  const gm = navigator.mediaDevices && navigator.mediaDevices.getUserMedia
+    ? navigator.mediaDevices.getUserMedia({ audio: true }) : null;
+  if (!gm) return Promise.resolve(true);
+  return gm.then(st => { st.getTracks().forEach(t => t.stop()); return true; })
+           .catch(() => false);
+}
+
 function beep(freq) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -216,8 +236,14 @@ function beep(freq) {
 
 /* ---- push-to-talk: hold the mic button (or tap to toggle) ---- */
 
-function pttStart() {
-  if (!SR) { toast('This browser has no speech recognition — use Chrome.', true); return; }
+async function pttStart() {
+  const reason = voiceBlockReason();
+  if (reason) { toast(reason, true); return; }
+  if (pttActive) return;
+  if (!(await micPermission())) {
+    toast('Microphone permission was denied — allow the mic for this site.', true);
+    return;
+  }
   if (pttActive) return;
   stopWakeInternal();                  // one mic user at a time
   ptt = new SR();
@@ -241,7 +267,15 @@ function pttStart() {
     if (text) send(text);
     restartWakeIfWanted();
   };
-  ptt.onerror = () => { /* onend follows */ };
+  ptt.onerror = (ev) => {
+    const e = (ev || {}).error;
+    if (e && e !== 'aborted' && e !== 'no-speech')
+      toast(e === 'not-allowed'
+        ? 'Microphone blocked — allow the mic for this site.'
+        : e === 'network'
+          ? 'Speech service unreachable — check the internet, use Chrome.'
+          : 'Speech error: ' + e, true);
+  };
   pttActive = true;
   $('micbtn').classList.add('rec');
   $('input').value = '';
@@ -279,10 +313,18 @@ function wakePhrases() {
 }
 
 function startWake() {
-  if (!SR) { toast('This browser has no speech recognition — use Chrome.', true);
-             $('wakechk').checked = false; return; }
-  wakeWanted = true;
-  runWake();
+  const reason = voiceBlockReason();
+  if (reason) { toast(reason, true); $('wakechk').checked = false; return; }
+  micPermission().then((ok) => {
+    if (!ok) {
+      toast('Microphone permission was denied — allow the mic for this site.',
+            true);
+      $('wakechk').checked = false;
+      return;
+    }
+    wakeWanted = true;
+    runWake();
+  });
 }
 
 function runWake() {
