@@ -199,6 +199,17 @@
                  placeholder="only if the server needs one">
           <div class="hint" id="ckey-state">Needed for Groq / Gemini /
             OpenRouter / Cerebras; leave empty for a local Ollama.</div></div>
+        <div class="field"><label>Fallback server URL (optional)</label>
+          <input id="s-fburl" placeholder="https://api.groq.com/openai">
+          <div class="hint">A second OpenAI-compatible AI, used automatically
+            when the main one is rate-limited or down — e.g. free Groq as a
+            backup for free Gemini.</div></div>
+        <div class="field"><label>Fallback API key</label>
+          <input id="s-fbkey" type="password" placeholder="gsk_…">
+          <div class="hint" id="fbkey-state"></div></div>
+        <div class="field"><label>Fallback model</label>
+          <input id="s-fbmodel" placeholder="llama-3.1-8b-instant">
+        </div>
       </div>
       <div class="savebar">
         <button class="btn sm" id="testbtn">🔌 Test connection</button>
