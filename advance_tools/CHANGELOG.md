@@ -3,6 +3,14 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.3.2
+
+- Fixed: dashboards could keep loading a **stale copy of the renderer
+  script** through the Home Assistant sidebar (the same stuck-cache that
+  once hit the AI Assistant page), so the 1.3.x voice fixes never
+  reached the browser there. The renderer now ships as `board.js` —
+  a fresh name every cache layer must fetch anew.
+
 ## 1.3.1
 
 - Fixed: **voice silently failing** on dashboards and the AI Assistant
