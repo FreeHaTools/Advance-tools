@@ -3,6 +3,24 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.4.0
+
+**Voice that actually listens.** Reworked speech handling on dashboards
+and the AI Assistant page:
+
+- The wake word now **answers out loud** — "جانم؟" / "Yes?" (or any
+  custom phrase, Settings → Wake reply) — then waits for the command.
+- Mobile browsers end a speech session after every pause, which used to
+  swallow half a sentence (or all of it). Recognition now restarts
+  itself and **accumulates** what you say — push-to-talk keeps listening
+  until you release/tap again or stay silent for ~2 seconds, and a
+  wake-word command survives session restarts.
+- **Wake aliases** (Settings): extra spellings the recognizer may hear —
+  add the Persian script of the name (e.g. "هی نوا") when you speak
+  Farsi. Matching is punctuation- and spacing-tolerant.
+- Reminder: for Persian commands set Settings → Voice language to
+  فارسی.
+
 ## 1.3.2
 
 - Fixed: dashboards could keep loading a **stale copy of the renderer

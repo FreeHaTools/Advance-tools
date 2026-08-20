@@ -495,6 +495,13 @@ function atAiLang() {
   return l && l !== 'auto' ? l : (navigator.language || 'en-US');
 }
 
+function atAiNorm(t) {
+  return String(t || '').toLowerCase()
+    .replace(/[.,!?;:'"\u00ab\u00bb\u061f\u060c\u2026]/g, ' ')
+    .replace(/\u200c/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+}
+
 function atAiFramed() {
   /* cross-origin frame (HA ingress) — the browser refuses mic access there.
      Same-origin frames (the hub's nav overlay) inherit permission and are OK. */
@@ -537,8 +544,8 @@ function atAiBeep(freq) {
   } catch (e) { /* no audio */ }
 }
 
-function atAiSpeak(w, text) {
-  if (w && w.speak === false) return;
+function atAiSpeak(w, text, force) {
+  if (!force && w && w.speak === false) return;
   if (!('speechSynthesis' in window)) return;
   try {
     speechSynthesis.cancel();
@@ -634,51 +641,69 @@ function atOpenAssist(w) {
   ov.querySelector('.at-aisend').onclick = send;
   input.onkeydown = ev => { if (ev.key === 'Enter') send(); };
 
-  /* tap-to-talk mic inside the overlay */
+  /* tap-to-talk mic inside the overlay.
+   * Mobile browsers end a recognition session after every pause, so it is
+   * restarted while active and finals accumulate; 2.2 s of silence (or a
+   * second tap) sends what was heard. */
   const mic = ov.querySelector('.at-aimic');
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let rec = null;
-  mic.onclick = async () => {
-    const reason = atAiVoiceBlockReason();
-    if (reason) { ui.add('s', '🎤 ' + reason); return; }
-    if (rec) { try { rec.stop(); } catch (e) {} return; }
-    if (!(await atAiMicPermission())) {
-      ui.add('s', '🎤 Microphone permission was denied — allow the mic for ' +
-                  'this site in the browser and try again.');
-      return;
-    }
-    atAi.micBusy = true;
-    if (atAi.wake) { try { atAi.wake.stop(); } catch (e) {} }
+  let rec = null, recActive = false, recFinal = '', recTimer = null;
+  const recStopSend = () => {
+    recActive = false;
+    clearTimeout(recTimer);
+    if (rec) { try { rec.stop(); } catch (e) {} }
+  };
+  const recSpin = () => {
+    if (!recActive) return;
     rec = new SR();
     rec.lang = atAiLang();
     rec.interimResults = true; rec.continuous = true;
-    let finalText = '';
     rec.onresult = ev => {
       let interim = '';
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        if (ev.results[i].isFinal) finalText += ev.results[i][0].transcript;
-        else interim += ev.results[i][0].transcript;
+        if (ev.results[i].isFinal) {
+          recFinal = (recFinal + ' ' + ev.results[i][0].transcript).trim();
+          clearTimeout(recTimer);
+          recTimer = setTimeout(recStopSend, 2200);
+        } else interim += ev.results[i][0].transcript;
       }
-      input.value = (finalText + ' ' + interim).trim();
+      input.value = (recFinal + ' ' + interim).trim();
     };
     rec.onend = () => {
-      rec = null; atAi.micBusy = false;
+      rec = null;
+      if (recActive) { setTimeout(recSpin, 150); return; }
+      atAi.micBusy = false;
       mic.classList.remove('rec');
       if (input.value.trim()) send();
     };
     rec.onerror = ev => {
       const e = (ev || {}).error;
+      if (e === 'not-allowed') recActive = false;
       if (e && e !== 'aborted' && e !== 'no-speech')
-        ui.add('s', '🎤 ' + (e === 'not-allowed'
-          ? 'Microphone blocked — allow the mic for this site.'
+        ui.add('s', '\ud83c\udfa4 ' + (e === 'not-allowed'
+          ? 'Microphone blocked \u2014 allow the mic for this site.'
           : e === 'network'
-            ? 'The browser speech service is unreachable — check the ' +
+            ? 'The browser speech service is unreachable \u2014 check the ' +
               'internet connection, or use Chrome.'
             : 'Speech error: ' + e));
     };
+    try { rec.start(); } catch (e) { /* restart race */ }
+  };
+  mic.onclick = async () => {
+    const reason = atAiVoiceBlockReason();
+    if (reason) { ui.add('s', '\ud83c\udfa4 ' + reason); return; }
+    if (recActive) { recStopSend(); return; }      // second tap = send now
+    if (!(await atAiMicPermission())) {
+      ui.add('s', '\ud83c\udfa4 Microphone permission was denied \u2014 ' +
+                  'allow the mic for this site in the browser and try again.');
+      return;
+    }
+    atAi.micBusy = true;
+    if (atAi.wake) { try { atAi.wake.stop(); } catch (e) {} }
+    recFinal = ''; input.value = '';
+    recActive = true;
     mic.classList.add('rec');
-    input.value = '';
-    try { rec.start(); } catch (e) { atAi.micBusy = false; }
+    recSpin();
   };
   return ui;
 }
@@ -718,8 +743,50 @@ function atAiWakeStart(w) {
   } else waitGesture();
 
   function phrases() {
-    const n = ((atAi.cfg || {}).assistant_name || 'nova').toLowerCase();
-    return ['hey ' + n, 'ok ' + n, 'hi ' + n, n];
+    const cfg = atAi.cfg || {};
+    const names = [cfg.assistant_name || 'nova'];
+    String(cfg.wake_aliases || '').split(',').forEach(a => {
+      if (a.trim()) names.push(a.trim());
+    });
+    const out = [];
+    names.forEach(n => {
+      n = atAiNorm(n);
+      if (!n) return;
+      ['hey ' + n, 'ok ' + n, 'okay ' + n, 'hi ' + n, n]
+        .forEach(ph => out.push(ph));
+    });
+    return out.sort((a, b) => b.length - a.length);   // longest match first
+  }
+
+  function matchWake(text) {
+    const t = atAiNorm(text);
+    const flat = t.split(' ').join('');
+    for (const ph of phrases()) {
+      const i = t.indexOf(ph);
+      if (i >= 0) return { rest: t.slice(i + ph.length).trim() };
+      if (flat.includes(ph.split(' ').join(''))) return { rest: '' };
+    }
+    return null;
+  }
+
+  function wakeCommand(cmd) {
+    atAi.cap = null;
+    atAiBeep(660);
+    const ui = atOpenAssist(w);
+    atAiSend(w, cmd, ui);
+  }
+
+  function armCapTimer(ms) {
+    const cap = atAi.cap;
+    if (!cap) return;
+    clearTimeout(cap.timer);
+    cap.timer = setTimeout(() => {
+      const c = atAi.cap;
+      if (!c) return;
+      atAi.cap = null;
+      if (c.text) wakeCommand(c.text);
+      else atAiBeep(440);              // gave up waiting for a command
+    }, ms);
   }
 
   function run() {
@@ -729,51 +796,40 @@ function atAiWakeStart(w) {
     atAi.wake = r;
     r.lang = atAiLang();
     r.continuous = true; r.interimResults = false;
-    let capturing = false, captured = '', timer = null;
-    const finish = () => {
-      clearTimeout(timer);
-      capturing = false;
-      const cmd = captured.trim();
-      captured = '';
-      if (cmd) {
-        atAiBeep(660);
-        const ui = atOpenAssist(w);
-        atAiSend(w, cmd, ui);
-      }
-    };
     r.onresult = ev => {
       if (window.speechSynthesis && speechSynthesis.speaking) return;
-      const text = ev.results[ev.results.length - 1][0].transcript
-        .trim().toLowerCase();
-      if (!capturing) {
-        const hit = phrases().find(ph => text.includes(ph));
-        if (!hit) return;
-        capturing = true;
-        captured = text.split(hit).pop().trim();
+      const raw = ev.results[ev.results.length - 1][0].transcript;
+      if (!atAi.cap) {
+        const m = matchWake(raw);
+        if (!m) return;
         atAiBeep(990);
-        if (captured) finish();
-        else timer = setTimeout(finish, 7000);
+        if (m.rest) { wakeCommand(m.rest); return; }
+        /* wake word alone — answer out loud and wait for the command.
+           Capture state lives on atAi so it survives the session restarts
+           mobile browsers do after every pause. */
+        atAiSpeak(w, (atAi.cfg || {}).ack_text || 'Yes?', true);
+        atAi.cap = { text: '', timer: null };
+        armCapTimer(9000);
       } else {
-        captured = (captured + ' ' + text).trim();
-        clearTimeout(timer);
-        timer = setTimeout(finish, 1200);
+        atAi.cap.text = (atAi.cap.text + ' ' + atAiNorm(raw)).trim();
+        armCapTimer(1600);
       }
     };
-    r.onend = () => { setTimeout(run, 500); };
+    r.onend = () => { setTimeout(run, atAi.cap ? 200 : 500); };
     r.onerror = ev => {
       const e = (ev || {}).error;
       if (e === 'not-allowed' || e === 'service-not-allowed') {
         atAi.wakeOn = false;
-        atAi.blocked = 'Microphone permission was denied — allow the mic ' +
+        atAi.blocked = 'Microphone permission was denied \u2014 allow the mic ' +
                        'for this site to use the wake word.';
         badges(false);
       } else if (e === 'network' && ++netErrs >= 4) {
         atAi.wakeOn = false;
-        atAi.blocked = 'The browser speech service is unreachable — the ' +
+        atAi.blocked = 'The browser speech service is unreachable \u2014 the ' +
                        'wake word needs Chrome with internet access.';
         badges(false);
       } else if (e !== 'network' && e !== 'no-speech' && e !== 'aborted') {
-        /* transient — keep the restart loop going */
+        /* transient \u2014 keep the restart loop going */
       }
     };
     try { r.start(); badges(true); netErrs = Math.max(0, netErrs - 1); }

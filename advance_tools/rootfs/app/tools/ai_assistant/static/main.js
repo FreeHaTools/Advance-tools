@@ -192,9 +192,9 @@ function speak(text) {
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let ptt = null;          // push-to-talk recognizer
 let pttActive = false;
+let pttFinal = '';
 let wake = null;         // wake-word recognizer
 let wakeWanted = false;
-let capturing = false;   // wake mode: currently capturing a command
 
 function srLang() {
   const lang = SETTINGS.language;
@@ -211,6 +211,30 @@ function voiceBlockReason() {
     }
   }
   return '';
+}
+
+function vNorm(t) {
+  return String(t || '').toLowerCase()
+    .replace(/[.,!?;:'"\u00ab\u00bb\u061f\u060c\u2026]/g, ' ')
+    .replace(/\u200c/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+}
+
+function ackText() {
+  const t = (SETTINGS.ack_text || '').trim();
+  if (t) return t;
+  return (SETTINGS.language || '').startsWith('fa') ? '\u062c\u0627\u0646\u0645\u061f' : 'Yes?';
+}
+
+function speakForce(text) {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(String(text).slice(0, 200));
+    const lang = SETTINGS.language;
+    if (lang && lang !== 'auto') u.lang = lang;
+    window.speechSynthesis.speak(u);
+  } catch (e) { /* best effort */ }
 }
 
 function micPermission() {
@@ -241,27 +265,39 @@ async function pttStart() {
   if (reason) { toast(reason, true); return; }
   if (pttActive) return;
   if (!(await micPermission())) {
-    toast('Microphone permission was denied — allow the mic for this site.', true);
+    toast('Microphone permission was denied \u2014 allow the mic for this site.', true);
     return;
   }
   if (pttActive) return;
   stopWakeInternal();                  // one mic user at a time
+  pttActive = true;
+  pttFinal = '';
+  $('micbtn').classList.add('rec');
+  $('input').value = '';
+  pttSpin();
+}
+
+/* Mobile browsers end a recognition session after every pause; keep
+   restarting while the button is held (or toggled on) and accumulate. */
+function pttSpin() {
+  if (!pttActive) return;
   ptt = new SR();
   ptt.lang = srLang();
   ptt.interimResults = true;
   ptt.continuous = true;
-  let finalText = '';
   ptt.onresult = (ev) => {
     let interim = '';
     for (let i = ev.resultIndex; i < ev.results.length; i++) {
-      if (ev.results[i].isFinal) finalText += ev.results[i][0].transcript;
-      else interim += ev.results[i][0].transcript;
+      if (ev.results[i].isFinal) {
+        pttFinal = (pttFinal + ' ' + ev.results[i][0].transcript).trim();
+      } else interim += ev.results[i][0].transcript;
     }
-    $('input').value = (finalText + ' ' + interim).trim();
+    $('input').value = (pttFinal + ' ' + interim).trim();
     autosize();
   };
   ptt.onend = () => {
-    pttActive = false;
+    ptt = null;
+    if (pttActive) { setTimeout(pttSpin, 150); return; }   // keep listening
     $('micbtn').classList.remove('rec');
     const text = $('input').value.trim();
     if (text) send(text);
@@ -269,21 +305,20 @@ async function pttStart() {
   };
   ptt.onerror = (ev) => {
     const e = (ev || {}).error;
+    if (e === 'not-allowed') pttActive = false;
     if (e && e !== 'aborted' && e !== 'no-speech')
       toast(e === 'not-allowed'
-        ? 'Microphone blocked — allow the mic for this site.'
+        ? 'Microphone blocked \u2014 allow the mic for this site.'
         : e === 'network'
-          ? 'Speech service unreachable — check the internet, use Chrome.'
+          ? 'Speech service unreachable \u2014 check the internet, use Chrome.'
           : 'Speech error: ' + e, true);
   };
-  pttActive = true;
-  $('micbtn').classList.add('rec');
-  $('input').value = '';
-  ptt.start();
+  try { ptt.start(); } catch (e) { /* restart race */ }
 }
 
 function pttStop() {
-  if (ptt && pttActive) { try { ptt.stop(); } catch (e) { /* already stopped */ } }
+  pttActive = false;
+  if (ptt) { try { ptt.stop(); } catch (e) { /* already stopped */ } }
 }
 
 let pressTimer = null;
@@ -308,8 +343,45 @@ $('micbtn').addEventListener('pointerleave', () => {
 /* ---- wake word: continuous listen for "hey <name>" ---- */
 
 function wakePhrases() {
-  const name = (SETTINGS.assistant_name || 'Nova').toLowerCase();
-  return ['hey ' + name, 'hi ' + name, 'ok ' + name, name];
+  const names = [SETTINGS.assistant_name || 'Nova'];
+  String(SETTINGS.wake_aliases || '').split(',').forEach((a) => {
+    if (a.trim()) names.push(a.trim());
+  });
+  const out = [];
+  names.forEach((n) => {
+    n = vNorm(n);
+    if (!n) return;
+    ['hey ' + n, 'ok ' + n, 'okay ' + n, 'hi ' + n, n].forEach((p) => out.push(p));
+  });
+  return out.sort((a, b) => b.length - a.length);
+}
+
+function matchWake(text) {
+  const t = vNorm(text);
+  const flat = t.split(' ').join('');
+  for (const p of wakePhrases()) {
+    const i = t.indexOf(p);
+    if (i >= 0) return { rest: t.slice(i + p.length).trim() };
+    if (flat.includes(p.split(' ').join(''))) return { rest: '' };
+  }
+  return null;
+}
+
+let wakeCap = null;                    // { text, timer } — survives restarts
+
+function wakeFinish() {
+  const c = wakeCap;
+  wakeCap = null;
+  $('wakestate').textContent = '\ud83d\udc42 listening for wake word\u2026';
+  $('wakestate').className = '';
+  if (c && c.text) { beep(660); send(c.text); }
+  else beep(440);
+}
+
+function wakeArm(ms) {
+  if (!wakeCap) return;
+  clearTimeout(wakeCap.timer);
+  wakeCap.timer = setTimeout(wakeFinish, ms);
 }
 
 function startWake() {
@@ -317,7 +389,7 @@ function startWake() {
   if (reason) { toast(reason, true); $('wakechk').checked = false; return; }
   micPermission().then((ok) => {
     if (!ok) {
-      toast('Microphone permission was denied — allow the mic for this site.',
+      toast('Microphone permission was denied \u2014 allow the mic for this site.',
             true);
       $('wakechk').checked = false;
       return;
@@ -333,42 +405,30 @@ function runWake() {
   wake.lang = srLang();
   wake.interimResults = false;
   wake.continuous = true;
-  capturing = false;
-  let captured = '';
-  let captureTimer = null;
-  $('wakestate').textContent = '👂 listening for wake word…';
-  $('wakestate').className = '';
+  if (!wakeCap) {
+    $('wakestate').textContent = '\ud83d\udc42 listening for wake word\u2026';
+    $('wakestate').className = '';
+  }
 
   wake.onresult = (ev) => {
-    const text = ev.results[ev.results.length - 1][0].transcript
-      .trim().toLowerCase();
-    if (!capturing) {
-      const phrase = wakePhrases().find((p) => text.includes(p));
-      if (phrase) {
-        capturing = true;
-        captured = text.split(phrase).pop().trim();
-        beep(990);
-        $('wakestate').textContent = '🎙 yes? say your command…';
-        $('wakestate').className = 'listening';
-        if (captured) finishCapture();
-        else captureTimer = setTimeout(finishCapture, 7000);
-      }
+    if (window.speechSynthesis && window.speechSynthesis.speaking) return;
+    const raw = ev.results[ev.results.length - 1][0].transcript;
+    if (!wakeCap) {
+      const m = matchWake(raw);
+      if (!m) return;
+      beep(990);
+      if (m.rest) { beep(660); send(m.rest); return; }
+      speakForce(ackText());                 // answer the wake word out loud
+      $('wakestate').textContent = '\ud83c\udf99 yes? say your command\u2026';
+      $('wakestate').className = 'listening';
+      wakeCap = { text: '', timer: null };
+      wakeArm(9000);
     } else {
-      captured = (captured + ' ' + text).trim();
-      clearTimeout(captureTimer);
-      captureTimer = setTimeout(finishCapture, 1200);
-    }
-    function finishCapture() {
-      clearTimeout(captureTimer);
-      capturing = false;
-      $('wakestate').textContent = '👂 listening for wake word…';
-      $('wakestate').className = '';
-      const cmd = captured.trim();
-      captured = '';
-      if (cmd) { beep(660); send(cmd); }
+      wakeCap.text = (wakeCap.text + ' ' + vNorm(raw)).trim();
+      wakeArm(1600);
     }
   };
-  wake.onend = () => { setTimeout(runWake, 400); };   // auto-restart
+  wake.onend = () => { setTimeout(runWake, wakeCap ? 200 : 400); };
   wake.onerror = (ev) => {
     if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
       wakeWanted = false;
@@ -403,6 +463,8 @@ function fillSettings() {
   $('s-model').value = s.model || '';
   $('s-name').value = s.assistant_name || 'Nova';
   $('s-lang').value = s.language || 'auto';
+  $('s-aliases').value = s.wake_aliases || '';
+  $('s-ack').value = s.ack_text || '';
   $('s-ollama').value = s.ollama_url || '';
   $('s-safety').value = (s.safety || {}).mode || 'confirm';
   $('s-sens').value = ((s.safety || {}).sensitive_domains || []).join(', ');
@@ -443,6 +505,8 @@ $('savebtn').addEventListener('click', async () => {
     provider: $('s-provider').value,
     model: $('s-model').value,
     assistant_name: $('s-name').value,
+    wake_aliases: $('s-aliases').value,
+    ack_text: $('s-ack').value,
     language: $('s-lang').value,
     ollama_url: $('s-ollama').value,
     safety: {
