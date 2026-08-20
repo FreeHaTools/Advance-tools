@@ -100,7 +100,7 @@ async def serve_dashboard_index(request):
     if dash.get("mode") == "design":
         html = (X.APP / "static" / "render.html").read_text(encoding="utf-8")
         inject = (f'<script src="/static/panel.js" data-dashboard="{slug}"></script>'
-                  f'<script src="/static/render.js?v=100" data-dashboard="{slug}"></script>')
+                  f'<script src="/static/board.js?v=132" data-dashboard="{slug}"></script>')
         return web.Response(text=html.replace("</body>", inject + "</body>"),
                             content_type="text/html")
     index = DASH_DIR / slug / "index.html"
