@@ -26,7 +26,8 @@ const TYPE_DEFAULT_SKIN = { toggle: 'toggle-card', light: 'light-slider',
   media: 'media-mini', clock: 'clock-card', chart: 'chart-line',
   camera: 'camera-feed', nav: 'nav-tile', select: 'select-dropdown',
   litterbox: 'lr-cartoon-room', fbnotes: 'fb-sticky', fblist: 'fb-list',
-  energysum: 'en-hero', intercom: 'ic-round', seckeypad: 'sk-pad' };
+  energysum: 'en-hero', intercom: 'ic-round', seckeypad: 'sk-pad',
+  aiassist: 'ai-orb' };
 window.AT_TYPE_DEFAULT_SKIN = TYPE_DEFAULT_SKIN;
 
 /* legacy (v0.x) variant → skin id */
@@ -51,7 +52,7 @@ const DEFAULT_ICON = { toggle: '💡', light: '💡', sensor: '📊', climate: '
   button: '▶️', vacuum: '🤖', cover: '🪟', valve: '🚰', media: '🎵', clock: '',
   chart: '📈', camera: '📷', nav: '➡️', select: '🔽', litterbox: '🐈',
   fbnotes: '📝', fblist: '🛒', energysum: '⚡', intercom: '📢',
-  seckeypad: '🔐' };
+  seckeypad: '🔐', aiassist: '🎤' };
 
 /* compile skin css (.SKIN placeholder) + collect all pack css */
 window.AT_COMPILE_SKIN = s =>
@@ -261,6 +262,25 @@ window.AT_WIDGET_CSS = `
 .at-skst.sk-off .at-skdots { display:none; }
 .at-skpanel { width:min(400px,92vw); }
 .at-skpanel .at-fsbody { gap:9px; user-select:none; -webkit-user-select:none; }
+/* AI assistant (aiassist) — chat overlay + wake badge */
+.at-aipanel { width:min(520px,94vw); }
+.at-aimsgs { display:flex; flex-direction:column; gap:8px; min-height:110px; }
+.at-aim { max-width:84%; padding:9px 13px; border-radius:13px; font-size:14.5px;
+  line-height:1.45; white-space:pre-wrap; word-break:break-word; }
+.at-aim.u { align-self:flex-end;
+  background:color-mix(in srgb,var(--accent,#4f8cff) 30%,transparent); }
+.at-aim.b { align-self:flex-start; background:rgba(255,255,255,.07); }
+.at-aim.s { align-self:center; background:none; color:var(--mut,#8b98b8);
+  font-size:12px; padding:2px; }
+.at-aiconf { align-self:flex-start; border:1px solid var(--accent,#4f8cff);
+  border-radius:13px; padding:10px 14px; display:flex; flex-direction:column;
+  gap:8px; font-size:13px; max-width:84%; }
+.at-aiconf .btns { display:flex; gap:8px; }
+.at-aimic { min-width:52px; }
+.at-aimic.rec { background:#e03c3c !important;
+  animation:at-icrec 1.1s ease-in-out infinite; }
+.at-aiwbadge { position:absolute; top:8px; right:10px; font-size:15px;
+  opacity:.85; z-index:5; }
 /* energy: unconfigured message */
 .at-skin .at-enmsg { display:none; }
 .at-skin.encfg .at-enmain { display:none; }

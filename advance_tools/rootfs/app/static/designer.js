@@ -176,7 +176,8 @@ function renderTabs() {
 function demoOpts(w) {
   const nm = w.label || (w.entity ? entName(w.entity) : '') ||
     ({ label:'', box:'', line:'', fbnotes:'Family notes', energysum:'Energy',
-       intercom:'Announce', seckeypad:'Security' }[w.type] ?? 'Pick entity');
+       intercom:'Announce', seckeypad:'Security',
+       aiassist:'Assistant' }[w.type] ?? 'Pick entity');
   const val = { sensor: '23.4 °C', climate: '21.5°', vacuum: 'docked',
     cover: 'open', valve: 'open', media: 'playing',
     clock: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) }
@@ -309,6 +310,11 @@ function addWidget(props) {
     w.entity = (ENTITIES.find(e => e.domain === 'todo') || {}).id;
   if (props.type === 'energysum') w.range = w.range || 'today';
   if (props.type === 'intercom') w.label = w.label || 'Announce';
+  if (props.type === 'aiassist') {
+    w.label = w.label || 'Assistant';
+    if (w.wake === undefined) w.wake = true;
+    if (w.speak === undefined) w.speak = true;
+  }
   if (props.type === 'seckeypad') {
     w.label = w.label || 'Security';
     w.modes = Array.isArray(w.modes) && w.modes.length ? w.modes
@@ -399,7 +405,7 @@ function inspect() {
     </div></div>`;
 
   if (isEntity ||
-      ['clock','fbnotes','energysum','intercom','seckeypad'].includes(w.type)) {
+      ['clock','fbnotes','energysum','intercom','seckeypad','aiassist'].includes(w.type)) {
     const sameType = window.AT_ALL_SKINS().filter(s => s.for === w.type);
     html += `<div class="insec"><div class="st">Design</div>`;
     if (sameType.length > 1)
@@ -484,6 +490,16 @@ function inspect() {
       <input id="p-defarea" value="${(w.defaultArea||'').replace(/"/g,'&quot;')}" placeholder="e.g. living_room">
       <div class="muted" style="margin-top:4px;font-size:11px">Pre-selected target
       the first time the panel is used; after that the tablet remembers.</div>
+      </div>`;
+
+  if (w.type === 'aiassist')
+    html += `<div class="insec"><div class="st">AI Assistant</div>
+      <label>Label</label><input id="p-label" value="${(w.label||'').replace(/"/g,'&quot;')}" placeholder="Assistant">
+      <label class="checkline"><input type="checkbox" id="p-aiwake" ${w.wake !== false ? 'checked' : ''}> Wake word ("Hey &lt;name&gt;") while this dashboard is open</label>
+      <label class="checkline"><input type="checkbox" id="p-aispeak" ${w.speak !== false ? 'checked' : ''}> Speak replies aloud</label>
+      <div class="muted" style="margin-top:4px;font-size:11px">Voice runs in the
+      browser (Chrome, HTTPS). The AI brain, safety rules and PIN are set in
+      the AI Assistant tool.</div>
       </div>`;
 
   if (w.type === 'seckeypad') {
@@ -594,6 +610,10 @@ function inspect() {
     if (t) t.style.display = nt.value === 'tab' ? 'block' : 'none';
     if (d) d.style.display = nt.value === 'dash' ? 'block' : 'none';
   });
+  const aiw = $('#p-aiwake');
+  if (aiw) aiw.addEventListener('change', () => { w.wake = aiw.checked; });
+  const ais = $('#p-aispeak');
+  if (ais) ais.addEventListener('change', () => { w.speak = ais.checked; });
   const secModes = document.querySelectorAll('.p-secmode');
   if (secModes.length) secModes.forEach(cb => cb.addEventListener('change', () => {
     const picked = [...secModes].filter(x => x.checked).map(x => x.dataset.mode);
