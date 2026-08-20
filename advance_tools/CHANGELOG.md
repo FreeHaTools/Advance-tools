@@ -3,6 +3,13 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.4.2
+
+- Better voice diagnostics: a device without any microphone (Chrome
+  reports "not-allowed" for it, which looked like a permission problem)
+  now says plainly "No microphone was found on this device"; a busy or
+  broken mic gets its own message too.
+
 ## 1.4.1
 
 - Fixed: the wake word could disable itself with "permission denied"

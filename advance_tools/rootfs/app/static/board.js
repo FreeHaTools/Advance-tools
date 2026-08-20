@@ -523,14 +523,25 @@ function atAiVoiceBlockReason() {
 }
 
 function atAiMicPermission() {
-  /* Explicit permission prompt — call from inside a user gesture. */
+  /* Probe the microphone. Resolves '' on success, or the DOMException name
+     ('NotFoundError' = no mic on this device, 'NotAllowedError' = denied). */
   const gm = navigator.mediaDevices && navigator.mediaDevices.getUserMedia
     ? navigator.mediaDevices.getUserMedia({ audio: true }) : null;
-  if (!gm) return Promise.resolve(true);
+  if (!gm) return Promise.resolve('');
   return gm.then(stream => {
     stream.getTracks().forEach(t => t.stop());
-    return true;
-  }).catch(() => false);
+    return '';
+  }).catch(e => (e && e.name) || 'NotAllowedError');
+}
+
+function atAiMicFailText(name) {
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError')
+    return 'No microphone was found on this device — plug one in or use a ' +
+           'device that has one.';
+  if (name === 'NotReadableError' || name === 'TrackStartError')
+    return 'The microphone is busy or not working — check the system sound ' +
+           'settings.';
+  return 'Microphone permission was denied — allow the mic for this site.';
 }
 
 function atAiBeep(freq) {
@@ -693,9 +704,9 @@ function atOpenAssist(w) {
     const reason = atAiVoiceBlockReason();
     if (reason) { ui.add('s', '\ud83c\udfa4 ' + reason); return; }
     if (recActive) { recStopSend(); return; }      // second tap = send now
-    if (!(await atAiMicPermission())) {
-      ui.add('s', '\ud83c\udfa4 Microphone permission was denied \u2014 ' +
-                  'allow the mic for this site in the browser and try again.');
+    const permErr = await atAiMicPermission();
+    if (permErr) {
+      ui.add('s', '\ud83c\udfa4 ' + atAiMicFailText(permErr));
       return;
     }
     atAi.micBusy = true;
@@ -731,31 +742,26 @@ function atAiWakeStart(w) {
     atAi.blocked = '';
     atAiCfg().then(run);
   };
-  const waitGesture = (needPrompt) => {
+  const failStop = (err) => {
+    atAi.wakeOn = false;
+    atAi.blocked = atAiMicFailText(err) + ' (wake word off)';
+  };
+  const waitGesture = () => {
     const once = async () => {
       document.removeEventListener('pointerdown', once);
-      if (!needPrompt || (await atAiMicPermission())) kickoff();
-      else {
-        atAi.wakeOn = false;
-        atAi.blocked = 'Microphone permission was denied — allow the mic ' +
-                       'for this site to use the wake word.';
-      }
+      const err = await atAiMicPermission();
+      if (!err) kickoff(); else failStop(err);
     };
     document.addEventListener('pointerdown', once);
   };
   /* Chrome refuses to start speech recognition before the page has seen a
-     user gesture — even when the mic permission is already granted. */
+     user gesture — even when the mic permission is already granted. The
+     getUserMedia probe also catches devices with no microphone at all. */
   const hadGesture = navigator.userActivation &&
                      navigator.userActivation.hasBeenActive;
-  if (navigator.permissions && navigator.permissions.query) {
-    navigator.permissions.query({ name: 'microphone' })
-      .then(p => {
-        if (p.state === 'granted') {
-          if (hadGesture) kickoff(); else waitGesture(false);
-        } else waitGesture(true);
-      })
-      .catch(() => waitGesture(true));
-  } else waitGesture(true);
+  if (hadGesture) {
+    atAiMicPermission().then(err => { if (!err) kickoff(); else failStop(err); });
+  } else waitGesture();
 
   function phrases() {
     const cfg = atAi.cfg || {};
