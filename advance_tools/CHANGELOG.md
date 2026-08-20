@@ -3,6 +3,15 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.4.1
+
+- Fixed: the wake word could disable itself with "permission denied"
+  even though the mic permission WAS granted — Chrome refuses to start
+  speech recognition before the page has seen a user gesture, and the
+  auto-start at page load tripped that. The wake listener now waits for
+  the first tap when the page hasn't been interacted with, and a
+  refused start retries on the next tap instead of giving up forever.
+
 ## 1.4.0
 
 **Voice that actually listens.** Reworked speech handling on dashboards

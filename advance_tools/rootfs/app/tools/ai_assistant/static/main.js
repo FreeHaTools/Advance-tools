@@ -368,6 +368,7 @@ function matchWake(text) {
 }
 
 let wakeCap = null;                    // { text, timer } — survives restarts
+let wakePermErrs = 0;
 
 function wakeFinish() {
   const c = wakeCap;
@@ -431,10 +432,22 @@ function runWake() {
   wake.onend = () => { setTimeout(runWake, wakeCap ? 200 : 400); };
   wake.onerror = (ev) => {
     if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
-      wakeWanted = false;
-      $('wakechk').checked = false;
-      $('wakestate').textContent = '';
-      toast('Microphone permission denied.', true);
+      wakePermErrs += 1;
+      if (wakePermErrs >= 3) {
+        wakeWanted = false;
+        $('wakechk').checked = false;
+        $('wakestate').textContent = '';
+        toast('Microphone permission denied.', true);
+        return;
+      }
+      /* Chrome may refuse without a fresh user gesture — retry on tap. */
+      const once = () => {
+        document.removeEventListener('pointerdown', once);
+        if (wakeWanted) runWake();
+      };
+      document.addEventListener('pointerdown', once);
+    } else {
+      wakePermErrs = 0;
     }
   };
   try { wake.start(); } catch (e) { /* restart race */ }

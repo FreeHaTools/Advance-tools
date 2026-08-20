@@ -723,11 +723,18 @@ function atAiWakeStart(w) {
      already granted → start now; otherwise wait for the first tap, ask via
      getUserMedia, then start the wake listener. */
   let kicked = false;
-  const kickoff = () => { if (kicked) return; kicked = true; atAiCfg().then(run); };
-  const waitGesture = () => {
+  let permErrs = 0;
+  let gestureWait = false;
+  const kickoff = () => {
+    if (kicked) return;
+    kicked = true;
+    atAi.blocked = '';
+    atAiCfg().then(run);
+  };
+  const waitGesture = (needPrompt) => {
     const once = async () => {
       document.removeEventListener('pointerdown', once);
-      if (await atAiMicPermission()) kickoff();
+      if (!needPrompt || (await atAiMicPermission())) kickoff();
       else {
         atAi.wakeOn = false;
         atAi.blocked = 'Microphone permission was denied — allow the mic ' +
@@ -736,11 +743,19 @@ function atAiWakeStart(w) {
     };
     document.addEventListener('pointerdown', once);
   };
+  /* Chrome refuses to start speech recognition before the page has seen a
+     user gesture — even when the mic permission is already granted. */
+  const hadGesture = navigator.userActivation &&
+                     navigator.userActivation.hasBeenActive;
   if (navigator.permissions && navigator.permissions.query) {
     navigator.permissions.query({ name: 'microphone' })
-      .then(p => { if (p.state === 'granted') kickoff(); else waitGesture(); })
-      .catch(waitGesture);
-  } else waitGesture();
+      .then(p => {
+        if (p.state === 'granted') {
+          if (hadGesture) kickoff(); else waitGesture(false);
+        } else waitGesture(true);
+      })
+      .catch(() => waitGesture(true));
+  } else waitGesture(true);
 
   function phrases() {
     const cfg = atAi.cfg || {};
@@ -797,6 +812,7 @@ function atAiWakeStart(w) {
     r.lang = atAiLang();
     r.continuous = true; r.interimResults = false;
     r.onresult = ev => {
+      permErrs = 0;
       if (window.speechSynthesis && speechSynthesis.speaking) return;
       const raw = ev.results[ev.results.length - 1][0].transcript;
       if (!atAi.cap) {
@@ -815,14 +831,28 @@ function atAiWakeStart(w) {
         armCapTimer(1600);
       }
     };
-    r.onend = () => { setTimeout(run, atAi.cap ? 200 : 500); };
+    r.onend = () => {
+      if (gestureWait) return;               // a tap will restart the loop
+      setTimeout(run, atAi.cap ? 200 : 500);
+    };
     r.onerror = ev => {
       const e = (ev || {}).error;
       if (e === 'not-allowed' || e === 'service-not-allowed') {
-        atAi.wakeOn = false;
-        atAi.blocked = 'Microphone permission was denied \u2014 allow the mic ' +
-                       'for this site to use the wake word.';
         badges(false);
+        if (++permErrs >= 3) {
+          atAi.wakeOn = false;
+          atAi.blocked = 'Microphone permission was denied \u2014 allow the ' +
+                         'mic for this site to use the wake word.';
+          return;
+        }
+        /* Chrome may refuse without a fresh user gesture \u2014 retry on tap. */
+        gestureWait = true;
+        const once = () => {
+          document.removeEventListener('pointerdown', once);
+          gestureWait = false;
+          run();
+        };
+        document.addEventListener('pointerdown', once);
       } else if (e === 'network' && ++netErrs >= 4) {
         atAi.wakeOn = false;
         atAi.blocked = 'The browser speech service is unreachable \u2014 the ' +
