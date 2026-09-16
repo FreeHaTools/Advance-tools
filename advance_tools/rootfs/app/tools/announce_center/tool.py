@@ -188,6 +188,12 @@ async def _area_data():
     entities = await X.HA.ws_call({"type": "config/entity_registry/list"})
 
     dev_area = {d.get("id"): d.get("area_id") for d in (devices or [])}
+    # 2026.9 child devices carry no area of their own — inherit the parent's.
+    for _d in (devices or []):
+        _did, _pid = _d.get("id"), _d.get("parent_device_id")
+        if _did and _pid and not dev_area.get(_did):
+            dev_area[_did] = dev_area.get(_pid)
+
     entity_area = {}
     for ent in (entities or []):
         eid = ent.get("entity_id")

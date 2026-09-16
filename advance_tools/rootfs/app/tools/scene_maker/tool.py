@@ -161,6 +161,12 @@ async def api_areas(request):
         return web.json_response({"error": str(exc)}, status=502)
 
     dev_area = {d["id"]: d.get("area_id") for d in (devices or [])}
+    # 2026.9 child devices carry no area of their own — inherit the parent's.
+    for _d in (devices or []):
+        _did, _pid = _d.get("id"), _d.get("parent_device_id")
+        if _did and _pid and not dev_area.get(_did):
+            dev_area[_did] = dev_area.get(_pid)
+
     by_area = {}          # area_id -> [entity_id]
     unassigned = []
     for e in entities or []:

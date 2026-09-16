@@ -246,6 +246,12 @@ async def _area_map():
              for a in (areas or []) if a.get("area_id")}
     dev_area = {d.get("id"): d.get("area_id")
                 for d in (devices or []) if d.get("id")}
+    # 2026.9 child devices carry no area of their own — inherit the parent's.
+    for _d in (devices or []):
+        _did, _pid = _d.get("id"), _d.get("parent_device_id")
+        if _did and _pid and not dev_area.get(_did):
+            dev_area[_did] = dev_area.get(_pid)
+
 
     out = {}
     for ent in entities or []:

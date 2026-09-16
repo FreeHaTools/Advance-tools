@@ -3,6 +3,25 @@
 Versioning follows [semver](https://semver.org): MAJOR.MINOR.PATCH — new
 features bump MINOR, fixes bump PATCH.
 
+## 1.6.1
+
+**Home Assistant 2026.9 compatibility.** Audited every WebSocket command
+and REST path against the 2026.9 release — nothing broke, three
+proactive updates:
+
+- **Entity Doctor** removes dead devices with the new
+  `config/device_registry/remove` command (2026.9), falling back to the
+  deprecated per-config-entry command on older cores; and the new
+  lightweight **child devices** introduced by 2026.9 are skipped by the
+  dead-device scan — they are parts of their parent, carry no config
+  entries, and must never be flagged or removed on their own.
+- Area names now follow the child-device inheritance rule everywhere an
+  entity's area is derived from its device (Announce, History Explorer,
+  Scene Maker, Starter Templates, AI Assistant): a child device with no
+  area of its own uses its parent's.
+- Base image bumped to Alpine 3.24 (`ghcr.io/home-assistant/base:3.24`),
+  the current tag since June 2026.
+
 ## 1.6.0
 
 **Voice v3 — hears you the first time, answers faster.**

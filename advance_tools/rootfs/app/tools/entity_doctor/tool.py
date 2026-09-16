@@ -325,6 +325,11 @@ def _find_dead_devices(reg_list, devices, areas, states, now):
     for did, dev in devices.items():
         if dev.get("disabled_by"):
             continue
+        if dev.get("parent_device_id"):
+            # 2026.9 child device — a logical part of its parent; it has no
+            # config entries of its own and must not be flagged or removed
+            # separately.
+            continue
         ents = by_device.get(did, [])
         enabled = [r for r in ents if not r.get("disabled_by")]
 
@@ -780,13 +785,22 @@ async def api_device_remove(request):
             continue
 
         errors, removed_entities = [], []
-        for entry_id in _dev_entry_ids(dev):
-            try:
-                await X.HA.ws_call({
-                    "type": "config/device_registry/remove_config_entry",
-                    "device_id": did, "config_entry_id": entry_id})
-            except Exception as exc:
-                errors.append(f"config entry {entry_id}: {exc}")
+        removed_direct = False
+        try:
+            # HA 2026.9+: one call removes the device outright.
+            await X.HA.ws_call({"type": "config/device_registry/remove",
+                                "device_id": did})
+            removed_direct = True
+        except Exception:
+            pass          # older core — use the per-config-entry command
+        if not removed_direct:
+            for entry_id in _dev_entry_ids(dev):
+                try:
+                    await X.HA.ws_call({
+                        "type": "config/device_registry/remove_config_entry",
+                        "device_id": did, "config_entry_id": entry_id})
+                except Exception as exc:
+                    errors.append(f"config entry {entry_id}: {exc}")
         for reg in by_device.get(did, []):
             eid = reg["entity_id"]
             if _orphan_ok(eid):

@@ -166,6 +166,12 @@ async def _refresh_area_cache():
     area_name = {a["area_id"]: a.get("name") or a["area_id"]
                  for a in (areas or [])}
     dev_area = {d["id"]: d.get("area_id") for d in (devices or [])}
+    # 2026.9 child devices carry no area of their own — inherit the parent's.
+    for _d in (devices or []):
+        _did, _pid = _d.get("id"), _d.get("parent_device_id")
+        if _did and _pid and not dev_area.get(_did):
+            dev_area[_did] = dev_area.get(_pid)
+
     ent_area = {}
     for reg in entities or []:
         aid = reg.get("area_id") or dev_area.get(reg.get("device_id"))
